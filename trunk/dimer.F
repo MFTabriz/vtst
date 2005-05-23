@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.1.1.1 2005-05-05 22:30:51 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.2 2005-05-23 19:19:17 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -37,7 +37,7 @@
 !   reads the dimer parameters, not just the designated IO processor for the image. 
 !
 ! v0.92, June 2002
-! - Removed a quote charactor in line 330 which caused some compilers to complain. 
+! - Removed a ' charactor in line 330 which caused some compilers to complain. 
 !
 ! v0.93, Aug 2002
 ! - Du Yaojun <dyj@mps.ohio-state.edu> pointed out that the vector GNu is not
@@ -47,20 +47,19 @@
 !
 ! v1.00, Aug 2002
 ! - Incorporated into the vasp source as dimer.F.  The three modules: dimer, neb
-!   and dynamical matrix are now separate modules controlled by the chain.F file.
+!   and dynamicalmatrix are now separate modules controlled by the chain.F file.
 !
-! v1.01, May 2004
-! - Added a steepest descent reset rule to the conjugate gradient routine
-!   as suggested by Andri Arnaldsson
+! v1.01, Mar 2005
+! - Some cleanup, and added header to out.dat
 !
 ! Graeme Henkelman
-! graeme@u.washington.edu
+! henkelman@mail.utexas.edu
 !
 !**********************************************************************
 !
       module dimer
       use base
-      use prec                                                              
+      use prec
       use main_mpi
       use poscar
       use lattice
@@ -88,7 +87,7 @@
 !      real(q),allocatable :: Ream(:),Feam(:)
       real(q) :: A(3,3),B(3,3)
 !      real(q) :: spring=10
-      real(q) :: U1tmp, U2tmp, a1, a2
+      real(q) :: U1tmp, U2tmp
       real(q) :: Uref,U,U0,U1,U2,CN1,CN,Cth,CR
       real(q) :: FD1,FD2,FRr,VRr,FACT
       real(q) :: NdT,VdV,Alpha
@@ -137,14 +136,14 @@
       if(ARTFlag.or.DragFlag)then
         if(ARTFlag) call ARTStep()
         if(DRAGFlag) call DragStep()
-        TIFOR=SPF
-        if(ImageFlag) then
+          TIFOR=SPF
+          if(ImageFlag) then
           if(IU6>=0) call WriteImage(R)
-!         if(IU6>=0) call WriteNormal(R0tmp)
-!         if(IU6>=0) call WriteForce(FR)
+!         call WriteNormal(R0tmp)
+!         call WriteForce(FR)
         endif
         return
-      endif	   
+      endif
 
       if(IU6>=0) write(IUdim,*) 'Dimer: Iteration ',Itr
 !      if(IU6>=0) write(IU0,*) 'Dimer: A ',A(1,1),A(2,2),A(3,3)
@@ -195,7 +194,7 @@
 !      endif         
 !     Send the current position and force back to vasp
       POSION=R
-	TIFOR=FR
+      TIFOR=FR
 !     Convert back to direct coordinates (only for positions, not forces)
       call KARDIR(NIONS,POSION,B)
       if(IU6>=0) write(IUdim,*)
@@ -247,7 +246,7 @@
       if(IU6>=0) open(unit=IUout, file=DIR_APP(1:DIR_LEN)//'out.dat')
       if(IU6>=0) open(unit=IUdim, file=DIR_APP(1:DIR_LEN)//'dimer.dat')
       Itr=0
- !     TestItr=0
+!     TestItr=0
       allocate(Rs(3,Nions,1:images),Vs(3,Nions,1:images))
       allocate(Fs(3,Nions,1:images),Us(1,1:images))
       allocate(F(3,Nions),F1(3,Nions),F2(3,Nions),FR(3,Nions))
@@ -299,7 +298,7 @@
 !      if(EAMFlag) call PotInit(7.1,7.25);
 #endif
 !MPI
-      end subroutine Dimer_Init
+      end subroutine Chain_Init
 !
 !
 !**********************************************************************
@@ -363,7 +362,6 @@
       if(node==2) R=(R0-N*NdR)
       call CommR()
       end subroutine SetPN
-
 !
 ! Dimer rotation
 !
@@ -381,13 +379,8 @@
 !            GNu=RetUnit(GN)
             FirstRotation=.False.
           else
-            a1=abs(sum(FN*FNold)) 
-            a2=sum(FNold*FNold)
-            if(a1<=0.5*a2)then
-              GamN=sum(FN*(FN-FNold))/sum(FNold**2)
-            else
-              GamN=0
-            endif
+!           GamN=sum(FN*(FN-FNold))/sum(FNold**2)
+            GamN=0
           endif
           GN=FN+GNold*GamN
 !          GN=RetNoDrift(GN)
@@ -396,8 +389,10 @@
           FNrP1=sum(FNP1*GNu)
           call SaveTmp()
           call Rotate(N,GNu,dTh)
-          if(IU6>=0) write(IUdim,*) 'Dimer: FindN, dTh ',dTh
-          if(IU6>=0) write(IUdim,*) 'Dimer: FNrP1 ',FNrp1
+          if(IU6>=0) then
+            write(IUdim,'(1A20,F11.5)') 'Dimer: FindN, dTh',dTh
+            write(IUdim,'(1A20,F11.5)') 'Dimer: FNrP1',FNrp1
+          endif
 !          if(IU6>=0) write(IUout,*) (Itr-1._q)*dTh,(U1+U2)/2._q,CN,FNrP1,FNr
           call SetPN()
           dThStep=.False.
@@ -411,11 +406,13 @@
           FNrp=(FNrp1+FNrp2)/2._q
           Th=atan((FNrp/Cth)*2._q)/2._q+dTh/2._q
           if(Cth<0) Th=Th+PI/2._q
-          if(IU6>=0) write(IUdim,*) 'Dimer: FindN, Th ',Th
-          if(IU6>=0) write(IUdim,*) 'Dimer: FNrP1,2 ',FNrp1,FNrp2
-          if(IU6>=0) write(IUdim,*) 'Dimer: FNrP ',FNrp
-          if(IU6>=0) write(IUdim,*) 'Dimer: Cth ',Cth
-          if(IU6>=0) write(IUout,'(6E15.7)') FMax,FNr,U,CN,Cth,Th
+          if(IU6>=0) then
+            write(IUdim,'(1A20,E11.5)')  'Dimer: FindN, Th',Th
+            write(IUdim,'(1A20,2E11.5)') 'Dimer: FNrP1,2',FNrp1,FNrp2
+            write(IUdim,'(1A20,E11.5)')  'Dimer: FNrP',FNrp
+            write(IUdim,'(1A20,F11.5)')  'Dimer: Cth',Cth
+            write(IUout,'(6E15.7)') FMax,FNr,U,CN,Cth,Th
+          endif
           call RestoreTmp()
           FNoldN=N*sum(FNold*N)
           FNoldG=GNu*sum(FNold*GNu)
@@ -434,7 +431,7 @@
             ThStep=.False.
           else
             ThStep=.False.
-	      dThStep=.True.
+            dThStep=.True.
           endif
         endif
       else
@@ -446,10 +443,12 @@
         endif
         dV=FN*(NdR*NdT)
         VdV=sum(V*dV)
-        if(IU6>=0) write(IUdim,*) 'Dimer: FindN, QM '
-        if(IU6>=0) write(IUdim,*) 'Dimer: Vr(before) ',sum(V*V)
-        if(IU6>=0) write(IUdim,*) 'Dimer: dV^2 ',sum(dV*dV)
-        if(IU6>=0) write(IUdim,*) 'Dimer: VdV/sum(dV**2) ',VdV/sum(dV**2)
+        if(IU6>=0) then
+          write(IUdim,'(1A20,F11.5)') 'Dimer: FindN, QM'
+          write(IUdim,'(1A20,F11.5)') 'Dimer: Vr(before)',sum(V*V)
+          write(IUdim,'(1A20,F11.5)') 'Dimer: dV^2',sum(dV*dV)
+          write(IUdim,'(1A20,F11.5)') 'Dimer: VdV/sum(dV**2)',VdV/sum(dV**2)
+        endif
         if(VdV>0._q) then
           V=dV*(1._q+VdV/sum(dV**2))
         else
@@ -459,7 +458,7 @@
 !        N=RetUnit(RetNoDrift(R1-R))
         N=RetUnit(R1-R0)
         call SetPN()
-        if(IU6>=0) write(IUdim,*) 'Dimer: VdV ',VdV
+        if(IU6>=0) write(IUdim,'(1A20,F11.5)') 'Dimer: VdV',VdV
         if(IU6>=0) write(IUout,'(6E15.7)') FMax,FNr,U,CN,Cth,Th
         if((FNr<MaxFN).or.(NR>=MaxNR))then
           NR=0
@@ -467,6 +466,15 @@
           ThStep=.False.
         endif
       endif
+!      if((FNr<MaxFN).or.(NR>=MaxNR))then
+!        NR=0
+!        dRStep=.True.
+!        if(NCGFlag)then
+!          dThStep=.False.
+!        else 
+!          ThStep=.False.
+!        endif
+!      endif
       end subroutine FindN
 !
 ! Translate the dimer
@@ -490,13 +498,7 @@
             Fold=SPF
             Gold=SPF
           else
-            a1=abs(sum(SPF*Fold))
-            a2=sum(Fold*Fold)
-            if(a1<=0.5*a2)then
-              Gam=sum(SPF*(SPF-Fold))/sum(Fold**2)
-            else
-              GamN=0
-            endif
+            Gam=sum(SPF*(SPF-Fold))/sum(Fold**2)
           endif
           G=SPF+Gold*Gam
           Gu=RetUnit(G)
@@ -504,10 +506,12 @@
           Gold=G
           FP1=Gu*sum(SPF*Gu)
           FrP1=sum(FP1*Gu)
-          if(IU6>=0) write(IUdim,*) 'Dimer: Step dR   ',dR
-          if(IU6>=0) write(IUdim,*) 'Dimer: F1,2*Gu   ',sum(F1*Gu),sum(F2*Gu)
-          if(IU6>=0) write(IUdim,*) 'Dimer: |SPF|     ',sqrt(sum(SPF**2))
-          if(IU6>=0) write(IUdim,*) 'Dimer: Max(SPF)  ',FMax
+          if(IU6>=0) then
+            write(IUdim,'(1A20,F11.5)')  'Dimer: Step dR',dR
+            write(IUdim,'(1A20,2E11.5)') 'Dimer: F1,2*Gu',sum(F1*Gu),sum(F2*Gu)
+            write(IUdim,'(1A20,E11.5)')  'Dimer: |SPF|',sqrt(sum(SPF**2))
+            write(IUdim,'(1A20,E11.5)')  'Dimer: Max(SPF)',FMax
+          endif
           R0=R0+Gu*dR
         else
           RdRStep=.False.
@@ -528,16 +532,18 @@
             RdR=RdR-dR/2._q
           endif
           R0=R0+Gu*RdR
-          if(IU6>=0) write(IUdim,*) 'Dimer: Step, RdR ',RdR
-          if(IU6>=0) write(IUdim,*) 'Dimer: FrP1,2    ',FrP1,FrP2
-          if(IU6>=0) write(IUdim,*) 'Dimer: FR*Gu     ',sum(FR*Gu)
-          if(IU6>=0) write(IUdim,*) 'Dimer: FrP       ',FrP
-          if(IU6>=0) write(IUdim,*) 'Dimer: CR        ',CR
-          if(IU6>=0) write(IUdim,*) 'Dimer: FrP/CR    ',FrP/CR
+          if(IU6>=0) then
+            write(IUdim,'(1A20,F11.5)')  'Dimer: Step, RdR',RdR
+            write(IUdim,'(1A20,2E11.5)') 'Dimer: FrP1,2',FrP1,FrP2
+            write(IUdim,'(1A20,E11.5)')  'Dimer: FR*Gu',sum(FR*Gu)
+            write(IUdim,'(1A20,E11.5)')  'Dimer: FrP',FrP
+            write(IUdim,'(1A20,F11.5)')  'Dimer: CR',CR
+            write(IUdim,'(1A20,F11.5)')  'Dimer: FrP/CR',FrP/CR
+          endif
           if(Node==1.and.ImageFlag) then
-            if(IU6>=0) call WriteImage(R0)
-!           if(IU6>=0) call WriteNormal(N)
-!           if(IU6>=0) call WriteForce(FR)
+            call WriteImage(R0)
+!            call WriteNormal(N)
+!            call WriteForce(FR)
           endif
         endif
       else
@@ -569,14 +575,16 @@
         else
           R0=R0+V*dT
         endif
-        if(IU6>=0) write(IUdim,*) 'Dimer: Step, QM '
-        if(IU6>=0) write(IUdim,*) 'Dimer: V ',sqrt(sum(V*V))
-        if(IU6>=0) write(IUdim,*) 'Dimer: dV ',sqrt(sum(dV*dV))
-        if(IU6>=0) write(IUdim,*) 'Dimer: VdV/sum(dV**2) ',VdV/sum(dV**2)
+        if(IU6>=0) then
+          write(IUdim,'(1A20)') 'Dimer: Step, QM '
+          write(IUdim,'(1A20,F11.5)') 'Dimer: V ',sqrt(sum(V*V))
+          write(IUdim,'(1A20,F11.5)') 'Dimer: dV ',sqrt(sum(dV*dV))
+          write(IUdim,'(1A20,F11.5)') 'Dimer: VdV/sum(dV**2) ',VdV/sum(dV**2)
+        endif
         if(Node==1.and.ImageFlag) then
-          if(IU6>=0) call WriteImage(R0)
-!          if(IU6>=0) call WriteNormal(N)
-!          if(IU6>=0) call WriteForce(FR)
+          call WriteImage(R0)
+!          call WriteNormal(N)
+!          call WriteForce(FR)
         endif
       endif
       call SetPN()
@@ -736,7 +744,7 @@
 !
       subroutine SetRand(V1)
       real(q) :: V1(3,Nions),RANE
-	external RANE
+      external RANE
       do I=1,3
         do NI=1,NIONS
           V1(I,NI)=RANE()
@@ -892,14 +900,13 @@
 !
       subroutine WriteDimerData(IU)
       integer IU
-      write(IU,*) 'Dimer: CN      ',CN
-      write(IU,*) 'Dimer: U0,1,2: ',U0,U1,U2
-      write(IU,*) 'Dimer: |F|     ',sqrt(sum(FR**2))
-      write(IU,*) 'Dimer: |F1,2|  ',sqrt(sum(F1**2)),sqrt(sum(F2**2))
-      write(IU,*) 'Dimer: FD1,2   ',FD1,FD2
-      write(IU,*) 'Dimer: FNr     ',FNr
-      write(IU,*) 'Dimer: |FN1,2| ',sqrt(sum(FN1**2)),sqrt(sum(FN2**2))
-      write(IU,*)
+      write(IU,'(1A20,F11.5)')   'Dimer: CN',CN
+      write(IU,'(1A20,3F11.5)')  'Dimer: U0,1,2:',U0,U1,U2
+      write(IU,'(1A20,F11.5)')   'Dimer: |F|',sqrt(sum(FR**2))
+      write(IU,'(1A20,2F11.5)')  'Dimer: |F1,2|',sqrt(sum(F1**2)),sqrt(sum(F2**2))
+      write(IU,'(1A20,2F11.5)')  'Dimer: FD1,2',FD1,FD2
+      write(IU,'(1A20,F11.5)')   'Dimer: FNr',FNr
+      write(IU,'(1A20,F11.5,/)') 'Dimer: |FN1,2|',sqrt(sum(FN1**2)),sqrt(sum(FN2**2))
       end subroutine WriteDimerData
 !
 !
@@ -927,7 +934,7 @@
           if(IU6>=0) write(IU6,*) 'Dimer: Forming dimer from images'
           N=R1-R2
         endif
-        call SetNoDrift(N)
+!        call SetNoDrift(N)
         call SetSelZero(N)
         call SetUnit(N)
         call CommR()
