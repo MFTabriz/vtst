@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.2 2005-05-23 19:19:17 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.3 2005-05-23 19:51:40 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -86,7 +86,6 @@
       real(q),allocatable :: Mode(:,:,:)
 !      real(q),allocatable :: Ream(:),Feam(:)
       real(q) :: A(3,3),B(3,3)
-!      real(q) :: spring=10
       real(q) :: U1tmp, U2tmp
       real(q) :: Uref,U,U0,U1,U2,CN1,CN,Cth,CR
       real(q) :: FD1,FD2,FRr,VRr,FACT
@@ -456,7 +455,10 @@
         endif
         R1=R1+V*NdT
 !        N=RetUnit(RetNoDrift(R1-R))
-        N=RetUnit(R1-R0)
+!        N=RetUnit(R1-R0)
+        N=R1-R0
+        call SetPBC(N)
+        call SetUnit(N)
         call SetPN()
         if(IU6>=0) write(IUdim,'(1A20,F11.5)') 'Dimer: VdV',VdV
         if(IU6>=0) write(IUout,'(6E15.7)') FMax,FNr,U,CN,Cth,Th
@@ -637,9 +639,7 @@
       subroutine ARTStep()
       if(IU6>=0) write(IUdim,*) 'ART: Iteration ',Itr
       R0tmp=R-R0
-      call KARDIR(Nions,R0tmp,B)
-      R0tmp=mod(R0tmp+100.5_q,1._q)-0.5_q
-      call DIRKAR(Nions,R0tmp,A)
+      call SetPBC(R0tmp)
       call SetUnit(R0tmp)
       SPF=F-R0tmp*sum(F*R0tmp)*(1._q+Alpha)
       end subroutine ARTStep
@@ -712,6 +712,16 @@
       call DIRKAR(Nions,V12,A)
       Dist=sqrt(sum(V12**2))
       end function Dist
+!
+! Sets a vector to have the smallest length consistent the the periodic boundaries
+! This should really be changed to use the Wigner-Sitz cell
+!
+      subroutine SetPBC(V1)
+      real(q) :: V1(3,Nions)
+      call KARDIR(Nions,V1,B)
+      V1=mod(V1+100.5_q,1._q)-0.5_q
+      call DIRKAR(Nions,V1,A)
+      end subroutine SetPBC
 !
 ! Rotates both V1 and V2
 !
@@ -935,6 +945,7 @@
           N=R1-R2
         endif
 !        call SetNoDrift(N)
+        call SetPBC(N)
         call SetSelZero(N)
         call SetUnit(N)
         call CommR()
