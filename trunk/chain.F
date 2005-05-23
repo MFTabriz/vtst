@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.2 2005-05-23 19:51:40 graeme Exp $
+! RCS:  $Id: chain.F,v 1.3 2005-05-23 19:57:28 graeme Exp $
 !
 ! Module which controlls the running of three methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F) and the dynamical matrix

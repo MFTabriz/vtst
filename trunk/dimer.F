@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.3 2005-05-23 19:51:40 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.4 2005-05-23 19:57:28 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page

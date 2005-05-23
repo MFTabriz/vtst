@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.1.1.1 2005-05-05 22:30:51 graeme Exp $
+! RCS:  $Id: dynmat.F,v 1.2 2005-05-23 19:57:28 graeme Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
