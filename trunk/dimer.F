@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.6 2005-05-24 01:33:32 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.7 2005-05-25 03:57:39 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -76,7 +76,7 @@
       real(q),allocatable :: FN(:,:),FNP1(:,:),FNP2(:,:),FNold(:,:)
       real(q),allocatable :: SPF(:,:),FR(:,:),FN1(:,:),FN2(:,:),FM(:,:)
       real(q),allocatable :: F1(:,:),F2(:,:),FP1(:,:),FP2(:,:),Fold(:,:)
-      real(q),allocatable :: F1tmp(:,:),F2tmp(:,:),Ntmp(:,:)
+      real(q),allocatable :: F1tmp(:,:),F2tmp(:,:),Ntmp(:,:),dRtmp(:,:)
       real(q),allocatable :: R0tmp(:,:),Gtmp(:,:),GNtmp(:,:),GNutmp(:,:)
       real(q),allocatable :: Mode(:,:,:)
 !      real(q),allocatable :: Ream(:),Feam(:)
@@ -92,18 +92,16 @@
       logical :: dThStep,ThStep,dRStep,RdRStep
       logical :: FirstTranslation,FirstRotation,IonStep,TestFlag
       logical :: ImageFlag,ARTFlag,DragFlag,NoDriftFlag,EAMFlag
-!
-!
-!**********************************************************************
-!
-!  routine for forces between the images on the elastic band
-!
-!**********************************************************************
-!
+
       contains
-!      subroutine DIMER_FORCE(T_INFO,DYN,LATT_CUR,TOTEN,TIFOR)
-!      subroutine CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR,LATT_CUR%A,LATT_CUR%B,IO%IU6)
-!      subroutine CHAIN_FORCE(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
+!
+!
+!**********************************************************************
+!
+!  Dimer method:  moves a pair of configurations to a saddle point
+!
+!**********************************************************************
+!
       subroutine DIMER_FORCE(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
       integer :: TINFO_NIONS
       integer :: IO_IU6
@@ -202,10 +200,7 @@
 !
 !**********************************************************************
 !
-! initialize the chain (repeated image mode)
-! read the spring constant
-! and  the two outer images, these images are kept fixed
-! during the entire simulation
+! initialize the dimer
 !
 !**********************************************************************
 !
@@ -253,7 +248,7 @@
       allocate(FP1(3,Nions),FP2(3,Nions))
       allocate(F1tmp(3,Nions),F2tmp(3,Nions),Ntmp(3,Nions))
       allocate(Gtmp(3,Nions),GNtmp(3,Nions),GNutmp(3,Nions))
-      allocate(R0tmp(3,Nions))
+      allocate(R0tmp(3,Nions),dRtmp(3,Nions))
 !      allocate(Feam(3*Nions),Ream(3*Nions))
       if(Seed/=0) call RMARIN(Seed,Seed)
       FirstRotation=.True.
@@ -585,19 +580,29 @@
 ! Save temporary dimer parameters
 !
       subroutine SaveTmp()
-      R0tmp=R0; Ntmp=N
-      F1tmp=F1; F2tmp=F2
-      Gtmp=G; GNtmp=GN; GNutmp=GNu;
-      U1tmp=U1; U2tmp=U2
+      R0tmp=R0
+      Ntmp=N
+      F1tmp=F1
+      F2tmp=F2
+      Gtmp=G
+      GNtmp=GN
+      GNutmp=GNu
+      U1tmp=U1
+      U2tmp=U2
       end subroutine SaveTmp
 !
 ! Restore temporary dimer parameters
 !
       subroutine RestoreTmp()
-      R0=R0tmp; N=Ntmp
-      F1=F1tmp; F2=F2tmp
-      G=Gtmp; GN=GNtmp; GNu=Gnutmp
-      U1=U1tmp; U2=U2tmp
+      R0=R0tmp
+      N=Ntmp
+      F1=F1tmp
+      F2=F2tmp
+      G=Gtmp
+      GN=GNtmp
+      GNu=Gnutmp
+      U1=U1tmp
+      U2=U2tmp
       call SetPN()
       call UpDateDimer()
       end subroutine RestoreTmp
@@ -658,7 +663,8 @@
       Fs(:,:,1:images)=0
       Fs(:,:,node)=F
       CALLMPI_C(M_sum_d(comm_chain,Fs(1,1,1),nions*3*images))
-      F1=Fs(:,:,1);F2=Fs(:,:,2)
+      F1=Fs(:,:,1)
+      F2=Fs(:,:,2)
       FR=(F1+F2)/2._q
       FMax=maxval(abs(FR))
       end subroutine CommF
@@ -674,15 +680,21 @@
       Rs(:,:,node)=R
 !      if(IU6>=0) write(IU6,*) 'Node: ',node
       CALLMPI_C(M_sum_d(comm_chain,Rs(1,1,1),nions*3*images))
-      R1=Rs(:,:,1);R2=Rs(:,:,2);
-      R0=(R1+R2)/2._q
+      R1=Rs(:,:,1)
+      R2=Rs(:,:,2)
+!      R0=(R1+R2)/2._q
+! GH: fixed this for boundary conditions
+      dRtmp=R2-R1
+      call SetPBC(dRtmp)
+      R0=R1+dRtmp/2._q
       end subroutine CommR
 
       subroutine CommU()
       Us(:,1:images)=0
       Us(:,node)=U
       CALLMPI_C(M_sum_d(comm_chain,Us(1,1),images))
-      U1=Us(1,1);U2=Us(1,2)
+      U1=Us(1,1)
+      U2=Us(1,2)
       end subroutine CommU
 !     
 !
@@ -934,7 +946,6 @@
         if(IU6>=0) write(IU6,'(A7,A13,/)') 'Dimer:','not formed'
         if(abs(Dist(R1,R2))<(NdR/10._q)) then
           call SetRand(N)
-          R=Rs(:,:,1)
         else
           if(IU6>=0) then
             write(IUdim,'(A20)') 'Forming from images'
