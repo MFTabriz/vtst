@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.7 2005-05-25 03:57:39 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.8 2005-07-31 16:29:24 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -46,6 +46,10 @@
 !
 ! v1.01, Mar 2005
 ! - Formatted the output in dimer.dat and added the headings to out.dat
+!
+! TO DO:
+! - add a single image version of the dimer method
+! - add a minimum rotational force variable
 !
 ! Graeme Henkelman
 ! henkelman@mail.utexas.edu
@@ -102,7 +106,7 @@
 !
 !**********************************************************************
 !
-      subroutine DIMER_FORCE(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
+      subroutine Dimer_Force(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
       integer :: TINFO_NIONS
       integer :: IO_IU6
       real(q) :: POSION(3,NIONS)
