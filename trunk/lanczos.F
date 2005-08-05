@@ -1,14 +1,13 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:   $Id: lanczos.F , v0.01 June 3th 2004
+! RCS:   $Id: lanczos.F , v0.02 May 13th 2005
 !
 ! This module implements the Lanczos method for saddle point finding.
 !
-! More work is needed, there WILL be A LOT of bugs. Output needs to be
-! added and refined. 
-! The module was developed on an IBM AIX system so expect problems when
-! porting to other systems. Both serial and parallel versions should
-! work on AIX machines.
+! More work is needed, there WILL be A LOT of bugs. 
+! The module was developed on a P4 running FC1 with ifort (v8.1) so 
+! expect problems when porting to other systems. Both serial and parallel 
+! versions should work on IBM AIX, Intel P4d and AMD Opterons machines.
 !
 ! Andri Arnaldsson
 ! andri@u.washington.edu
@@ -55,6 +54,12 @@
       LOGICAL,SAVE :: first=.true.,new,iterate,converged,fd_step
       LOGICAL :: ertil
 
+! Variables for diagonalization of the tridiagonal Lanczos matrix
+      INTEGER,PARAMETER :: ldz=1 
+      INTEGER :: info
+      REAL(q),DIMENSION(ldz) :: work   
+      REAL(q),DIMENSION(ldz,ldz) :: ze
+
       A=latt_a
       B=latt_b
       U=toten
@@ -86,8 +91,6 @@
         first=.false.
         new=.true.
 ! Open the ouput file for the run
-!        OPEN(lanout,FILE='lanczos.out',ACTION='write',STATUS='replace')        
-
         OPEN(lanout,FILE=DIR_APP(1:DIR_LEN)//'lanczos.out',STATUS='unknown')
 
         IF (iu6 > 0) CALL output(0)
@@ -98,8 +101,11 @@
         IF (iu6 > 0) INQUIRE(FILE='MODECAR',EXIST=ertil)
         IF (ertil) THEN
           IF (iu6 > 0) THEN
+            WRITE(lanout,'(A)') 'MODECAR found ... reading it'
             OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
-            READ(210,'(3ES20.10)') (w(:,i) , i=1,nions)
+!            READ(210,'(3ES20.10)') (w(:,i) , i=1,nions)
+! It is better to read this is using free format
+            READ(210,*) (w(1:3,i) , i=1,nions) 
             CLOSE(210)
           END IF
         ELSE
@@ -112,7 +118,6 @@
           END DO
         END IF
       END IF
-
       IF (new) THEN
         new=.false.
         iterate=.true.
@@ -143,8 +148,13 @@
           IF (it > 1) THEN
             aa(1:it)=-d(1:it)/dR
             bb(1:it)=-e(1:it)/dR
-            CALL eigenvalue(aa(1:it),bb(1:it),it)
-            CALL sort(it,aa(1:it),bb(1:it))
+            CALL dstev('N',it,aa(1:it),bb(1:it),ze,ldz,work,info)
+            IF (info /= 0) THEN
+              WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTEV '
+              WRITE(*,'(A)') ' WHEN FINDING ALL THE EIGENVALUES FOR TRI(A)'
+              WRITE(*,'(A)') ' HARD STOP ... lanczos.f90'
+              STOP
+            END IF
             eig=aa(1)
             converged=(ABS((eig-eigold)/eigold) < ltol)
             IF (iu6 > 0) CALL output(200,itr,it,eig,eigold)
@@ -157,11 +167,15 @@
           converged=.true.
           IF (iu6 > 0) CALL output(250,itr)
         END IF
-
         IF (converged) THEN
-! Only need to find the mode ones but goes through here twice if CG is used, so ...
+! Only need to find the mode once but goes through here twice if CG is used, so ...
           IF (iterate) THEN
             CALL eigenvector(it,eig)
+            IF (iu6 > 0) THEN
+              OPEN(210,FILE='NEWMODECAR',ACTION='write',STATUS='replace')
+              WRITE(210,'(3ES20.10)') (w(:,i) , i=1,nions)
+              CLOSE(210)
+            END IF
             IF (iu6 > 0) CALL output(300,itr)
           END IF        
           IF (ifcg) THEN
@@ -192,9 +206,10 @@
           R=R0+qq*dR
         END IF
       END IF                       ! end IF (new)
-
       posion=R
       CALL kardir(nions,posion,B)
+
+      CALL FLUSH(lanout)
   
       RETURN
     END SUBROUTINE lanczos_force
@@ -357,16 +372,8 @@
       call RDATAB(.True.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
      &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
       ifcg=.true.   
-      call RDATAB(.True.,'INCAR',IO%IU5,'ifcg','=','#',';','L', &
+      call RDATAB(.True.,'INCAR',IO%IU5,'Sifcg','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ifcg,CHARAC,Nint,1,IERR)
-
-
-!      if (iu6 > 0) write(*,*) ltol
-!      if (iu6 > 0) write(*,*) dR
-!      if (iu6 > 0) write(*,*) maxmove
-!      if (iu6 > 0) write(*,*) dt
-!      if (iu6 > 0) write(*,*) nl
-!      if (iu6 > 0) write(*,*) ifcg
 
     RETURN        
     END SUBROUTINE read_variables
@@ -382,13 +389,13 @@
 
       SELECT CASE (line)
         CASE (0)
-          WRITE(lanout,'(A)') 'Echo control variables:'
-          WRITE(lanout,'(A,1I3)') 'Maximum size of Lanczos matrix .............. nl=',nl
-          WRITE(lanout,'(A,1ES8.1)') 'Finite difference step length ............... dR=',dR
-          WRITE(lanout,'(A,1ES8.1)') 'Tolerance for eigenvalue convergence ...... ltol=',ltol
-          WRITE(lanout,'(A,1ES8.1)') 'Time step length for Quick-Min .............. dt=',dt
-          WRITE(lanout,'(A,1ES8.1)') 'Maximum total movement in one step ..... maxmove=',maxmove
-          WRITE(lanout,'(A,1L2)') 'Use conjugate gradients when minimizing ... ifcg=',ifcg
+          WRITE(lanout,'(A)')        'Echo control variables:'
+          WRITE(lanout,'(A,1I3)')    'Maximum size of Lanczos matrix          ... nl      = ',nl
+          WRITE(lanout,'(A,1ES8.1)') 'Finite difference step length           ... dR      = ',dR
+          WRITE(lanout,'(A,1ES8.1)') 'Tolerance for eigenvalue convergence    ... ltol    = ',ltol
+          WRITE(lanout,'(A,1ES8.1)') 'Time step length for Quick-Min          ... dt      = ',dt
+          WRITE(lanout,'(A,1ES8.1)') 'Maximum total movement in one step      ... maxmove = ',maxmove
+          WRITE(lanout,'(A,1L2)')    'Use conjugate gradients when minimizing ... ifcg    = ',ifcg
           WRITE(lanout,*) ' '
         CASE (50)
           WRITE(lanout,'(A)') 'eig   Step#   Iteration     Eig           EigOld       |(Eig-EigOld)/EigOld|'
@@ -465,7 +472,7 @@
         IF (ABS(DOT_PRODUCT(aa(1:il),bb(1:il))-1.0_q) < 1.0e-10_q) EXIT
         aa(1:il)=bb(1:il) 
       END DO
-! Extract the eigevector of the system from the Lanczos eigenvector
+! Extract the eigevector of the system from the Lanczos eigenvectors
       w=0.0_q   
       DO i=1,il
         w=w+bb(i)*PP(:,:,i)
@@ -474,150 +481,6 @@
 
     RETURN
     END SUBROUTINE eigenvector
-
-!--------------------------------------------------------------------------------------!
-
-    SUBROUTINE eigenvalue(d,e,n)
-      INTEGER,INTENT(IN) :: n
-      REAL(q),INTENT(INOUT),DIMENSION(n) :: d,e
-
-      INTEGER :: i,itr,l,m
-      REAL(q) :: b,c,dd,f,g,p,r,s
-      LOGICAL :: small
-
-! Standard QL-factorization
-
-      e(n)=0._q
-      DO l=1,n
-        itr=0
-        DO
-          small=.false.
-          DO m=l,n-1
-            dd=ABS(d(m))+ABS(d(m+1))
-            IF (ABS(e(m))+dd == dd) THEN
-              small=.true.
-              EXIT
-            END IF
-          END DO
-          IF (.not.small) m=n
-          IF (m /= l) THEN
-            IF (itr == 30) THEN
-              IF (iu6 >= 0) WRITE(*,*) 'too many iterations in frequency'
-              STOP
-            END IF
-            itr=itr+1
-            g=0.5_q*(d(l+1)-d(l))/e(l)
-            r=scaling(g,1._q)
-            g=d(m)-d(l)+e(l)/(g+SIGN(r,g))
-            s=1._q
-            c=1._q
-            p=0._q
-            DO i=m-1,l,-1
-              f=s*e(i)
-              b=c*e(i)
-              r=scaling(f,g)
-              e(i+1)=r
-              IF (r == 0._q) THEN
-                d(i+1)=d(i+1)-p
-                e(m)=0._q  
-                EXIT
-              END IF
-              s=f/r
-              c=g/r
-              g=d(i+1)-p
-              r=(d(i)-g)*s+2._q*c*b
-              p=s*r
-              d(i+1)=g+p
-              g=c*r-b
-            END DO
-            IF (r==0._q .and. i >= l) CYCLE
-            d(l)=d(l)-p
-            e(l)=g   
-            e(m)=0._q
-          END IF
-          IF (m == l) EXIT
-        END DO
-      END DO          
-    RETURN
-    END SUBROUTINE eigenvalue
-
-!--------------------------------------------------------------------------------------!
-
-    FUNCTION scaling(a,b)
-      REAL(q),INTENT(IN) :: a,b
-      REAL(q) :: scaling
-            
-      REAL(q) :: absa,absb,num
-            
-      absa=ABS(a) 
-      absb=ABS(b)
-      IF (absa > absb) THEN
-        num=absb/absa
-        scaling=absa*SQRT(1._q+num*num)
-      ELSE
-        IF (absb == 0._q) THEN
-        scaling=0._q
-        ELSE
-          num=absa/absb
-          scaling=absb*SQRT(1._q+num*num)
-        END IF
-      END IF
-    RETURN      
-    END FUNCTION scaling
-            
-!--------------------------------------------------------------------------------------!
-
-    SUBROUTINE sort(n,ra,rb)
-      INTEGER,INTENT(IN) :: n
-      REAL(q),INTENT(INOUT),DIMENSION(n) :: ra,rb
-            
-      INTEGER :: i,ir,j,l
-      REAL(q) :: rra,rrb
-    
-      IF (n < 2) RETURN
-      l=n/2+1
-      ir=n
-      DO
-        IF (l > 1) THEN
-          l=l-1
-          rra=ra(l)
-          rrb=rb(l)
-        ELSE  
-          rra=ra(ir)
-          ra(ir)=ra(1)
-          rrb=rb(ir)
-          rb(ir)=rb(1)  
-          ir=ir-1
-          IF (ir == 1) THEN
-            ra(1)=rra
-            rb(1)=rrb
-            RETURN
-          END IF
-        END IF
-        i=l
-        j=l+l
-        DO
-          IF (j <= ir) THEN
-            IF (j < ir) THEN
-              IF (ra(j) < ra(j+1)) j=j+1
-            END IF
-            IF (rra < ra(j)) THEN
-              ra(i)=ra(j)
-              rb(i)=rb(j)
-              i=j  
-              j=j+j
-            ELSE
-              j=ir+1  
-            END IF  
-          ELSE
-            EXIT 
-          END IF
-        END DO
-        ra(i)=rra
-        rb(i)=rrb 
-      END DO
-    RETURN
-    END SUBROUTINE sort
 
 !--------------------------------------------------------------------------------------!
 
