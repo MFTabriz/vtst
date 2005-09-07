@@ -209,7 +209,7 @@
       posion=R
       CALL kardir(nions,posion,B)
 
-      CALL FLUSH(lanout)
+!      CALL FLUSH(lanout)
   
       RETURN
     END SUBROUTINE lanczos_force
