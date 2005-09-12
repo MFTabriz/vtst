@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:   $Id: lanczos.F , v0.02 May 13th 2005
+! RCS:   $Id: lanczos.F , v0.03 September 12th 2005
 !
 ! This module implements the Lanczos method for saddle point finding.
 !
@@ -8,6 +8,9 @@
 ! The module was developed on a P4 running FC1 with ifort (v8.1) so 
 ! expect problems when porting to other systems. Both serial and parallel 
 ! versions should work on IBM AIX, Intel P4d and AMD Opterons machines.
+!
+! Use now the LAPACK routine DSTERF from lapack_double.f in vasp.4.lib 
+! to find the eigenvalues for the tridiagonal Lanczos matrix. 
 !
 ! Andri Arnaldsson
 ! andri@u.washington.edu
@@ -55,10 +58,10 @@
       LOGICAL :: ertil
 
 ! Variables for diagonalization of the tridiagonal Lanczos matrix
-      INTEGER,PARAMETER :: ldz=1 
+!v0.02      INTEGER,PARAMETER :: ldz=1 
       INTEGER :: info
-      REAL(q),DIMENSION(ldz) :: work   
-      REAL(q),DIMENSION(ldz,ldz) :: ze
+!v0.02      REAL(q),DIMENSION(ldz) :: work   
+!v0.02      REAL(q),DIMENSION(ldz,ldz) :: ze
 
       A=latt_a
       B=latt_b
@@ -148,13 +151,24 @@
           IF (it > 1) THEN
             aa(1:it)=-d(1:it)/dR
             bb(1:it)=-e(1:it)/dR
-            CALL dstev('N',it,aa(1:it),bb(1:it),ze,ldz,work,info)
+
+            CALL dsterf(it,aa(1:it),bb(1:it),info)
+
             IF (info /= 0) THEN
-              WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTEV '
+              WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTERF '
               WRITE(*,'(A)') ' WHEN FINDING ALL THE EIGENVALUES FOR TRI(A)'
               WRITE(*,'(A)') ' HARD STOP ... lanczos.f90'
               STOP
             END IF
+! v0.02
+!            CALL dstev('N',it,aa(1:it),bb(1:it),ze,ldz,work,info)
+!            IF (info /= 0) THEN
+!              WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTEV '
+!              WRITE(*,'(A)') ' WHEN FINDING ALL THE EIGENVALUES FOR TRI(A)'
+!              WRITE(*,'(A)') ' HARD STOP ... lanczos.f90'
+!              STOP
+!            END IF
+! v0.02
             eig=aa(1)
             converged=(ABS((eig-eigold)/eigold) < ltol)
             IF (iu6 > 0) CALL output(200,itr,it,eig,eigold)
@@ -209,7 +223,7 @@
       posion=R
       CALL kardir(nions,posion,B)
 
-!      CALL FLUSH(lanout)
+!v0.02      CALL FLUSH(lanout)
   
       RETURN
     END SUBROUTINE lanczos_force
