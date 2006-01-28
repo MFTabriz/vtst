@@ -1,10 +1,13 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.2 2005-05-23 19:57:28 graeme Exp $
+! RCS:  $Id: neb.F,v 1.3 2006-01-28 05:11:41 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
 ! module becomes active if IMAGES tag is read from the INCAR files
+!
+! Version 1.01, Dec 2005
+! Version 1.02, Jan 2006, added double nudging (LDNUDGE)
 !
 !**********************************************************************
 
@@ -13,7 +16,6 @@
     USE main_mpi
     USE poscar
     USE lattice
-!    USE inplane
 
     IMPLICIT NONE
     private
@@ -22,46 +24,44 @@
     REAL(q),ALLOCATABLE,SAVE :: posion_all(:,:,:)
     REAL(q) :: spring
     REAL(q) :: spring2,efirst,elast,spower
-      INTEGER ispring
-      LOGICAL lclimb,ltangent
+    INTEGER ispring
+    LOGICAL lclimb,ltangent,ldneb
 
 !**********************************************************************
 !
-!  routine for forces between the images on the elastic band
+! Routine for forces between the images on the elastic band
 !
 !**********************************************************************
 
   CONTAINS
-!    SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
     SUBROUTINE neb_force(nions,posion,toten,force,a,b,iu6)
-      INTEGER :: nions
-      INTEGER :: iu6
-      REAL(q) :: posion(3,nions)
-      REAL(q) :: force(3,nions),toten
+      INTEGER :: nions,iu6
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: a(3,3),b(3,3)
 ! local variables
       REAL(q) :: x(3),y(3),rmagp,rmagn,distprev(3,nions),distnext(3,nions)
-      REAL(q) :: e_chain,e_image,norm,proj,proj2,d1,d2
-      REAL(q) :: d,const,ftangent,fspring(3,nions),tangent(3,nions)
+      REAL(q) :: tangent(3,nions),norm,pdotn,rmag
       REAL(q) :: fspdotc,fdotc,frealperp,fsprpar,fsprperp
-      REAL(q) :: fadd,fspar,fmaxatom,ftemp,ftotmag
-      REAL(q) :: pdotn,rmag
+      REAL(q) :: fspar,fmaxatom,ftemp,ftotmag
       INTEGER node,i,ni,nj
 
-! variables needed for variable spring constant
+! variables for variable spring constant
       REAL(q) :: sfactor1,sfactor2
       REAL(q) :: utotmax, utotmin,uave,uave1,uave2
       INTEGER im
-! variable needed by both variable spring constant and new tangent
       REAL(q) :: toten_all(images)
-! variables needed for new tangent
+! variables for new tangent
       REAL(q) :: max_energy,min_energy
       REAL(q) :: energy_prev,energy_next
-      REAL(q),SAVE :: old_tangent(3,100)
+! GH:      REAL(q),SAVE :: old_tangent(3,100)
+      REAL(q),SAVE :: old_tangent(3,nions)
       REAL(q) :: old_dot,prev_dot,next_dot
       LOGICAL energy_flag_prev,energy_flag_next
-! variables need for uphill climb
+! variables for climbing image
       INTEGER max_node
+! variables for double nudging
+      REAL(q) :: fperp(3,nions),fspring(3,nions)
+      REAL(q) :: fspringperp(3,nions),fspringdneb(3,nions)
 
       IF (images==0) GOTO 9999
       IF (spring==-1000) RETURN
@@ -73,7 +73,7 @@
       node=comm_chain%node_me
 
       posion_all(:,:,1:images)=0
-      posion_all(:,:,node)    =posion
+      posion_all(:,:,node)=posion
       CALLMPI_C( M_sum_d( comm_chain, posion_all(1,1,1), nions*3*images))
 
       toten_all=0.0d0
@@ -81,7 +81,7 @@
       CALLMPI_C( M_sum_d (comm_chain,toten_all(1),images))
 
 !======================================================================
-!  calculate spring constants for variable spring constant NEB
+! Calculate spring constants for variable spring constant NEB
 !
 ! This calculates a spring constant between two images that is 
 ! dependant on the average energy between the two compared with the
@@ -118,7 +118,7 @@
       if (node.eq.images) uave2=abs(toten_all(node)+elast-2*utotmin)
       
       if (ispring.eq.1) then
-!       spring factors for power scaling
+!     spring factors for power scaling
          sfactor2=spring2*(uave2/utotmax)**spower+spring
          sfactor1=spring2*(uave1/utotmax)**spower+spring
       else if (ispring.eq.2) then
@@ -145,12 +145,12 @@
       endif
 
 !======================================================================
-!  calculate the tangent in each point
-!  and the distance to left and right image
+! Calculate the tangent at each point and the distance to neighboring
+! images 
 !
-! This uses the new definition of the tangent developed by
-! Graeme Henkelman, which defines the tangent as the vector to the
-! neighboring image that is higher in energy.
+! This uses a definition of the tangent defined by the neighboring
+! image which is higher in energy.  For a complete description, see
+! JCP 113, 9978 (2000)
 !======================================================================
       if (iu6>=0) write(iu6,*) 'NEB: DOING NEB!'
       i=node
@@ -162,22 +162,22 @@
 !      sfactor1=ABS(spring)
 !      sfactor2=ABS(spring)
 
-      DO ni=1,nions
-         DO nj=1,3
+      do ni=1,nions
+         do nj=1,3
             x(nj)=posion_all(nj,ni,node+1)-posion_all(nj,ni,node)
             ! minimum image convention
-            x(nj)=MOD(x(nj)+100.5_q,1._q)-0.5_q
+            x(nj)=mod(x(nj)+100.5_q,1._q)-0.5_q
             y(nj)=posion_all(nj,ni,node-1)-posion_all(nj,ni,node)
             ! minimum image convention
-            y(nj)=MOD(y(nj)+100.5_q,1._q)-0.5_q
-         ENDDO
-         CALL  dirkar(1,x,a)
-         CALL  dirkar(1,y,a)
-         DO nj=1,3
+            y(nj)=mod(y(nj)+100.5_q,1._q)-0.5_q
+         enddo
+         call  dirkar(1,x,a)
+         call  dirkar(1,y,a)
+         do nj=1,3
             distnext(nj,ni)=x(nj)
             distprev(nj,ni)=y(nj)
-         ENDDO
-      ENDDO
+         enddo
+      enddo
       rmagp=1./sqrt(sum(distprev**2))
       rmagn=1./sqrt(sum(distnext**2))
 
@@ -249,10 +249,6 @@
       rmag=rmagn*rmagp
       pdotn=acos(pdotn*rmag)*180.0/3.141592
 
-      e_chain=0
-      e_image=0
-      ftangent=0
-
 !======================================================================
 ! some debugging
 !======================================================================
@@ -277,77 +273,100 @@
 120   FORMAT( ' ----------------------------------------------', &
            '-------------------------------------')
 
-101       FORMAT( ' Tangent     '/ &
+101   FORMAT( ' Tangent     '/ &
            ' ----------------------------------------------')
- 102       FORMAT( ' Spring Force     '/ &
+102   FORMAT( ' Spring Force     '/ &
            ' ----------------------------------------------')
- 103       FORMAT( ' Total Projected Force     '/ &
+103   FORMAT( ' Total Projected Force     '/ &
            ' ----------------------------------------------')
-111       FORMAT((3F13.5))
-121      FORMAT( ' ----------------------------------------------')
+111   FORMAT((3F13.5))
+121   FORMAT( ' ----------------------------------------------')
 
-         if (iu6>=0) then
-            write(iu6,101)
-            write(iu6,111) (tangent(:,ni)*norm,ni=1,nions)
-!            write(iu6,121)
-!            write(iu6,102)
-!            write(iu6,111) (fspring(:,ni),ni=1,nions)
-!            write(iu6,121)
-         endif
+      if (iu6>=0) then
+         write(iu6,101)
+         write(iu6,111) (tangent(:,ni)*norm,ni=1,nions)
+      endif
 
 !======================================================================
-! Climb uphill
+! find climbing image
 !======================================================================
-         if (lclimb) then
-            max_energy=-1e9
-            do im=1,images
-               if (toten_all(im).gt.max_energy) then
-                  max_energy=toten_all(im)
-                  max_node=im
-               endif
-            enddo
-         endif
+      if (lclimb) then
+         max_energy=-1e9
+         do im=1,images
+            if (toten_all(im).gt.max_energy) then
+               max_energy=toten_all(im)
+               max_node=im
+            endif
+         enddo
+      endif
 
+!======================================================================
+! Double nudging
+!   for details, see: Trygubenko and Wales, JCP 120, 2082 (2005)
+!   turn on by setting LDNEB=.TRUE.
+!
+!   The idea here is to add a portion of the perpendicular spring force
+!   to stabilize and possibly accelerate convergence of the NEB,
+!   particularly with second order optimizers such as BFGS (IBRION 1).
+!   This has not been well tested, and users should be warned that this
+!   extra force will cause some corner cutting, so that images will not
+!   rigorously converge to the minimum energy path.  Convergence of the
+!   climbing image, however, will not be affected by double nudging.
+!======================================================================
+      fperp=force-tangent*fdotc*norm
+      fspring=sfactor1*distprev+sfactor2*distnext
+      fspringpar=sum(fspring*tangent)*norm
+      fspringperp=fspring-sum(fspring*tangent)*norm
+      fspringdneb=fspringperp-sum(fspringperp*force)/sqrt(sum(force**2))
+!
+! GH: Could try limiting the dneb force to the magnitude of fspringpar
+!     which will prevent corner cutting upon convergence
+!
+!      if(sum(fspringpar**2).lt.sum(fspringperp)) then
+!         fspringdneb=fspringdneb*sqrt(sum(fspringpar**2))/sqrt(sum(fspringdneb**2))
+!      endif
+
+!======================================================================
+! generate NEB force
+!======================================================================
       frealperp=0.
       fsprpar=0.
       fsprperp=0.
       ftotmag=0.
       fmaxatom=0.
       
-      DO ni=1,nions
+      do ni=1,nions
          ftemp=0.
-         DO nj=1,3
+         do nj=1,3
             fspar=fspdotc*tangent(nj,ni)*norm
             fsprpar=fsprpar+fspar**2
-
             frealperp=frealperp+(force(nj,ni)-fdotc*tangent(nj,ni)*norm)**2
-
             if (lclimb.and.node.eq.max_node) then
                force(nj,ni)=force(nj,ni)-2*fdotc*tangent(nj,ni)*norm
             else
                force(nj,ni)=force(nj,ni)+fspar-fdotc*tangent(nj,ni)*norm
+               if (ldneb) then
+                  force(nj,ni)=force(nj,ni)+fspringdneb(nj,ni)
+               endif
             endif
-
             ftotmag=ftotmag+force(nj,ni)**2
             ftemp=ftemp+force(nj,ni)**2
-         ENDDO
+         enddo
          if (ftemp.gt.fmaxatom) fmaxatom=ftemp
-      ENDDO
+      enddo
 
 !      write(iu6,*) 'NEB TOTAL FORCE: ',sqrt(ftotmag)
-
-      if (iu6>=0) then
+!      if (iu6>=0) then
 !         write(iu6,103)
 !         write(iu6,111) (force(:,ni),ni=1,nions)
 !         write(iu6,121)
-      endif
+!      endif
+
       fsprpar=sqrt(fsprpar)
       fsprperp=sqrt(fsprperp)
       frealperp=sqrt(frealperp)
       ftotmag=sqrt(ftotmag/real(nions))
       fmaxatom=sqrt(fmaxatom)
-
-!      toten=toten+e_chain/images
 
       if (iu6>=0) then
          write(iu6,4699) fsprpar,fsprperp, frealperp
@@ -370,14 +389,12 @@
 
 !**********************************************************************
 !
-! initialize the chain (repeated image mode)
-! read the spring constant
-! and  the two outer images, these images are kept fixed
-! during the entire simulation
+! Initialize the chain (repeated image mode)
+! Read the spring constant and the two endpoint images, which are kept
+! fixed during the optimization
 !
 !**********************************************************************
 
-!    SUBROUTINE chain_init (T_INFO, IO)
     SUBROUTINE neb_init (T_INFO, IO)
       USE base
       TYPE (in_struct) :: IO
@@ -385,22 +402,25 @@
 
 ! needed only temporarily
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
-      TYPE (latt)::       LATT_CUR
+      TYPE (latt):: LATT_CUR
       TYPE (type_info) :: T_I
-      TYPE (dynamics)  :: DYN
-      INTEGER     IDUM,IERR,N,idir,node
-      CHARACTER*1   CHARAC
-      COMPLEX(q)  CDUM  ; LOGICAL  LDUM
+      TYPE (dynamics) :: DYN
+      INTEGER IDUM,IERR,N,idir,node
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
       REAL(q) RDUM
 !R.S
       integer tiu6, tiu0
-        tiu6 = IO%IU6
-        tiu0 = IO%IU0
+      tiu6 = IO%IU6
+      tiu0 = IO%IU0
 
 ! quick return, if we are not running in image mode
       IF (images==0) RETURN
 #if defined(MPI) || defined(MPI_CHAIN)
+
 ! read the spring constant
+
       spring=-5.
 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'SPRING','=','#',';','F', &
@@ -412,7 +432,8 @@
          STOP
       ENDIF
 
-! BPU: read in spring 2 for variable NEB
+! read in spring 2 for variable NEB
+
       spring2=spring
 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'SPRING2','=','#',';','F', &
@@ -424,7 +445,7 @@
          STOP
       ENDIF
 
-! BPU: read climbing flag to move maximum image up hill
+! read climbing image flag to move maximum energy image to the saddle
 
       lclimb=.false.
       
@@ -437,7 +458,7 @@
          STOP
       ENDIF
 
-! BPU: read tangent flag (true = new, false = old)
+! read tangent flag (true = new, false = old)
 
       ltangent=.true.
       
@@ -450,7 +471,20 @@
          STOP
       ENDIF
 
-! BPU: read energies of end points
+! read dneb flag (true = dneb, false = neb)
+      
+      ldneb=.true.
+      
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEB','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,ldneb,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. &
+           ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''LDNEB'' from file INCAR.'
+         STOP
+      ENDIF
+
+! read energies of end points
 
       efirst=0.0
       elast=0.0
@@ -473,7 +507,7 @@
          STOP
       ENDIF
 
-! BPU: read in variable spring constant formula flag and spring power
+! read in variable spring constant formula flag and spring power
 
       ispring=3
       spower=1.0

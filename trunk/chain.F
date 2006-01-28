@@ -1,15 +1,23 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.4 2005-07-31 16:29:24 graeme Exp $
+! RCS:  $Id: chain.F,v 1.5 2006-01-28 05:11:41 graeme Exp $
 !
-! Module which controlls the running of three methods, the nudged
-! elastic band (neb.F), the dimer (dimer.F) and the dynamical matrix
-! method (dynmat.F).  The purpose of this module is to determine which
-! of these methods should be run, and to do so at each ionic step.
+! Module which controlls the running of four methods, the nudged
+! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
+! the dynamical matrix method (dynmat.F).  The purpose of this module
+! is to determine which of these methods should be run, and to do so at
+! each ionic step.
 !
-! New: adding a module to separate optimizers from the transition
+! TODO: add a module to separate optimizers from the transition
 ! state methods.  The conjugate gradient and quick-min algorithms
 ! will also work with normal minimization runs.
+!
+! NOTE: the vasp folks have now added their own dynamical matrix
+! code.  The only advantage of this dynamical matrix implementation
+! is that you can combine forces from multiple vasp runs.  This
+! makes it easier to separate a large calculation into serveral jobs,
+! and systematically check for convergence of the normal modes, or
+! prefactors of reactions.
 !
 !**********************************************************************
 
