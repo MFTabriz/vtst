@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.3 2006-01-28 05:11:41 graeme Exp $
+! RCS:  $Id: neb.F,v 1.4 2006-05-23 16:16:04 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -25,7 +25,7 @@
     REAL(q) :: spring
     REAL(q) :: spring2,efirst,elast,spower
     INTEGER ispring
-    LOGICAL lclimb,ltangent,ldneb
+    LOGICAL lclimb,ltangent,ldneb,ldnebnew
 
 !**********************************************************************
 !
@@ -53,15 +53,12 @@
 ! variables for new tangent
       REAL(q) :: max_energy,min_energy
       REAL(q) :: energy_prev,energy_next
-! GH:      REAL(q),SAVE :: old_tangent(3,100)
-      REAL(q),SAVE :: old_tangent(3,nions)
-      REAL(q) :: old_dot,prev_dot,next_dot
       LOGICAL energy_flag_prev,energy_flag_next
 ! variables for climbing image
       INTEGER max_node
 ! variables for double nudging
       REAL(q) :: fperp(3,nions),fspring(3,nions)
-      REAL(q) :: fspringperp(3,nions),fspringdneb(3,nions)
+      REAL(q) :: fspringperp(3,nions),fspringpar(3,nions),fspringdneb(3,nions)
 
       IF (images==0) GOTO 9999
       IF (spring==-1000) RETURN
@@ -74,6 +71,10 @@
 
       posion_all(:,:,1:images)=0
       posion_all(:,:,node)=posion
+! moving endpoint version
+!      posion_all(:,:,0:images)=0
+!      posion_all(:,:,node-1)=posion
+! need a moving endpoint version
       CALLMPI_C( M_sum_d( comm_chain, posion_all(1,1,1), nions*3*images))
 
       toten_all=0.0d0
@@ -164,6 +165,8 @@
 
       do ni=1,nions
          do nj=1,3
+! moving endpoint version needed
+! need a special rule for the endpoints (just minimize them)
             x(nj)=posion_all(nj,ni,node+1)-posion_all(nj,ni,node)
             ! minimum image convention
             x(nj)=mod(x(nj)+100.5_q,1._q)-0.5_q
@@ -250,18 +253,6 @@
       pdotn=acos(pdotn*rmag)*180.0/3.141592
 
 !======================================================================
-! some debugging
-!======================================================================
-      old_dot=sum(old_tangent*tangent)*norm
-      prev_dot=sum(distprev*tangent)*norm**2
-      next_dot=sum(distnext*tangent)*norm**2
-      
-      if (iu6>0) then
-         write(iu6,*) 'NEBD: old_dot, prev_dot, next_dot: ',old_dot,prev_dot,next_dot
-      endif
-      old_tangent=tangent*norm
-
-!======================================================================
 90    FORMAT( '  energy of chain is (eV) ',F16.6,' for this image ',F16.6,/ &
            '  tangential force (eV/A) ',F16.6, / &
            '  left and right image ',2F10.6,' A')
@@ -312,19 +303,30 @@
 !   extra force will cause some corner cutting, so that images will not
 !   rigorously converge to the minimum energy path.  Convergence of the
 !   climbing image, however, will not be affected by double nudging.
+!
+!   There is also an option which will smoothly turn off the double
+!   nudging as the NEB converges (again, this is not well tested)
+!   To use this new method, set LDNEBNEW=.TRUE.
+!
 !======================================================================
       fperp=force-tangent*fdotc*norm
       fspring=sfactor1*distprev+sfactor2*distnext
-      fspringpar=sum(fspring*tangent)*norm
-      fspringperp=fspring-sum(fspring*tangent)*norm
-      fspringdneb=fspringperp-sum(fspringperp*force)/sqrt(sum(force**2))
+      fspringpar=sum(fspring*tangent*norm)*tangent*norm
+      fspringperp=fspring-fspringpar
+      fspringdneb=fspringperp-sum(fspringperp*fperp)*fperp/sum(fperp**2)
 !
-! GH: Could try limiting the dneb force to the magnitude of fspringpar
-!     which will prevent corner cutting upon convergence
+! Could try limiting the dneb force to the magnitude of fspringpar
+! which will prevent corner cutting upon convergence
 !
-!      if(sum(fspringpar**2).lt.sum(fspringperp)) then
+!      if(sum(fspringdneb**2).gt.sum(fspringpar**2)) then
 !         fspringdneb=fspringdneb*sqrt(sum(fspringpar**2))/sqrt(sum(fspringdneb**2))
 !      endif
+!
+! This could be better because it turns off smoothly at convergence
+      if (ldnebnew) then
+         if (sum(fspringperp**2).ge.0.) &
+            fspringdneb = fspringdneb*atan(sum(fperp**2)/sum(fspringperp**2))
+      endif
 
 !======================================================================
 ! generate NEB force
@@ -345,7 +347,7 @@
                force(nj,ni)=force(nj,ni)-2*fdotc*tangent(nj,ni)*norm
             else
                force(nj,ni)=force(nj,ni)+fspar-fdotc*tangent(nj,ni)*norm
-               if (ldneb) then
+               if (ldneb.or.ldnebnew) then
                   force(nj,ni)=force(nj,ni)+fspringdneb(nj,ni)
                endif
             endif
@@ -473,7 +475,7 @@
 
 ! read dneb flag (true = dneb, false = neb)
       
-      ldneb=.true.
+      ldneb=.false.
       
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEB','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ldneb,CHARAC,N,1,IERR)
@@ -481,6 +483,17 @@
            ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''LDNEB'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ldnebnew=.false.
+
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEBNEW','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,ldnebnew,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. &
+           ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''LDNEBNEW'' from file INCAR.'
          STOP
       ENDIF
 
@@ -570,6 +583,8 @@
 
       node=COMM_CHAIN%NODE_ME
       CALL MAKE_DIR_APP(node)
+! for moving endpoints
+!      CALL MAKE_DIR_APP(node-1)
 #endif
     END SUBROUTINE neb_init
 
