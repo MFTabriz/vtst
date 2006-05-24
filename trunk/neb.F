@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.5 2006-05-24 18:30:23 dano Exp $
+! RCS:  $Id: neb.F,v 1.6 2006-05-24 18:48:43 dano Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -24,6 +24,7 @@
     REAL(q),ALLOCATABLE,SAVE :: posion_all(:,:,:)
     REAL(q) :: spring
     REAL(q) :: spring2,efirst,elast,spower
+    REAL(q),PARAMETER  :: PI =3.141592653589793238_q
     INTEGER ispring
     LOGICAL lclimb,ltangent,ldneb,ldnebnew
 
@@ -325,7 +326,7 @@
 ! This could be better because it turns off smoothly at convergence
       if (ldnebnew) then
          if (sum(fspringperp**2).ge.0.) &
-            fspringdneb = fspringdneb*2/3.1415*atan(sum(fperp**2)/sum(fspringperp**2))
+            fspringdneb = fspringdneb*2/PI*atan(sum(fperp**2)/sum(fspringperp**2))
       endif
 
 !======================================================================
