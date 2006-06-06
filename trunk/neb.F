@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.7 2006-06-05 22:39:09 graeme Exp $
+! RCS:  $Id: neb.F,v 1.8 2006-06-06 21:46:40 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -54,13 +54,11 @@
       REAL(q) :: latt_a(3,3),latt_b(3,3)
 
       ! local variables
-      REAL(q) :: dist_next_mag, dist_next(3,nions)
-      REAL(q) :: dist_prev_mag, dist_prev(3,nions)
-
+      REAL(q) :: dist_prev(3,nions), dist_next(3,nions)
       REAL(q) :: tangent(3,nions)
-      REAL(q) :: f_perp(3,nions),f_spring(3,nions)
+      REAL(q) :: f_perp(3,nions),f_par(3,nions),f_spring(3,nions)
       REAL(q) :: f_spring_perp(3,nions),f_spring_par(3,nions)
-      REAL(q) :: f_spring_dneb(3,nions)
+      REAL(q) :: f_spring_vec(3,nions),f_dneb(3,nions)
 
       REAL(q) :: toten_all(images)
       INTEGER :: node,ni
@@ -72,7 +70,7 @@
 
       ! variables for climbing image
       REAL(q) :: max_energy
-      INTEGER :: climbing_image
+      INTEGER :: climbing_image,max_energy_image
       LOGICAL :: lclimb_local
 
       IF (images==0) GOTO 9999
@@ -109,18 +107,17 @@
 ! JCP 113, 9978 (2000)
 !======================================================================
 
-      if (iu6>=0) write(iu6,*) 'NEB: DOING NEB!'
-
       dist_prev = posion_all(:,:,node-1)-posion_all(:,:,node)
       dist_next = posion_all(:,:,node+1)-posion_all(:,:,node)
 
-      ! apply periodic boundary conditions to these vector differences
-      set_pbc(dist_prev)
-      set_pbc(dist_next)
+      ! postions are in direct coordinates, convert to cartesian
+      call dirkar(nions,dist_prev,dir2car)
+      call dirkar(nions,dist_next,dir2car)
 
-      dist_prev_mag = sqrt(sum(dist_prev**2))
-      dist_next_mag = sqrt(sum(dist_next**2))
-    
+      ! apply periodic boundary conditions to these vector differences
+      call set_pbc(dist_prev)
+      call set_pbc(dist_next)
+
       ! define the tangent at each image 
       if (node.ne.1) then
          energy_prev_greater = toten_all(node-1).gt.toten_all(node)
@@ -142,8 +139,10 @@
          energy_prev_greater = .false.
       endif
          
-      if (iu6>0) write(iu6,*) 'NEB: energy_prev_greater,next: ', &
-                               energy_prev_greater, energy_next_greater
+      if (iu6>0) write(iu6,*) &
+         'NEB: the previous image is higher in energy:', energy_prev_greater
+      if (iu6>0) write(iu6,*) &
+         'NEB: the next image is higher in energy    :', energy_next_greater
          
       if (energy_prev_greater.neqv.energy_next_greater) then
          ! not at an extrema
@@ -156,7 +155,7 @@
          endif
       else
          ! at an extrema
-         if (iu6>0) write(iu6,*) 'NEB: at an extrema' 
+         if (iu6>0) write(iu6,*) 'NEB: image is at an extrema' 
          if (node.ne.1) then
             energy_diff_prev = toten_all(node-1)-toten_all(node)
          else
@@ -169,15 +168,11 @@
          endif
          min_diff_energy=min(abs(energy_diff_prev),abs(energy_diff_next))
          max_diff_energy=max(abs(energy_diff_prev),abs(energy_diff_next))
-         if (iu6>0) write(iu6,*) 'NEB: diff energy (min, max): ', &
-                                  min_diff_energy,max_diff_energy
+         if (iu6>0) write(iu6,'(A30,2F12.6)') &
+            'NEB: diff energy (min, max): ', min_diff_energy,max_diff_energy
          if (energy_diff_prev.gt.energy_diff_next) then
-            if (iu6>0) write(iu6,*) &
-               'NEB: prev energy differenence greater than next energy difference' 
             tangent = dist_next*min_diff_energy - dist_prev*max_diff_energy
          else
-            if (iu6>0) write(iu6,*) &
-               'NEB: next energy differenence greater than prev energy difference' 
             tangent = dist_next*max_diff_energy - dist_prev*min_diff_energy
          endif
       endif
@@ -188,7 +183,7 @@
       endif
 
       ! normalize the tangent vector
-      set_unit(tangent)
+      call set_unit(tangent)
 
 !======================================================================
 ! find climbing image
@@ -196,6 +191,7 @@
 
       if (lclimb) then
          lclimb_local=.true.
+         ! use energy of first image if specified in the INCAR
          if(energy_first.ne.0) then
             max_energy_image=0
             max_energy = energy_first
@@ -203,14 +199,13 @@
             max_energy_image=1
             max_energy = toten_all(1)
          endif
-         do im=1,images
-            if (toten_all(im).gt.max_energy) then
-               max_energy = toten_all(im)
-               max_energy_image = im
+         do ni=1,images
+            if (toten_all(ni).gt.max_energy) then
+               max_energy = toten_all(ni)
+               max_energy_image = ni
             endif
          enddo
-         if(energy_last.ne.0) then
-            if (energy_last.gt.max_energy) then
+         if(energy_last.ne.0 .and. energy_last.gt.max_energy) then
             max_energy_image = images+1
             max_energy = energy_last
          endif
@@ -229,7 +224,8 @@
 
       f_perp = force - Vproj(force,tangent)
       f_par = force - f_perp
-      f_spring_par = spring*(Vproj(dist_prev,tangent)+Vproj(dist_next,tangent))
+!      f_spring_par = spring*(Vproj(dist_prev,tangent)+Vproj(dist_next,tangent))
+      f_spring_par = spring*(sqrt(sum(dist_next**2))-sqrt(sum(dist_prev**2)))*tangent
 
 !======================================================================
 ! Double nudging
@@ -253,7 +249,7 @@
       if(ldneb) then
          f_spring_vec = spring*(dist_prev+dist_next)
          f_spring_perp = f_spring_vec-Vproj(f_spring_vec,tangent)
-         f_spring_dneb = f_spring_perp-Vproj(f_spring_perp,f_perp)
+         f_dneb = f_spring_perp-Vproj(f_spring_perp,f_perp)
 
          ! smoothly turn off the dneb force at convergence
          if (.not.ldneborg) then
@@ -268,7 +264,7 @@
 ! add up the forces
 !======================================================================
 
-      if (lclimb_local) then
+      if (lclimb_local .and. node==climbing_image) then
          force = force - 2._q*Vproj(force,tangent)
       else
          force = f_spring_par + f_perp + f_dneb
@@ -278,11 +274,11 @@
 ! print neb information
 !======================================================================
 
- 4696 format( ' Tangent     '/ &
+ 4696 format( /' NEB: Tangent'/ &
               ' ----------------------------------------------')
- 4697 format(1x,'NEB: Forces: par spring, perp real, dneb ',3f12.6)
+ 4697 format(/1x,'NEB: forces: par spring, perp real, dneb ',3f12.6)
  4698 format(1x,'NEB: distance to prev, next image, angle between ',3f12.6)
- 4699 format(1x,'NEB: projections on to tangent (spring, real) ',2f12.6)
+ 4699 format(1x,'NEB: projections on to tangent (spring, real) ',2f12.6,/)
 
       if (iu6>=0) then
          write(iu6,4696)
@@ -290,9 +286,9 @@
          write(iu6,4697) sqrt(sum(f_spring_par**2)),sqrt(sum(f_perp**2)),&
                          sqrt(sum(f_dneb**2))
          write(iu6,4698) sqrt(sum(dist_prev**2)),sqrt(sum(dist_next**2)),&
-                         acos(sum(return_unit(dist_prev)* &
-                                  return_unit(dist_next)))*180._q/PI
-         write(iu6,4699) sqrt(sum(f_spring_par**2)),sqrt(sum(f_par**2))
+            acos(min(max(sum(return_unit(dist_prev)* &
+            return_unit(dist_next)),-1._q),1._q))*180._q/PI
+         write(iu6,4699) sum(f_spring_par*tangent),sum(f_par*tangent)
       endif
 
 #endif
@@ -345,6 +341,8 @@
             WRITE(TIU0,*)'Error reading item ''SPRING'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,F14.6)') 'NEB:','SPRING',spring
+
 
       ! read climbing image flag to move maximum energy image to the saddle
 
@@ -357,18 +355,20 @@
             WRITE(TIU0,*)'Error reading item ''LCLIMB'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,L7)') 'NEB:','LCLIMB',lclimb
 
       ! read old tangent flag
 
       ltangentold=.false.
       
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LTANGENTOLD','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,ltangent,CHARAC,N,1,IERR)
+     &            IDUM,RDUM,CDUM,ltangentold,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
             WRITE(TIU0,*)'Error reading item ''LTANGENTOLD'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,L7)') 'NEB:','LTANGENTOLD',ltangentold
 
       ! read dneb flag (true = dneb, false = neb)
       
@@ -382,6 +382,7 @@
             WRITE(TIU0,*)'Error reading item ''LDNEB'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,L7)') 'NEB:','LDNEB',ldneb
 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEBORG','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ldneborg,CHARAC,N,1,IERR)
@@ -390,11 +391,12 @@
             WRITE(TIU0,*)'Error reading item ''LDNEBORG'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,L7)') 'NEB:','LDNEBORG',ldneborg
 
       ! read energies of end points
 
-      efirst=0.0
-      elast=0.0
+      energy_first=0.0
+      energy_last=0.0
 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'EFIRST','=','#',';','F', &
      &            IDUM,energy_first,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -403,6 +405,7 @@
               WRITE(TIU0,*)'Error reading item ''EFIRST'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,F14.6)') 'NEB:','EFIRST',energy_first
 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'ELAST','=','#',';','F', &
      &            IDUM,energy_last,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -411,6 +414,7 @@
               WRITE(TIU0,*)'Error reading item ''ELAST'' from file INCAR.'
          STOP
       ENDIF
+      if(tiu6>0) write(tiu6,'(A5,A16,F14.6)') 'NEB:','ELAST',energy_last
 
       ! allocate the positions
       ALLOCATE(posion_all(3,t_info%nions,0:images+1))
