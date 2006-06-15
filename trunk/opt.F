@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.1 2006-06-10 04:28:32 graeme Exp $
+! RCS:  $Id: opt.F,v 1.2 2006-06-15 22:44:29 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -13,8 +13,8 @@
     USE lattice
 
     IMPLICIT NONE
-    private :: sd_step,cg_step, qm_step, lbfgs_step
-    private :: sd_init,cg_init, qm_init, lbfgs_init
+    private :: sd_step,cg_step, qm_step, lbfgs_step, bfgs_step
+    private :: sd_init,cg_init, qm_init, lbfgs_init, bfgs_init
 
     public :: opt_step, opt_init  !call opt_init from chain_init
 
@@ -49,7 +49,12 @@
         call lbfgs_step()
       elseif(iopt==2) then
         call cg_step()
-      ! ...
+      elseif(iopt==3) then
+        call qm_step()
+      elseif(iopt==4) then
+        call sd_step()
+      elseif(iopt==5) then
+        call bfgs_step()
       endif
 
 
@@ -90,10 +95,35 @@
         call lbfgs_init()
       elseif(iopt==2) then
         call cg_init()
-      ! ...
+      elseif(iopt==3) then
+        call qm_init()
+      elseif(iopt==4) then
+        call sd_init()
+      elseif(iopt==5) then
+        call bfgs_init()
       endif
 
     end subroutine opt_init
+
+!**********************************************************************
+!
+! Limited-memory bfgs method
+!
+!**********************************************************************
+
+    subroutine lbfgs_init()
+    ! load the variables: dR, maxmove, memory
+    ! initialize flag: finite_diff_step_flag
+    end subroutine lbfgs_init
+
+    subroutine lbfgs_step(posion,toten,force)
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
+
+      REAL(q),PARAMETER :: gamma=0.5_q
+      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+
+    end subroutine lbfgs_step
+
 
 !**********************************************************************
 !
@@ -115,7 +145,7 @@
 
 !      IF (fd_step) THEN
       IF (finite_difference_step_flag) THEN
-        fd_step=.false.
+        finite_difference_step_flag=.false.
         f1=Feff
         c1=ABS(SUM(f1*fco))
         c2=SUM(fco*fco)
@@ -131,7 +161,8 @@
 ! Move from the original configuration
         R=R0+dcu*dR
       ELSE
-        fd_step=.true.
+!        fd_step=.true.
+        finite_difference_step_flag=.true.
         f2=Feff
         f1d=SUM(F1*dcu)
         f2d=SUM(f2*dcu)
@@ -155,6 +186,88 @@
 
 
     end subroutine cg_step
+
+
+!**********************************************************************
+!
+! Qucik-min method
+!
+!**********************************************************************
+
+    subroutine qm_init()
+    ! load the variables: dt, maxmove
+    ! set velocity
+    end subroutine qm_init
+
+    subroutine qm_step(posion,toten,force)
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
+
+      REAL(q) :: velocity,dR
+
+      if ((sum(force*velocity)).ge.0.0_q) then
+        velocity = vproj(velocity,force)
+      else
+        velocity = velocity*0.0_q
+      endif
+
+      ! Euler step
+      velocity = velocity*dt*force/mass
+      dR = dt*velocity
+      if (sqrt(dR*dR).ge.maxmove) then
+        dR = maxmove*return_unit(dR)
+      endif
+
+      posion = posion+dR
+
+    return ! do i need this?
+    end subroutine qm_step
+
+
+!**********************************************************************
+!
+! Steepest-Decent method
+!
+!**********************************************************************
+
+    subroutine sd_init()
+    ! load the variables: alpha, maxmove
+    end subroutine sd_init
+
+    subroutine sd_step(posion,toten,force)
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
+
+      REAL(q),PARAMETER :: gamma=0.5_q
+      REAL(q) :: dR 
+    
+      dR = force * alpha
+      if (sqrt(sum(dR*dR)).ge.maxmove then
+        dR = maxmove*return_unit(dR)
+      endif
+
+      posion = posion+dR
+
+    return ! do i need this?
+    end subroutine sd_step
+
+!**********************************************************************
+!
+! full bfgs method
+!
+!**********************************************************************
+
+    subroutine bfgs_init()
+    ! load the variables: dR, maxmove, memory
+    ! initialize flag: finite_diff_step_flag
+    end subroutine bfgs_init
+
+    subroutine bfgs_step(posion,toten,force)
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
+
+      REAL(q),PARAMETER :: gamma=0.5_q
+      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+
+    end subroutine bfgs_step
+
 
 
 !**********************************************************************
