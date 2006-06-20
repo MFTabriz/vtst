@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.2 2006-06-15 22:44:29 dano Exp $
+! RCS:  $Id: opt.F,v 1.3 2006-06-20 23:27:36 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -45,15 +45,15 @@
 
       ! things we want to do for all optimizers?
 
-     if(iopt==1) then
+     if (iopt==1) then
         call lbfgs_step()
-      elseif(iopt==2) then
+      elseif (iopt==2) then
         call cg_step()
-      elseif(iopt==3) then
+      elseif (iopt==3) then
         call qm_step()
-      elseif(iopt==4) then
+      elseif (iopt==4) then
         call sd_step()
-      elseif(iopt==5) then
+      elseif (iopt==5) then
         call bfgs_step()
       endif
 
@@ -86,20 +86,20 @@
       ENDIF
       ! write out the optimizer chosen
 
-      if(iopt==0) return  !??
+      if (iopt==0) return  !??
 
 !      POTIM=0
 !      IBRION=3
       
-      if(iopt==1) then
+      if (iopt==1) then
         call lbfgs_init()
-      elseif(iopt==2) then
+      elseif (iopt==2) then
         call cg_init()
-      elseif(iopt==3) then
+      elseif (iopt==3) then
         call qm_init()
-      elseif(iopt==4) then
+      elseif (iopt==4) then
         call sd_init()
-      elseif(iopt==5) then
+      elseif (iopt==5) then
         call bfgs_init()
       endif
 
@@ -119,8 +119,52 @@
     subroutine lbfgs_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
-      REAL(q),PARAMETER :: gamma=0.5_q
-      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+      REAL(q) :: alpha,beta ! these are vectors
+      REAL(q) :: a1,a2,direction,
+      INTEGER :: itr,incr,bound,im,jm
+
+      if (finite_difference_step_flag) then
+        finite_difference_step_flag=.false.
+        ! check for reset of direction
+        a1 = abs(sum(force,force_old))
+        a2 = sum(force_old,force_old)
+        if (a1.lt.0.5_q*a2) then
+           ! find new direct
+        else 
+           ! reset down the force
+        endif 
+        
+        posion_old = posion
+        force_old = force
+        ! compute Ho*g
+        if (itr.lt.memory) then 
+          incr = 0
+          bound = itr
+        else 
+          incr = itr-memory
+          bound = memory
+        endif
+        q = force
+        do im=0,bound-1
+          jm = (bound-im)+incr
+          alpha(bound-im) = rho(jm)*sum(change_in_posion(jm)*q)
+          q = q-alpha(bound-im)*change_in_force(jm)
+        enddo
+        direction = Ho*q
+        do im=0,bound-1
+          jm = im+incr
+          beta = rho(jm)*sum(change_in_force(jm)*direction
+          direction = direction + change_in_posion*(alpha(im)-beta)
+        enddo 
+        direction = return_unit(direction)
+
+        ! finite step down force
+        posion = posion + direction*dR
+      else  
+        finite_difference_step_flag=.true.
+        
+        ! calculate curvature down direction
+      endif   
 
     end subroutine lbfgs_step
 
