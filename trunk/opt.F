@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.3 2006-06-20 23:27:36 dano Exp $
+! RCS:  $Id: opt.F,v 1.4 2006-06-26 20:08:02 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -112,15 +112,19 @@
 !**********************************************************************
 
     subroutine lbfgs_init()
-    ! load the variables: dR, maxmove, memory
+    ! load the variables: finite_step, maxmove, memory
     ! initialize flag: finite_diff_step_flag
     end subroutine lbfgs_init
 
     subroutine lbfgs_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
+      REAL(q) :: change_in_force,change_in_posion,rho,q
 
       REAL(q) :: alpha,beta ! these are vectors
-      REAL(q) :: a1,a2,direction,
+      REAL(q) :: posion_old,force_old
+      REAL(q) :: a1,a2,direction,curvature
+      REAL(q) :: fp1,fp2,avg_force
+      REAL(q) :: finite_step,step_size
       INTEGER :: itr,incr,bound,im,jm
 
       if (finite_difference_step_flag) then
@@ -130,8 +134,14 @@
         a2 = sum(force_old,force_old)
         if (a1.lt.0.5_q*a2) then
            ! find new direct
+           change_in_force(itr) = force - force_old ! alread alocated?
+           change_in_posion(itr) = posion-posion_old ! appended?
+           rho(itr) = 1.0_q/sum(change_in_force(itr)*change_in_posion(itr))
+           itr = itr+1            
         else 
            ! reset down the force
+           itr = 1 
+           ! ? reset the change_in_pos/force vectors?
         endif 
         
         posion_old = posion
@@ -159,12 +169,28 @@
         direction = return_unit(direction)
 
         ! finite step down force
-        posion = posion + direction*dR
+        posion = posion+direction*step_size
       else  
         finite_difference_step_flag=.true.
-        
         ! calculate curvature down direction
-      endif   
+        fp1 = sum(force_old*direction)
+        fp2 = sum(force*direction)
+        avg_force = (fp1+fp2)/2.0_q
+        curvature = (fp1-fp2)/finite_step
+        if (curvature<0.0_q) then 
+          step_size=maxmove
+        else
+          step_size = avg_force/curvature
+          if(abs(step_size)>maxmove) then
+            step_size=sign(maxmove,step_size)
+          else
+            step_size = step_size-(finite_step/2.0)
+          endif
+        endif
+        posion = posion+(direction*step_size)
+      endif
+
+    return
 
     end subroutine lbfgs_step
 
@@ -246,7 +272,7 @@
     subroutine qm_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
-      REAL(q) :: velocity,dR
+      REAL(q) :: velocity,step
 
       if ((sum(force*velocity)).ge.0.0_q) then
         velocity = vproj(velocity,force)
@@ -256,12 +282,12 @@
 
       ! Euler step
       velocity = velocity*dt*force/mass
-      dR = dt*velocity
-      if (sqrt(dR*dR).ge.maxmove) then
-        dR = maxmove*return_unit(dR)
+      step = dt*velocity
+      if (sqrt(sum(step*step)).ge.maxmove) then
+        step = maxmove*return_unit(step)
       endif
 
-      posion = posion+dR
+      posion = posion+step
 
     return ! do i need this?
     end subroutine qm_step
@@ -280,15 +306,14 @@
     subroutine sd_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
-      REAL(q),PARAMETER :: gamma=0.5_q
-      REAL(q) :: dR 
+      REAL(q) :: step
     
-      dR = force * alpha
-      if (sqrt(sum(dR*dR)).ge.maxmove then
-        dR = maxmove*return_unit(dR)
+      step = force * alpha
+      if (sqrt(sum(step*step)).ge.maxmove then
+        step = maxmove*return_unit(step)
       endif
 
-      posion = posion+dR
+      posion = posion+step
 
     return ! do i need this?
     end subroutine sd_step
@@ -307,8 +332,55 @@
     subroutine bfgs_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
-      REAL(q),PARAMETER :: gamma=0.5_q
-      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+      REAL(q) :: posion_old,force_old
+      REAL(q) :: a1,a2,direction,curvature
+      REAL(q) :: fp1,fp2,avg_force
+      REAL(q) :: finite_step,step_size
+
+      if (finite_difference_step_flag) then
+        finite_difference_step_flag=.false.
+        ! check for reset of direction
+        a1 = abs(sum(force,force_old))
+        a2 = sum(force_old,force_old)
+        if (a1.lt.0.5_q*a2) then
+           ! find new direct
+        else 
+           ! the hessian to Idenity
+        endif 
+        
+        posion_old = posion
+        force_old = force
+        ! compute Ho*g
+
+
+        direction = return_unit(direction)
+
+        ! finite step down force
+        posion = posion+direction*step_size
+      else  
+        finite_difference_step_flag=.true.
+        ! calculate curvature down direction
+        fp1 = sum(force_old*direction)
+        fp2 = sum(force*direction)
+        avg_force = (fp1+fp2)/2.0_q
+        curvature = (fp1-fp2)/finite_step
+        if (curvature<0.0_q) then 
+          step_size=maxmove
+        else
+          step_size = avg_force/curvature
+          if(abs(step_size)>maxmove) then
+            step_size=sign(maxmove,step_size)
+          else
+            step_size = step_size-(finite_step/2.0)
+          endif
+        endif
+        posion = posion+(direction*step_size)
+        ! update the Hessian
+ 
+      endif
+
+    return
+
 
     end subroutine bfgs_step
 
