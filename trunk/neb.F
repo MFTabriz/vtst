@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.8 2006-06-06 21:46:40 graeme Exp $
+! RCS:  $Id: neb.F,v 1.9 2006-06-26 23:51:07 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -35,7 +35,7 @@
     public :: neb_force,neb_init
 
     INTEGER :: nions    
-    REAL(q),ALLOCATABLE,SAVE :: posion_all(:,:,:)
+    REAL(q),ALLOCATABLE :: posion_all(:,:,:)
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: spring,energy_first,energy_last
     REAL(q),PARAMETER :: PI = 3.141592653589793238_q
@@ -74,7 +74,7 @@
       LOGICAL :: lclimb_local
 
       IF (images==0) GOTO 9999
-      IF (spring==-1000) RETURN
+!      IF (spring==-1000) RETURN
 
 #if defined(MPI) || defined (MPI_CHAIN)
 !

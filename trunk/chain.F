@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.5 2006-01-28 05:11:41 graeme Exp $
+! RCS:  $Id: chain.F,v 1.6 2006-06-26 23:51:07 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -30,13 +30,15 @@
     USE dynmat
     USE dimer
     USE lanczos
+    USE opt
 
     IMPLICIT NONE
     PRIVATE
     PUBLIC :: chain_force, chain_init
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
     INTEGER ICHAIN
-    REAL SPRING
+!    REAL SPRING
+    LOGICAL optflag
 
 !**********************************************************************
 !
@@ -53,15 +55,23 @@
       REAL(q) :: posion(3,nions)
       REAL(q) :: force(3,nions),toten
       REAL(q) :: a(3,3),b(3,3)
+      LOGICAL :: optflag
 
-      IF(ICHAIN==0) THEN
-        call neb_force(nions,posion,toten,force,a,b,iu6)
-      ELSEIF(ICHAIN==1) THEN
-        call dynmat_force(nions,posion,toten,force,a,b,iu6)
-      ELSEIF(ICHAIN==2) THEN
-        call dimer_force(nions,posion,toten,force,a,b,iu6)
-      ELSEIF(ICHAIN==3) THEN
-        call lanczos_force(nions,posion,toten,force,a,b,iu6)
+      ! optflag indicates who has control
+      !  true: optimizer is active
+      !  false: chain method is active (for dimer/lanczos)
+      IF(IMAGES==0) THEN
+        optflag=.TRUE.
+      ELSE
+        IF(ICHAIN==0) THEN
+          call neb_force(optflag,nions,posion,toten,force,a,b,iu6)
+        ELSEIF(ICHAIN==1) THEN
+          call dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
+        ELSEIF(ICHAIN==2) THEN
+          call dimer_force(optflag,nions,posion,toten,force,a,b,iu6)
+        ELSEIF(ICHAIN==3) THEN
+          call lanczos_force(optflag,nions,posion,toten,force,a,b,iu6)
+        ENDIF
       ENDIF
 
       ftotmag=0.
@@ -78,6 +88,9 @@
       fmaxatom=sqrt(fmaxatom)
       if (iu6>=0) write(iu6,4693) fmaxatom,ftotmag
  4693 format(1x,' FORCES: max atom, RMS ',2f12.6)
+
+      ! our own optimizers (optflag: do or do not optimize)  
+      CALL opt_step(optflag,nions,posion,toten,force,a,b,iu6)
 
     END SUBROUTINE chain_force
 
@@ -108,6 +121,11 @@
       logical :: LDUM
       real(q) :: RDUM
 
+      ! initialize optimizer
+      call opt_init(T_INFO, IO)
+      optflag=.FALSE.
+
+      ! initialize chain based method
       ICHAIN=0
       call RDATAB(.True.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
      &            ICHAIN,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -130,9 +148,17 @@
       ELSEIF(ICHAIN==2) THEN
         if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the Dimer method'
         call dimer_init(T_INFO,IO)
+        IF(iopt==0) THEN
+          WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Dimer method'
+          STOP
+        ENDIF
       ELSEIF(ICHAIN==3) THEN
         if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the Lanczos method'
         call lanczos_init(T_INFO,IO)
+        IF(iopt==0) THEN
+          WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
+          STOP
+        ENDIF
       ENDIF
 
     END SUBROUTINE chain_init
@@ -146,7 +172,8 @@
 !
       function LHYPER_NUDGE()
       logical LHYPER_NUDGE
-      if (images==0 .OR. spring /= 0 ) then
+!      if (images==0 .OR. spring /= 0 ) then
+      if (images==0 ) then
         LHYPER_NUDGE=.FALSE.
       else
         LHYPER_NUDGE=.TRUE.
@@ -165,7 +192,7 @@
       subroutine sum_chain(value)
       real(q) :: value
       if (images==0) return
-      if (spring==-1000) return
+!      if (spring==-1000) return
       CALLMPI_C(M_sum_d(comm_chain,value,1))
       end subroutine sum_chain
 !
@@ -175,7 +202,7 @@
       logical :: value
       real(q) :: sum
       if (images==0) return
-      if (spring==-1000) return
+!      if (spring==-1000) return
       sum=1
       if (value) sum=0
       CALLMPI_C(M_sum_d(comm_chain,sum,1))

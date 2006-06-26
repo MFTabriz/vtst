@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.4 2006-06-26 20:08:02 dano Exp $
+! RCS:  $Id: opt.F,v 1.5 2006-06-26 23:51:08 graeme Exp $
 !
 ! Module which implements our optimizers
 !
@@ -13,15 +13,18 @@
     USE lattice
 
     IMPLICIT NONE
-    private :: sd_step,cg_step, qm_step, lbfgs_step, bfgs_step
-    private :: sd_init,cg_init, qm_init, lbfgs_init, bfgs_init
+    private :: sd_step, cg_step, qm_step, lbfgs_step, bfgs_step
+    private :: sd_init, cg_init, qm_init, lbfgs_init, bfgs_init
 
     public :: opt_step, opt_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6
+    REAL(q),ALLOCATABLE :: R(:,:),F(:,:)
+    REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
+
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: finite_step ! ...
-    LOGICAL :: finite_difference_step_flag
+    LOGICAL :: fdstep, optflag_local
 
 !**********************************************************************
 !
@@ -30,18 +33,23 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE opt_step(tinfo_nions,posion,toten,force,latt_a,latt_b,tinfo_iu6)
+    SUBROUTINE opt_step(optflag,tinfo_nions,posion,toten,force, &
+                        latt_a,latt_b,tinfo_iu6)
       INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
+      LOGICAL optflag
 
       ! local variables
 
-! to local variables
       nions=tinfo_nions
       iu6=tinfo_iu6
       dir2car=latt_a
       car2dir=latt_b
+      optflag_local=optflag
+
+      ! if optflag is false, do nothing
+      if(.not. optflag) return
 
       ! things we want to do for all optimizers?
 
@@ -57,26 +65,28 @@
         call bfgs_step()
       endif
 
+      ! call periodic boundary conditions
+      optflag=optflag_local
 
     END SUBROUTINE opt_step
 
 
-    SUBROUTINE opt_init() !need potim and ibrion
-      ! needed only temporarily for reading
-      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
-      TYPE (latt):: LATT_CUR
-      TYPE (type_info) :: T_I
-      TYPE (dynamics) :: DYN
-      INTEGER IDUM,IERR,N,idir,node
+    SUBROUTINE opt_init(T_INFO,IO)
+      type(in_struct) :: IO
+      type(type_info) :: T_INFO
+
+      INTEGER IDUM,IERR,N,ibrion
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
-      REAL(q) RDUM
+      REAL(q) RDUM,potim
 
-       ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd)
+      nions=T_INFO%nions
+      iu6=IO%IU6
 
-      ! set default iopt=0?
+      ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd)
 
+      iopt=0
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'IOPT','=','#',';','F', &
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -86,10 +96,48 @@
       ENDIF
       ! write out the optimizer chosen
 
-      if (iopt==0) return  !??
+      if (iopt==0) return
 
-!      POTIM=0
-!      IBRION=3
+      potim=0
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'potim','=','#',';','F', &
+     &            IDUM,potim,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''POTIM'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ibrion=0
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'IBRION','=','#',';','F', &
+     &            IBRION,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''IBRION'' from file INCAR.'
+         STOP
+      ENDIF
+
+      IF(potim/=0 .OR. ibrion/=3) THEN
+        WRITE(IO%IU6,*) 'OPT: Must set IBRION=3 and POTIM=0 for IOPT>0'
+        STOP
+      ENDIF
+
+      ! read optimization parameters
+
+      finite_step=0.001_q
+      call RDATAB(.True.,'INCAR',IO%IU5,'RSTEP','=','#',';','I', &
+     &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(IO%IU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ! allocate memory for local F and R
+
+      allocate(F(3,Nions),R(3,Nions))
+      allocate(Fold(3,Nions),Rold(3,Nions))
+
+      ! optimizer specific initialization
       
       if (iopt==1) then
         call lbfgs_init()
@@ -112,16 +160,38 @@
 !**********************************************************************
 
     subroutine lbfgs_init()
-    ! load the variables: finite_step, maxmove, memory
-    ! initialize flag: finite_diff_step_flag
+
+      REAL(q),ALLOCATABLE,DIMENSION(:,:,:),SAVE :: change_in_force,change_in_posion
+
+      INTEGER IDUM,IERR,N
+      INTEGER,SAVE memory
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+
+      memory=4
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','F', &
+     &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ! initialize the variables: vectors and matricies
+      allocate(change_in_force(memory,3,Nions),change_in_posion(memory,3,Nions))
+
+      fdstep=.TRUE.
+
     end subroutine lbfgs_init
 
-    subroutine lbfgs_step(posion,toten,force)
-      REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: change_in_force,change_in_posion,rho,q
+    subroutine lbfgs_step()
+      REAL(q) :: change_in_force,change_in_posion !matricies
+
+      REAL(q) :: rho,q
 
       REAL(q) :: alpha,beta ! these are vectors
-      REAL(q) :: posion_old,force_old
       REAL(q) :: a1,a2,direction,curvature
       REAL(q) :: fp1,fp2,avg_force
       REAL(q) :: finite_step,step_size
@@ -130,14 +200,14 @@
       if (finite_difference_step_flag) then
         finite_difference_step_flag=.false.
         ! check for reset of direction
-        a1 = abs(sum(force,force_old))
-        a2 = sum(force_old,force_old)
+        a1 = abs(sum(force*force_old))
+        a2 = sum(force_old*force_old)
         if (a1.lt.0.5_q*a2) then
            ! find new direct
-           change_in_force(itr) = force - force_old ! alread alocated?
-           change_in_posion(itr) = posion-posion_old ! appended?
-           rho(itr) = 1.0_q/sum(change_in_force(itr)*change_in_posion(itr))
-           itr = itr+1            
+           change_in_force(itr,:,:) = F-Fold
+           change_in_posion(itr,:,:) = R-Rold  ! need boundary conditions
+           rho(itr) = 1.0_q/sum(change_in_force(itr,:,:)*change_in_posion(itr,:,:))
+           itr = itr+1
         else 
            ! reset down the force
            itr = 1 
@@ -155,7 +225,7 @@
           bound = memory
         endif
         q = force
-        do im=0,bound-1
+        do im=0,bound-1  ! change the range to 1..N
           jm = (bound-im)+incr
           alpha(bound-im) = rho(jm)*sum(change_in_posion(jm)*q)
           q = q-alpha(bound-im)*change_in_force(jm)

@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.8 2005-07-31 16:29:24 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.9 2006-06-26 23:51:07 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -56,7 +56,7 @@
 !
 !**********************************************************************
 !
-      module dimer
+    module dimer
       use base
       use prec
       use main_mpi
@@ -83,7 +83,6 @@
       real(q),allocatable :: F1tmp(:,:),F2tmp(:,:),Ntmp(:,:),dRtmp(:,:)
       real(q),allocatable :: R0tmp(:,:),Gtmp(:,:),GNtmp(:,:),GNutmp(:,:)
       real(q),allocatable :: Mode(:,:,:)
-!      real(q),allocatable :: Ream(:),Feam(:)
       real(q) :: A(3,3),B(3,3)
       real(q) :: U1tmp, U2tmp
       real(q) :: Uref,U,U0,U1,U2,CN1,CN,Cth,CR
@@ -97,7 +96,7 @@
       logical :: FirstTranslation,FirstRotation,IonStep,TestFlag
       logical :: ImageFlag,ARTFlag,DragFlag,NoDriftFlag,EAMFlag
 
-      contains
+    contains
 !
 !
 !**********************************************************************
@@ -106,17 +105,16 @@
 !
 !**********************************************************************
 !
-      subroutine Dimer_Force(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
+    subroutine Dimer_Force(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
       integer :: TINFO_NIONS
       integer :: IO_IU6
       real(q) :: POSION(3,NIONS)
       real(q) :: TIFOR(3,NIONS),TOTEN
       real(q) :: LATT_A(3,3),LATT_B(3,3)
 
-!      external FORCE
       if(images==0) return
-!      if(spring==-1000) return
-#if defined(MPI) || defined(MPI_CHAIN)
+      ! if(spring==-1000) return
+    #if defined(MPI) || defined(MPI_CHAIN)
       U=TOTEN
       F=TIFOR
       R=POSION
@@ -124,25 +122,10 @@
       B=LATT_B
 
       Itr=Itr+1
-!     Convert the position into Cartesian coordinates
+      ! Convert the position into Cartesian coordinates
       call DIRKAR(NIONS,R,A)
 
-!     This is only used for the ART or DRAG method
-!     and not with the dimer method
-      if(ARTFlag.or.DragFlag)then
-        if(ARTFlag) call ARTStep()
-        if(DRAGFlag) call DragStep()
-          TIFOR=SPF
-          if(ImageFlag) then
-          if(IU6>=0) call WriteImage(R)
-!         call WriteNormal(R0tmp)
-!         call WriteForce(FR)
-        endif
-        return
-      endif
-
       if(IU6>=0) write(IUdim,'(A20,I7)') 'Iteration',Itr
-!      if(EAMFlag) call EAMForce()
 
 !     Communicate the between the two images 
       call GetFRU()
@@ -177,16 +160,6 @@
       if(dThStep.or.ThStep) call FindN()
 !     Dimer translation
       if(dRStep.or.RdRStep) call DimerStep()
-!      This was an idea to let vasp minimize the position of the dimer
-!      It ended up being too complicated so it is not used
-!      if(IonStep)then
-!        TIFOR=SPF
-!        R=R0
-!        if(Node==1.and.ImageFlag) then
-!          Only generate images if i am the first node
-!          call WriteImage(R0)
-!        endif
-!      endif         
 !     Send the current position and force back to vasp
       POSION=R
       TIFOR=FR
@@ -532,11 +505,6 @@
             write(IUdim,'(A20,F14.6)') 'CR',CR
             write(IUdim,'(A20,F14.6)') 'FrP/CR',FrP/CR
           endif
-          if(Node==1.and.ImageFlag) then
-            call WriteImage(R0)
-!            call WriteNormal(N)
-!            call WriteForce(FR)
-          endif
         endif
       else
 !       QuickMin for dimer translation
@@ -571,11 +539,6 @@
           write(IUdim,'(A10,A10,F14.6)') 'QM Step:','V',sqrt(sum(V*V))
           write(IUdim,'(A20,F14.6)') 'dV',sqrt(sum(dV*dV))
           write(IUdim,'(A20,F14.6)') 'VdV/sum(dV**2)',VdV/sum(dV**2)
-        endif
-        if(Node==1.and.ImageFlag) then
-          call WriteImage(R0)
-!          call WriteNormal(N)
-!          call WriteForce(FR)
         endif
       endif
       call SetPN()
@@ -893,7 +856,6 @@
       write(IU,'(A20,L7)') 'ContFlag',ContFlag
       write(IU,'(A20,L7)') 'CGFlag',CGFlag
       write(IU,'(A20,L7)') 'NCGFlag',NCGFlag
-      write(IU,'(A20,L7)') 'IFlag',ImageFlag
       write(IU,'(A20,L7)') 'ARTFlag',ARTFlag
       write(IU,'(A20,L7)') 'DragFlag',DragFlag
       write(IU,'(A20,I7)') 'Seed',Seed
