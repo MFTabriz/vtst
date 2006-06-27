@@ -29,10 +29,6 @@
 !
 !**********************************************************************
 
-    subroutine sd_init()
-    ! load the variables: alpha, maxmove
-    end subroutine sd_init()
-
     subroutine sd_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
@@ -49,4 +45,42 @@
     return ! do i need this?
     end subroutine sd_step
 
+
+!**********************************************************************
+!
+! Steepest-Decent init
+!
+!**********************************************************************
+
+    subroutine sd_init()
+
+      INTEGER IDUM,IERR,N
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+      REAL(q),SAVE alpha,maxmove
+  
+      ! loading variables for sd step
+
+      alpha=0.1_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
+     &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''alpha'' from file INCAR.'
+         STOP
+      ENDIF
+
+      maxmove=0.2_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+
+
+    end subroutine sd_init()
 

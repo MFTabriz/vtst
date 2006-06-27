@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.6 2006-06-27 03:30:30 dano Exp $
+! RCS:  $Id: opt.F,v 1.7 2006-06-27 20:52:50 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -80,7 +80,7 @@
       type(in_struct) :: IO
       type(type_info) :: T_INFO
 
-      INTEGER IDUM,IERR,N,ibrion
+      INTEGER IDUM,IERR,N,ibrion,iopt
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
@@ -126,17 +126,6 @@
         STOP
       ENDIF
 
-      ! read optimization parameters
-
-      finite_step=0.001_q
-      call RDATAB(.True.,'INCAR',IO%IU5,'RSTEP','=','#',';','I', &
-     &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
-      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(IO%IU0,*)'Error reading item ''RSTEP'' from file INCAR.'
-         STOP
-      ENDIF
-
       ! allocate memory for local F and R
 
       allocate(F(3,Nions),R(3,Nions))
@@ -145,15 +134,15 @@
       ! optimizer specific initialization
       
       if (iopt==1) then
-        call lbfgs_init()
+        call lbfgs_init(T_INFO,IO)
       elseif (iopt==2) then
-        call cg_init()
+        call cg_init(T_INFO,IO)
       elseif (iopt==3) then
-        call qm_init()
+        call qm_init(T_INFO,IO)
       elseif (iopt==4) then
-        call sd_init()
+        call sd_init(T_INFO,IO)
       elseif (iopt==5) then
-        call bfgs_init()
+        call bfgs_init(T_INFO,IO)
       endif
 
     end subroutine opt_init

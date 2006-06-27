@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.6 2006-06-26 23:51:07 graeme Exp $
+! RCS:  $Id: chain.F,v 1.7 2006-06-27 20:52:50 dano Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -115,7 +115,7 @@
       TYPE (type_info) :: T_I
       TYPE (dynamics) :: DYN
 
-      integer :: IERR,N
+      integer :: IERR,N,ICHAIN,IOPT
       character*1 :: CHARAC
       complex(q) :: CDUM 
       logical :: LDUM
@@ -134,6 +134,16 @@
               WRITE(IO%IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
          STOP
       ENDIF
+
+      IOPT=0
+      call RDATAB(.True.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
+     &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(IO%IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
+         STOP
+      ENDIF
+
 
       if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 

@@ -29,11 +29,6 @@
 !
 !**********************************************************************
 
-    subroutine bfgs_init()
-    ! load the variables: dR, maxmove, memory
-    ! initialize flag: finite_diff_step_flag
-    end subroutine bfgs_init
-
     subroutine bfgs_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
@@ -42,41 +37,8 @@
       REAL(q) :: fp1,fp2,avg_force
       REAL(q) :: finite_step,step_size
 
-      if (finite_difference_step_flag) then
-        finite_difference_step_flag=.false.
-        ! check for reset of direction
-        a1 = abs(sum(force,force_old))
-        a2 = sum(force_old,force_old)
-        if (a1.lt.0.5_q*a2) then
-           ! find new direct
-        else
-           ! the hessian to Idenity
-        endif
-
-        posion_old = posion
-        force_old = force
-        ! compute Ho*g
-!**********************************************************************
-!
-! full bfgs method
-!
-!**********************************************************************
-
-    subroutine bfgs_init()
-    ! load the variables: dR, maxmove, memory
-    ! initialize flag: finite_diff_step_flag
-    end subroutine bfgs_init
-
-    subroutine bfgs_step(posion,toten,force)
-      REAL(q) :: posion(3,nions),toten,force(3,nions)
-
-      REAL(q) :: posion_old,force_old
-      REAL(q) :: a1,a2,direction,curvature
-      REAL(q) :: fp1,fp2,avg_force
-      REAL(q) :: finite_step,step_size
-
-      if (finite_difference_step_flag) then
-        finite_difference_step_flag=.false.
+      if (fdstep) then
+        fdstep=.false.
         ! check for reset of direction
         a1 = abs(sum(force,force_old))
         a2 = sum(force_old,force_old)
@@ -95,7 +57,7 @@
         ! finite step down force
         posion = posion+direction*step_size
       else
-        finite_difference_step_flag=.true.
+        fdstep=.true.
         ! calculate curvature down direction
         fp1 = sum(force_old*direction)
         fp2 = sum(force*direction)
@@ -121,4 +83,40 @@
 
     end subroutine bfgs_step
 
+!**********************************************************************
+!
+! full bfgs init
+!
+!**********************************************************************
 
+    subroutine bfgs_init()
+
+      INTEGER IDUM,IERR,N
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+      REAL(q),SAVE finite_step,maxmove
+
+      ! read in the varables for bfgs
+
+      finite_step=0.001_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+         STOP
+      ENDIF
+
+      maxmove=0.2_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+
+      fdstep = .TRUE.
+    end subroutine bfgs_init

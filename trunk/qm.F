@@ -29,11 +29,6 @@
 !
 !**********************************************************************
 
-    subroutine qm_init()
-    ! load the variables: dt, maxmove
-    ! set velocity
-    end subroutine qm_init
-
     subroutine qm_step(posion,toten,force)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
 
@@ -56,3 +51,40 @@
 
     return ! do i need this?
     end subroutine qm_steP
+
+!**********************************************************************
+!
+! Qucik-min init
+!
+!**********************************************************************
+
+    subroutine qm_init()
+
+      INTEGER IDUM,IERR,N
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+      REAL(q),SAVE maxmove,dt
+
+      maxmove=0.2_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,RMAXMOVE,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+
+      dt=0.01_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
+     &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+  
+  ! set velocity
+
+    end subroutine qm_init

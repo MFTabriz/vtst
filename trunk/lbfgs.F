@@ -1,7 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
 !
-!
 ! Module for limited-memory bfgs
 !
 ! Version 1.01, June 2006
@@ -30,32 +29,6 @@
 !
 !**********************************************************************
 
-    subroutine lbfgs_init()
-
-      REAL(q),ALLOCATABLE,DIMENSION(:,:,:),SAVE :: change_in_force,change_in_posion
-
-      INTEGER IDUM,IERR,N
-      INTEGER,SAVE memory
-      CHARACTER*1 CHARAC
-      COMPLEX(q) CDUM
-      LOGICAL LDUM
-      REAL(q) RDUM
-
-      memory=4
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','F', &
-     &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
-      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
-         STOP
-      ENDIF
-
-      ! initialize the variables: vectors and matricies
-      allocate(change_in_force(memory,3,Nions),change_in_posion(memory,3,Nions))
-
-      fdstep=.TRUE.
-    end subroutine lbfgs_init
-
     subroutine lbfgs_step()
       REAL(q) :: change_in_force,change_in_posion !matricies
 
@@ -67,8 +40,8 @@
       REAL(q) :: finite_step,step_size
       INTEGER :: itr,incr,bound,im,jm
 
-      if (finite_difference_step_flag) then
-        finite_difference_step_flag=.false.
+      if (fdstep) then
+        fdstep=.false.
         ! check for reset of direction
         a1 = abs(sum(force*force_old))
         a2 = sum(force_old*force_old)
@@ -134,4 +107,61 @@
 
     end subroutine lbfgs_step
 
+!**********************************************************************
+!
+! lbfgs init
+!
+!**********************************************************************
+
+    subroutine lbfgs_init(T_INFO,IO)
+      type(in_struct) :: IO
+      type(type_info) :: T_INFO
+
+      REAL(q),ALLOCATABLE,DIMENSION(:,:,:),SAVE :: change_in_force,change_in_posion
+
+      INTEGER IDUM,IERR,N
+      INTEGER,SAVE memory
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+      REAL(q),SAVE finite_step,maxmove
+
+      nions=T_INFO%nions
+      iu6=IO%IU6
+
+      ! read in varables used for lbfgs
+
+      memory=4
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','F', &
+     &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
+         STOP
+      ENDIF
+
+      finite_step=0.001_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+         STOP
+      ENDIF
+
+      maxmove=0.2_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ! initialize the variables: vectors and matricies
+      allocate(change_in_force(memory,3,Nions),change_in_posion(memory,3,Nions))
+
+      fdstep=.TRUE.
+    end subroutine lbfgs_init
 
