@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.7 2006-06-27 20:52:50 dano Exp $
+! RCS:  $Id: opt.F,v 1.8 2006-06-28 19:07:57 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -184,8 +184,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       function vproj(v1,v2)
-      real(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*sum(v1*v2)/sum(v2*v2)
+      real(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
+      proj=v2*sum(v1*v2)/sum(v2*v2)
       end function vproj
 
 END MODULE opt

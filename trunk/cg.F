@@ -20,8 +20,8 @@
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    REAL(q) :: finite_step ! ...
-    LOGICAL :: fdstep, optflag_local
+    REAL(q) :: finite_step,maxmove
+    LOGICAL :: fdstep
 
 !**********************************************************************
 !
@@ -29,59 +29,106 @@
 !
 !**********************************************************************
 
-    subroutine cg_init()
-    ! load the variables: dR, maxmove
-    ! initialize flag: finite_diff_step_flag
-    end subroutine cg_init
+    SUBROUTINE cg_step(optflag,tinfo_nions,posion,toten,force, &
+                        latt_a,latt_b,tinfo_iu6)
 
-    subroutine cg_step(posion,toten,force)
-!      LOGICAL,INTENT(INOUT) :: fd_step
+      INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
+      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      LOGICAL optflag
 
-      REAL(q),PARAMETER :: gamma=0.5_q
-      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+      !LOGICAL,INTENT(INOUT) :: fdstep
 
-!      IF (fd_step) THEN
-      IF (finite_difference_step_flag) THEN
-        finite_difference_step_flag=.false.
-        f1=Feff
-        c1=ABS(SUM(f1*fco))
-        c2=SUM(fco*fco)
-        IF (c1 < gamma*c2) THEN
-          s=SUM(f1*(f1-fco))/c2
+      REAL(q) :: gam,direction,dir_old,dir_unit
+      REAL(q) :: a1,a2,fp1,fp2,Favg,curvature,step_size
+      
+      F = force(:,:)
+      R = posion(:,:)
+
+      IF (fdstep) THEN
+        fdstep = .false.
+        optflag = .true.
+        a1 = ABS(SUM(F*Fold))
+        a2 = SUM(Fold*Fold)
+        IF (a1 .LT. 0.5_q*a2) THEN
+          gam = SUM(F*(F-Fold))/a2
         ELSE
-          s=0.0_q
+          gam = 0.0_q
         END IF
-        dc=f1+s*dco
-        dcu=dc/SQRT(SUM(dc*dc))
-        fco=f1
-        dco=dc
-! Move from the original configuration
-        R=R0+dcu*dR
+        direction = F+direction*gam
+        dir_unit = direction/SQRT(SUM(direction*direction))
+        Fold = F
+        dir_old = direction
+        ! Move from the original configuration
+        R = R+dir_unit*finite_step
       ELSE
-!        fd_step=.true.
-        finite_difference_step_flag=.true.
-        f2=Feff
-        f1d=SUM(F1*dcu)
-        f2d=SUM(f2*dcu)
-        cr=(f1d-f2d)/dR
-        IF (cr < 0.0_q) THEN
-         step=maxmove
+        fdstep = .true.
+        optflag = .false.
+        fp1 = SUM(Fold*dir_unit)
+        fp2 = SUM(F*dir_unit)
+        curvature = (fp1-fp2)/finite_step
+        IF (curvature .LT.  0.0_q) THEN
+         step_size = maxmove
         ELSE
-          fr=0.5_q*(f1d+f2d)
-          step=fr/cr
-          IF (ABS(step) > maxmove) THEN
-            step=SIGN(maxmove,step)
+          Favg = 0.5_q*(f1d+f2d)
+          step_size = Favg/curvature
+          IF (ABS(step_size) .GT. maxmove) THEN
+            step_size = SIGN(maxmove,step_size)
           ELSE
-            step=step-0.5_q*dR     ! (*)
+            step_size = step_size-0.5_q*finite_step   ! (*)
           END IF
         END IF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        R=R+dcu*step
+        R = R+dir_unit*step_size
       END IF
+    
+      posion(:,:) = R
 
     RETURN
 
+    END SUBROUTINE cg_step
 
-    end subroutine cg_step
+    SUBROUTINE cg_init(T_INFO,IO)
+      TYPE(in_struct) :: IO
+      TYPE(type_info) :: T_INFO
 
+      INTEGER nions,iu6
+
+      INTEGER IDUM,IERR,N
+      CHARACTER*1 CHARAC
+      COMPLEX(q) CDUM
+      LOGICAL LDUM
+      REAL(q) RDUM
+
+      nions=T_INFO%nions
+      iu6=IO%IU6
+
+      ! read in varables used for lbfgs
+
+      finite_step=0.001_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+         STOP
+      ENDIF
+
+      maxmove=0.2_q
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ! initialize the variables: vectors and matricies
+ 
+      ALLOCATE(F(3,Nions),R(3,Nions))
+      ALLOCATE(Fold(3,Nions),Rold(3,Nions))
+
+      fdstep=.true.  
+    END SUBROUTINE cg_init
+
+  END MODULE cg

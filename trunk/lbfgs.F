@@ -5,6 +5,11 @@
 !
 ! Version 1.01, June 2006
 !
+! TO DO
+!   - PBC
+!   - figure out loop exactly
+!   - write shifting matrix
+!
 !**********************************************************************
 
   MODULE lbfgs
@@ -18,10 +23,12 @@
     INTEGER :: nions,iu6
     REAL(q),ALLOCATABLE :: R(:,:),F(:,:)
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
+    REAL(q),ALLOCATABLE :: rho(:),alpha(:)
+    REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    REAL(q) :: finite_step ! ...
-    LOGICAL :: fdstep, optflag_local
+    REAL(q) :: finite_step,maxmove,memory
+    LOGICAL :: fdstep
 
 !**********************************************************************
 !
@@ -29,83 +36,89 @@
 !
 !**********************************************************************
 
-    subroutine lbfgs_step()
-      REAL(q) :: change_in_force,change_in_posion !matricies
+    SUBROUTINE lbfgs_step(optflag,tinfo_nions,posion,toten,force, &
+                        latt_a,latt_b,tinfo_iu6)
 
-      REAL(q) :: rho,q
+      INTEGER :: tinfo_nions,tinfo_iu6
+      REAL(q) :: posion(3,nions),toten,force(3,nions)
+      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      LOGICAL optflag
 
-      REAL(q) :: alpha,beta ! these are vectors
+      REAL(q) :: beta
       REAL(q) :: a1,a2,direction,curvature
-      REAL(q) :: fp1,fp2,avg_force
-      REAL(q) :: finite_step,step_size
-      INTEGER :: itr,incr,bound,im,jm
+      REAL(q) :: fp1,fp2,Favg,step_size
+      INTEGER :: itr,bound,im,jm
 
-      if (fdstep) then
-        fdstep=.false.
+      F = force
+      R = posion
+
+      IF (fdstep) THEN
+        fdstep = .false.
+        optflag = .true. ! keeps contol so it can do finite step
         ! check for reset of direction
-        a1 = abs(sum(force*force_old))
-        a2 = sum(force_old*force_old)
-        if (a1.lt.0.5_q*a2) then
+        a1 = ABS(SUM(F*Fold))
+        a2 = SUM(Fold*Fold)
+        IF (a1 .LT. 0.5_q*a2) THEN
            ! find new direct
-           change_in_force(itr,:,:) = F-Fold
-           change_in_posion(itr,:,:) = R-Rold  ! need boundary conditions
-           rho(itr) = 1.0_q/sum(change_in_force(itr,:,:)*change_in_posion(itr,:,:))
+           change_in_F(itr,:,:) = F-Fold
+           change_in_R(itr,:,:) = R-Rold  ! need boundary conditions
+           rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
            itr = itr+1
-        else
+        ELSE
            ! reset down the force
            itr = 1
            ! ? reset the change_in_pos/force vectors?
-        endif
+        ENDIF
 
-        posion_old = posion
-        force_old = force
+        Rold = F
+        Fold = F
         ! compute Ho*g
-        if (itr.lt.memory) then
-          incr = 0
+        IF (itr .LT. memory) THEN
           bound = itr
-        else
-          incr = itr-memory
+        ELSE
           bound = memory
-        endif
-        q = force
-        do im=0,bound-1  ! change the range to 1..N
-          jm = (bound-im)+incr
-          alpha(bound-im) = rho(jm)*sum(change_in_posion(jm)*q)
-          q = q-alpha(bound-im)*change_in_force(jm)
-        enddo
-        direction = Ho*q
-        do im=0,bound-1
-          jm = im+incr
-          beta = rho(jm)*sum(change_in_force(jm)*direction
-          direction = direction + change_in_posion*(alpha(im)-beta)
-        enddo
+        ENDIF
+        direction = force
+        DO im=1,bound 
+          jm = (bound+1-im)
+          alpha(im) = rho(jm)*SUM(change_in_R(jm)*direction)
+          direction = direction-(alpha(im)*change_in_F(jm))
+        ENDDO
+        ! direction = Ho*direction !Ho is idenity matrix
+        DO im=1,bound
+          beta = rho(im)*SUM(change_in_F(im)*direction
+          direction = direction+change_in_R*(alpha(im)-beta)
+        ENDDO
         direction = return_unit(direction)
 
         ! finite step down force
-        posion = posion+direction*step_size
-      else
-        finite_difference_step_flag=.true.
+        R = R + direction*step_size
+      ELSE
+        fdstep = .true.
+        optflag = .false. ! gives control back to method
         ! calculate curvature down direction
-        fp1 = sum(force_old*direction)
-        fp2 = sum(force*direction)
-        avg_force = (fp1+fp2)/2.0_q
+        fp1 = SUM(Fold*direction)
+        fp2 = SUM(F*direction)
         curvature = (fp1-fp2)/finite_step
-        if (curvature<0.0_q) then
+        IF (curvaturR .LT. 0.0_q) THEN
           step_size=maxmove
-        else
-          step_size = avg_force/curvature
-          if(abs(step_size)>maxmove) then
+        ELSE
+          Favg = 0.5_q*(fp1+fp2)
+          step_size = Favg/curvature
+          IF(ABS(step_size) .GT. maxmove) THEN
             step_size=sign(maxmove,step_size)
-          else
-            step_size = step_size-(finite_step/2.0)
-          endif
-        endif
-        posion = posion+(direction*step_size)
-      endif
+          ELSE
+            step_size = step_size-0.5_q*finite_step
+          ENDIF
+        ENDIF
+        R = R+(direction*step_size)
+      ENDIF
 
-    return
+      posion(:,:) = R
 
-    end subroutine lbfgs_step
+    RETURN
+
+    END SUBROUTINE lbfgs_step
 
 !**********************************************************************
 !
@@ -113,19 +126,16 @@
 !
 !**********************************************************************
 
-    subroutine lbfgs_init(T_INFO,IO)
-      type(in_struct) :: IO
-      type(type_info) :: T_INFO
+    SUBROUTINE lbfgs_init(T_INFO,IO)
+      TYPE(in_struct) :: IO
+      TYPE(type_info) :: T_INFO
 
-      REAL(q),ALLOCATABLE,DIMENSION(:,:,:),SAVE :: change_in_force,change_in_posion
 
       INTEGER IDUM,IERR,N
-      INTEGER,SAVE memory
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
       REAL(q) RDUM
-      REAL(q),SAVE finite_step,maxmove
 
       nions=T_INFO%nions
       iu6=IO%IU6
@@ -160,8 +170,55 @@
       ENDIF
 
       ! initialize the variables: vectors and matricies
-      allocate(change_in_force(memory,3,Nions),change_in_posion(memory,3,Nions))
+      ALLOCATE(change_in_F(memory,3,Nions),change_in_R(memory,3,Nions))
+      ALLOCATE(F(3,Nions),R(3,Nions))
+      ALLOCATE(Fold(3,Nions),Rold(3,Nions))
+      ALLOCATE(rho(memory),alpha(memory))
 
-      fdstep=.TRUE.
-    end subroutine lbfgs_init
 
+
+      fdstep=.true.
+    END SUBROUTINE lbfgs_init
+
+
+!**********************************************************************
+!
+! Vector Functions
+!
+!**********************************************************************
+
+!======================================================================
+! Sets a vector to have the smallest length consistent the the periodic
+! boundary conditions. This should really be changed to use the
+! Wigner-Sitz cell
+!======================================================================
+      subroutine set_pbc(v1)
+      real(q) :: v1(3,nions)
+      call kardir(nions,v1,car2dir)
+      v1=mod(v1+100.5_q,1._q)-0.5_q
+      call dirkar(nions,v1,dir2car)
+      end subroutine set_pbc
+!======================================================================
+! Returns a unit vector along v1
+!======================================================================
+      function return_unit(V1)
+      real(q) :: v1(3,nions)
+      real(q),dimension(3,nions) :: return_unit
+      return_unit=v1*(1._q/sqrt(sum(v1*v1)))
+      end function return_unit
+!======================================================================
+! Sets V1 to be a unit vector
+!======================================================================
+      subroutine set_unit(V1)
+      real(q) :: v1(3,nions)
+      v1=return_unit(v1)
+      end subroutine set_unit
+!======================================================================
+! Vector projection of v1 on v2
+!======================================================================
+      function vproj(v1,v2)
+      real(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
+      proj=v2*sum(v1*v2)/sum(v2*v2)
+      end function vproj
+
+  END MODULE lbfgs

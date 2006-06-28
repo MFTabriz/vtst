@@ -16,11 +16,10 @@
     public :: sd_step, sd_init  !call sd_init from opt_init
 
     INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: R(:,:),F(:,:)
-    REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    LOGICAL :: fdstep, optflag_local
+    REAL(q) :: alpha,maxmove
+    LOGICAL :: fdstep
 
 
 !**********************************************************************
@@ -29,21 +28,27 @@
 !
 !**********************************************************************
 
-    subroutine sd_step(optflag,tinfo_nions,posion,toten,force, &
+    SUBROUTINE sd_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
+
+      INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
+      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      LOGICAL optflag
 
       REAL(q) :: step
-
+      
+      optflag = .false. ! gives control back to method
       step = force * alpha
-      if (sqrt(sum(step*step)).ge.maxmove then
-        step = maxmove*return_unit(step)
-      endif
+      IF (sqrt(sum(step*step) .GT. maxmove) THEN
+        step = maxmove*step/SQRT(SUM(step*step))
+      ENDIF
 
       posion = posion+step
+    
 
-    return ! do i need this?
-    end subroutine sd_step
+    RETURN
+    END SUBROUTINE sd_step
 
 
 !**********************************************************************
@@ -52,18 +57,23 @@
 !
 !**********************************************************************
 
-    subroutine sd_init()
+    SUBROUTINE sd_init(T_INFO,IO)
+      TYPE(in_struct) :: IO
+      TYPE(type_info) :: T_INFO
+
 
       INTEGER IDUM,IERR,N
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
       REAL(q) RDUM
-      REAL(q),SAVE alpha,maxmove
-  
+
+      nions=T_INFO%nions
+      iu6=IO%IU6 
+
       ! loading variables for sd step
 
-      alpha=0.1_q
+      alpha = 0.1_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -72,7 +82,7 @@
          STOP
       ENDIF
 
-      maxmove=0.2_q
+      maxmove = 0.2_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -81,6 +91,6 @@
          STOP
       ENDIF
 
+    END SUBROUTINE sd_init()
 
-    end subroutine sd_init()
-
+  END MODULE sd
