@@ -21,7 +21,7 @@
     public :: lbfgs_step, lbfgs_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: R(:,:),F(:,:)
+    REAL(q)  R(:,:),F(:,:)
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
@@ -58,11 +58,25 @@
         ! check for reset of direction
         a1 = ABS(SUM(F*Fold))
         a2 = SUM(Fold*Fold)
-        IF (a1 .LT. 0.5_q*a2) THEN
+        IF (a1 .LT. 0.5_q*a2 .AND. a2 .ne. 0.0_q) THEN
            ! find new direct
-           change_in_F(itr,:,:) = F-Fold
-           change_in_R(itr,:,:) = R-Rold  ! need boundary conditions
-           rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
+           IF (itr .LT. memory) THEN
+             change_in_F(itr,:,:) = F-Fold
+             change_in_R(itr,:,:) = R-Rold  ! need boundary conditions
+             rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
+           ELSE
+             DO im = 1,memory-1
+               change_in_F(im,:,:) = change_in_F(im+1,:,:)
+             ENDDO
+             DO im = 1,memory-1
+               change_in_R(im,:,:) = change_in_R(im+1,:,:)
+             ENDDO
+             DO im = 1,memory-1
+               rho(im) = rho(im+1)
+             ENDDO
+             change_in_F(memory,:,:) = F-Fold
+             change_in_R(memory,:,:) = R-Rold  ! need boundary conditions
+             rho(memory) = 1.0_q/SUM(change_in_F(memory,:,:)*change_in_R(memory,:,:))
            itr = itr+1
         ELSE
            ! reset down the force
@@ -92,7 +106,7 @@
         direction = return_unit(direction)
 
         ! finite step down force
-        R = R + direction*step_size
+        R = R + direction*finite_step
       ELSE
         fdstep = .true.
         optflag = .false. ! gives control back to method

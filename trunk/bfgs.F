@@ -20,8 +20,8 @@
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    REAL(q) :: finite_step ! ...
-    LOGICAL :: fdstep, optflag_local
+    REAL(q) :: finite_step,maxmove
+    LOGICAL :: fdstep,dfp
 
 !**********************************************************************
 !
@@ -37,51 +37,72 @@
       REAL(q) :: fp1,fp2,avg_force
       REAL(q) :: finite_step,step_size
 
-      if (fdstep) then
-        fdstep=.false.
+      F = force
+      R = posion
+
+      IF (fdstep) THEN
+        fdstep = .false.
+        optflag = .true. ! keeps contol so it can do finite step
         ! check for reset of direction
-        a1 = abs(sum(force,force_old))
-        a2 = sum(force_old,force_old)
-        if (a1.lt.0.5_q*a2) then
+        a1 = ABS(SUM(F*Fold))
+        a2 = SUM(Fold*Fold)
+        IF (a1 .LT. 0.5_q*a2) THEN
            ! find new direct
-        else
-           ! the hessian to Idenity
-        endif
+           !updateing the hessian
+        ELSE
+           ! reset down the force
+           ! ? reset the hessian
+        ENDIF
 
-        posion_old = posion
-        force_old = force
+        Rold = F
+        Fold = F
         ! compute Ho*g
-
+        IF (itr .LT. memory) THEN
+          bound = itr
+        ELSE
+          bound = memory
+        ENDIF
+        direction = force
+        DO im=1,bound
+          jm = (bound+1-im)
+          alpha(im) = rho(jm)*SUM(change_in_R(jm)*direction)
+          direction = direction-(alpha(im)*change_in_F(jm))
+        ENDDO
+        ! direction = Ho*direction !Ho is idenity matrix
+        DO im=1,bound
+          beta = rho(im)*SUM(change_in_F(im)*direction
+          direction = direction+change_in_R*(alpha(im)-beta)
+        ENDDO
         direction = return_unit(direction)
 
         ! finite step down force
-        posion = posion+direction*step_size
-      else
-        fdstep=.true.
+        R = R + direction*finite_step
+      ELSE
+        fdstep = .true.
+        optflag = .false. ! gives control back to method
         ! calculate curvature down direction
-        fp1 = sum(force_old*direction)
-        fp2 = sum(force*direction)
-        avg_force = (fp1+fp2)/2.0_q
+        fp1 = SUM(Fold*direction)
+        fp2 = SUM(F*direction)
         curvature = (fp1-fp2)/finite_step
-        if (curvature<0.0_q) then
+        IF (curvaturR .LT. 0.0_q) THEN
           step_size=maxmove
-        else
-          step_size = avg_force/curvature
-          if(abs(step_size)>maxmove) then
+        ELSE
+          Favg = 0.5_q*(fp1+fp2)
+          step_size = Favg/curvature
+          IF(ABS(step_size) .GT. maxmove) THEN
             step_size=sign(maxmove,step_size)
-          else
-            step_size = step_size-(finite_step/2.0)
-          endif
-        endif
-        posion = posion+(direction*step_size)
-        ! update the Hessian
+          ELSE
+            step_size = step_size-0.5_q*finite_step
+          ENDIF
+        ENDIF
+        R = R+(direction*step_size)
+      ENDIF
 
-      endif
-
-    return
+      posion(:,:) = R
 
 
-    end subroutine bfgs_step
+    RETURN
+    END SUBROUTINE bfgs_step
 
 !**********************************************************************
 !
@@ -89,18 +110,22 @@
 !
 !**********************************************************************
 
-    subroutine bfgs_init()
+    SUBROUTINE bfgs_init(T_INFO,IO)
+      TYPE(in_struct) :: IO
+      TYPE(type_info) :: T_INFO
 
       INTEGER IDUM,IERR,N
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
       REAL(q) RDUM
-      REAL(q),SAVE finite_step,maxmove
+
+      nions = T_INFO%nions
+      iu6 = IO%IU6
 
       ! read in the varables for bfgs
 
-      finite_step=0.001_q
+      finite_step = 0.001_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
      &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -109,7 +134,7 @@
          STOP
       ENDIF
 
-      maxmove=0.2_q
+      maxmove = 0.2_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -118,5 +143,18 @@
          STOP
       ENDIF
 
-      fdstep = .TRUE.
-    end subroutine bfgs_init
+      dfp = .true.
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+     &            IDUM,RDUM,CDUM,BFGSDFP,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+              WRITE(TIU0,*)'Error reading item ''BFGSDFP'' from file INCAR.'
+         STOP
+      ENDIF
+
+
+     ! intitilize vectors and matrix
+    
+      fdstep = .true.
+    END SUBROUTINE bfgs_init
+  END MODULE bfgs

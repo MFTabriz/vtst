@@ -48,7 +48,7 @@
       ENDIF
 
       ! Euler step
-      velocity = velocity*dt*force!/mass
+      velocity = velocity*dt*force
       step = dt*velocity
       IF (sqrt(sum(step*step)) .GE. maxmove) THEN
         step = maxmove*return_unit(step)
