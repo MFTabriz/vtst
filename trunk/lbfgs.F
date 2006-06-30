@@ -21,9 +21,9 @@
     public :: lbfgs_step, lbfgs_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6
-    REAL(q)  R(:,:),F(:,:)
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
+    REAL(q),ALLOCATABLE :: direction(:,:),
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
@@ -45,24 +45,31 @@
       LOGICAL optflag
 
       REAL(q) :: beta
-      REAL(q) :: a1,a2,direction,curvature
+      REAL(q) :: a1,a2,curvature
       REAL(q) :: fp1,fp2,Favg,step_size
       INTEGER :: itr,bound,im,jm
-
-      F = force
-      R = posion
+      
+      nions=tinfo_nions
+      iu6=tinfo_iu6
+      dir2car=latt_a
+      car2dir=latt_b
 
       IF (fdstep) THEN
         fdstep = .false.
         optflag = .true. ! keeps contol so it can do finite step
         ! check for reset of direction
-        a1 = ABS(SUM(F*Fold))
+        a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
         IF (a1 .LT. 0.5_q*a2 .AND. a2 .ne. 0.0_q) THEN
            ! find new direct
+           itr = itr+1
            IF (itr .LT. memory) THEN
-             change_in_F(itr,:,:) = F-Fold
-             change_in_R(itr,:,:) = R-Rold  ! need boundary conditions
+             change_in_F(itr,:,:) = force-Fold
+             change_in_R(itr,:,:) = posion-Rold 
+             ! postions are in direct coordinates, convert to cartesian
+             CALL dirkar(nions,change_in_R(itr,:,:),dir2car)
+             ! apply periodic boundary conditions to these vector differences
+             CALL set_pbc(change_in_R(itr,:,:))
              rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
            ELSE
              DO im = 1,memory-1
@@ -74,18 +81,20 @@
              DO im = 1,memory-1
                rho(im) = rho(im+1)
              ENDDO
-             change_in_F(memory,:,:) = F-Fold
-             change_in_R(memory,:,:) = R-Rold  ! need boundary conditions
+             change_in_F(memory,:,:) = force-Fold
+             change_in_R(memory,:,:) = posion-Rold
+             ! postions are in direct coordinates, convert to cartesian
+             CALL dirkar(nions,change_in_R(memory,:,:),dir2car)
+             ! apply periodic boundary conditions to these vector differences
+             CALL set_pbc(change_in_R(memory,:,:))
              rho(memory) = 1.0_q/SUM(change_in_F(memory,:,:)*change_in_R(memory,:,:))
-           itr = itr+1
         ELSE
            ! reset down the force
-           itr = 1
-           ! ? reset the change_in_pos/force vectors?
+           itr = 0
         ENDIF
 
-        Rold = F
-        Fold = F
+        Rold = posion
+        Fold = force
         ! compute Ho*g
         IF (itr .LT. memory) THEN
           bound = itr
@@ -93,28 +102,30 @@
           bound = memory
         ENDIF
         direction = force
-        DO im=1,bound 
-          jm = (bound+1-im)
-          alpha(im) = rho(jm)*SUM(change_in_R(jm)*direction)
-          direction = direction-(alpha(im)*change_in_F(jm))
-        ENDDO
-        ! direction = Ho*direction !Ho is idenity matrix
-        DO im=1,bound
-          beta = rho(im)*SUM(change_in_F(im)*direction
-          direction = direction+change_in_R*(alpha(im)-beta)
-        ENDDO
-        direction = return_unit(direction)
+        IF (itr .NE. 0) THEN
+          DO im=1,bound 
+            jm = (bound+1-im)
+            alpha(im) = rho(jm)*SUM(change_in_R(jmi,:,:)*direction)
+            direction = direction-(alpha(im)*change_in_F(jm,:,:))
+          ENDDO
+          ! direction = Ho*direction !Ho is idenity matrix
+          DO im=1,bound
+            beta = rho(im)*SUM(change_in_F(im,:,:)*direction)
+            direction = direction+change_in_R(im,:,:)*(alpha(im)-beta)
+          ENDDO
+        ENDIF
+        direction =direction/SQRT(SUM(direction*direction))
 
         ! finite step down force
-        R = R + direction*finite_step
+        posion = posion + direction*finite_step
       ELSE
         fdstep = .true.
         optflag = .false. ! gives control back to method
         ! calculate curvature down direction
         fp1 = SUM(Fold*direction)
-        fp2 = SUM(F*direction)
+        fp2 = SUM(force*direction)
         curvature = (fp1-fp2)/finite_step
-        IF (curvaturR .LT. 0.0_q) THEN
+        IF (curvature .LT. 0.0_q) THEN
           step_size=maxmove
         ELSE
           Favg = 0.5_q*(fp1+fp2)
@@ -122,16 +133,14 @@
           IF(ABS(step_size) .GT. maxmove) THEN
             step_size=sign(maxmove,step_size)
           ELSE
-            step_size = step_size-0.5_q*finite_step
+            step_size = step_size-0.5_q*finite_step  !(*)
           ENDIF
         ENDIF
-        R = R+(direction*step_size)
+! Move now from the configuration after the fd_step, so (*) has a "-" sign
+        posion = posion+(direction*step_size)
       ENDIF
 
-      posion(:,:) = R
-
     RETURN
-
     END SUBROUTINE lbfgs_step
 
 !**********************************************************************
@@ -184,16 +193,13 @@
       ENDIF
 
       ! initialize the variables: vectors and matricies
-      ALLOCATE(change_in_F(memory,3,Nions),change_in_R(memory,3,Nions))
-      ALLOCATE(F(3,Nions),R(3,Nions))
-      ALLOCATE(Fold(3,Nions),Rold(3,Nions))
+      ALLOCATE(change_in_F(memory,3,nions),change_in_R(memory,3,nions))
+      ALLOCATE(Fold(3,nions),Rold(3,nions),direction(3,nions))
       ALLOCATE(rho(memory),alpha(memory))
-
 
 
       fdstep=.true.
     END SUBROUTINE lbfgs_init
-
 
 !**********************************************************************
 !
@@ -206,33 +212,34 @@
 ! boundary conditions. This should really be changed to use the
 ! Wigner-Sitz cell
 !======================================================================
-      subroutine set_pbc(v1)
-      real(q) :: v1(3,nions)
-      call kardir(nions,v1,car2dir)
-      v1=mod(v1+100.5_q,1._q)-0.5_q
-      call dirkar(nions,v1,dir2car)
-      end subroutine set_pbc
+      SUBROUTINE set_pbc(v1)
+      REAL(q) :: v1(3,nions)
+      CALL kardir(nions,v1,car2dir)
+      v1=MOD(v1+100.5_q,1._q)-0.5_q
+      CALL dirkar(nions,v1,dir2car)
+      END SUBROUTINE set_pbc
 !======================================================================
 ! Returns a unit vector along v1
 !======================================================================
-      function return_unit(V1)
+      FUNCTION return_unit(V1)
       real(q) :: v1(3,nions)
       real(q),dimension(3,nions) :: return_unit
-      return_unit=v1*(1._q/sqrt(sum(v1*v1)))
-      end function return_unit
+      return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
+      END FUNCTION return_unit
 !======================================================================
 ! Sets V1 to be a unit vector
 !======================================================================
-      subroutine set_unit(V1)
-      real(q) :: v1(3,nions)
+      SUBROUTINE set_unit(V1)
+      REAL(q) :: v1(3,nions)
       v1=return_unit(v1)
-      end subroutine set_unit
+      END SUBROUTINE set_unit
 !======================================================================
 ! Vector projection of v1 on v2
 !======================================================================
-      function vproj(v1,v2)
-      real(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*sum(v1*v2)/sum(v2*v2)
-      end function vproj
+      FUNCTION vproj(v1,v2)
+      REAL(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
+      proj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      END FUNCTION vproj
+
 
   END MODULE lbfgs

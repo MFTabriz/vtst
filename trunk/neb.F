@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.9 2006-06-26 23:51:07 graeme Exp $
+! RCS:  $Id: neb.F,v 1.10 2006-06-30 17:35:53 dano Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -48,7 +48,7 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE neb_force(tinfo_nions,posion,toten,force,latt_a,latt_b,iu6)
+    SUBROUTINE neb_force(optflag,tinfo_nions,posion,toten,force,latt_a,latt_b,iu6)
       INTEGER :: tinfo_nions,iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
@@ -76,6 +76,7 @@
       IF (images==0) GOTO 9999
 !      IF (spring==-1000) RETURN
 
+      optflag = .true.
 #if defined(MPI) || defined (MPI_CHAIN)
 !
 ! communicate all positions to all nodes (brute force, but simple)
@@ -294,7 +295,7 @@
 #endif
 
  9999 continue
-
+    
     END SUBROUTINE neb_force
 
 !**********************************************************************
@@ -495,8 +496,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       function vproj(v1,v2)
-      real(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*sum(v1*v2)/sum(v2*v2)
+      real(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
+      proj=v2*sum(v1*v2)/sqrt(sum(v2*v2))
       end function vproj
 
 END MODULE neb

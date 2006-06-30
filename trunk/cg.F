@@ -16,10 +16,9 @@
     public :: cg_step, cg_init  !call cg_init from opt_init
 
     INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: R(:,:),F(:,:)
-    REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
+    REAL(q),ALLOCATABLE :: Fold(:,:)
+    REAL(q),ALLOCATABLE :: direction(:,:),dir_unit(:,:)
 
-    REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: finite_step,maxmove
     LOGICAL :: fdstep
 
@@ -37,35 +36,29 @@
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
 
-      !LOGICAL,INTENT(INOUT) :: fdstep
-
-      REAL(q) :: gam,direction,dir_old,dir_unit
-      REAL(q) :: a1,a2,fp1,fp2,Favg,curvature,step_size
+      REAL(q) :: a1,a2,gam,step_size
+      REAL(q) :: fp1,fp2,Favg,curvature
       
-      F = force(:,:)
-      R = posion(:,:)
-
       IF (fdstep) THEN
         fdstep = .false.
         optflag = .true.
-        a1 = ABS(SUM(F*Fold))
+        a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
-        IF (a1 .LT. 0.5_q*a2) THEN
-          gam = SUM(F*(F-Fold))/a2
+        IF (a1 .LT. 0.5_q*a2) .AND. (a2 .NE. 0.0_q) THEN
+          gam = SUM(force*(force-Fold))/a2
         ELSE
           gam = 0.0_q
         END IF
-        direction = F+direction*gam
+        direction = force+direction*gam
         dir_unit = direction/SQRT(SUM(direction*direction))
-        Fold = F
-        dir_old = direction
+        Fold = force
         ! Move from the original configuration
-        R = R+dir_unit*finite_step
+        posion = posion+dir_unit*finite_step
       ELSE
         fdstep = .true.
         optflag = .false.
         fp1 = SUM(Fold*dir_unit)
-        fp2 = SUM(F*dir_unit)
+        fp2 = SUM(force*dir_unit)
         curvature = (fp1-fp2)/finite_step
         IF (curvature .LT.  0.0_q) THEN
          step_size = maxmove
@@ -79,20 +72,21 @@
           END IF
         END IF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        R = R+dir_unit*step_size
+        posion = posion+dir_unit*step_size
       END IF
     
-      posion(:,:) = R
-
     RETURN
 
     END SUBROUTINE cg_step
+!**********************************************************************
+!
+! Conjugate gradient initilizer
+!
+!**********************************************************************
 
     SUBROUTINE cg_init(T_INFO,IO)
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
-
-      INTEGER nions,iu6
 
       INTEGER IDUM,IERR,N
       CHARACTER*1 CHARAC
@@ -123,10 +117,10 @@
          STOP
       ENDIF
 
-      ! initialize the variables: vectors and matricies
+      ! initialize the variables
  
-      ALLOCATE(F(3,Nions),R(3,Nions))
-      ALLOCATE(Fold(3,Nions),Rold(3,Nions))
+      ALLOCATE(Fold(3,nions))
+      ALLOCATE(direction(3,nions),dir_unit(3,nions))
 
       fdstep=.true.  
     END SUBROUTINE cg_init

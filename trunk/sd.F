@@ -17,9 +17,8 @@
 
     INTEGER :: nions,iu6
 
-    REAL(q) :: dir2car(3,3),car2dir(3,3)
+    REAL(q),ALLOCATABLE :: step(:,:)
     REAL(q) :: alpha,maxmove
-    LOGICAL :: fdstep
 
 
 !**********************************************************************
@@ -35,12 +34,10 @@
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
-
-      REAL(q) :: step
       
       optflag = .false. ! gives control back to method
       step = force * alpha
-      IF (sqrt(sum(step*step) .GT. maxmove) THEN
+      IF (SQRT(SUM(step*step) .GT. maxmove) THEN
         step = maxmove*step/SQRT(SUM(step*step))
       ENDIF
 
@@ -90,6 +87,9 @@
               WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
+
+      ! initilize the vectors
+      ALLOCATE(step(3,nions))
 
     END SUBROUTINE sd_init()
 
