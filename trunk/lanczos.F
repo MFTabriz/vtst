@@ -6,7 +6,6 @@
 ! For more information, see Malek and Mousseau, PRB 62, 7723 (2000) and
 ! Olsen et al, JCP 121, 9776-92 (2004).
 !
-! More work is needed, there WILL be A LOT of bugs. 
 ! The module was developed on a P4 running FC1 with ifort (v8.1) so 
 ! expect problems when porting to other systems. Both serial and parallel 
 ! versions should work on IBM AIX, Intel P4d and AMD Opterons machines.

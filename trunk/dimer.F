@@ -1,16 +1,15 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.9 2006-06-26 23:51:07 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.10 2006-07-01 18:59:24 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
-! http://ikazki01.chem.washington.edu/vasp/index.html
+! http://theory.cm.utexas.edu/vtsttools/dimer/
 !
 !  History
 ! 
 ! v0.10, Oct 200 the earliest version
-!
 !
 ! v0.90, May 2001 the first official beta
 ! - Added some comments 
@@ -72,7 +71,7 @@
       type(type_info) :: DINFO
       integer :: NM,Nions,Node,IU0,IU6,IUtmp,IUout,IUdim
       integer :: I,NI,NJ,NT,MaxNR,NR
-      integer :: ImageNum,Seed,Itr,TestItr,NNFLAG
+      integer :: ImageNum,Seed,Itr,NNFLAG
       real(q),allocatable :: Fs(:,:,:),Rs(:,:,:),Vs(:,:,:),Us(:,:)
       real(q),allocatable :: F(:,:),V(:,:),N(:,:),M(:,:),dV(:,:),N0(:,:)
       real(q),allocatable :: R(:,:),R0(:,:),R1(:,:),R2(:,:),Gold(:,:)
@@ -87,14 +86,14 @@
       real(q) :: U1tmp, U2tmp
       real(q) :: Uref,U,U0,U1,U2,CN1,CN,Cth,CR
       real(q) :: FD1,FD2,FRr,VRr,FACT
-      real(q) :: NdT,VdV,Alpha
+      real(q) :: NdT,VdV
       real(q) :: NdR,dTh,SimR,FMax,dT,dR,RdR
       real(q) :: FNr,FNrp,FNrp1,FNrp2,GamN,Th
       real(q) :: Frp,Frp1,Frp2,Gam,MaxMove,MaxFN
-      logical :: ContFlag,CGFlag,NCGFlag,Done,DimerFormed
+      logical :: CGFlag,NCGFlag,Done,DimerFormed
       logical :: dThStep,ThStep,dRStep,RdRStep
       logical :: FirstTranslation,FirstRotation,IonStep,TestFlag
-      logical :: ImageFlag,ARTFlag,DragFlag,NoDriftFlag,EAMFlag
+      logical :: DragFlag,NoDriftFlag
 
     contains
 !
@@ -211,7 +210,6 @@
       if(IU6>=0) write(IUout,'(6A16)') 'FMax','FNr','U','CN','Cth','Th'
       if(IU6>=0) open(unit=IUdim, file=DIR_APP(1:DIR_LEN)//'dimer.dat')
       Itr=0
-!     TestItr=0
       allocate(Rs(3,Nions,1:images),Vs(3,Nions,1:images))
       allocate(Fs(3,Nions,1:images),Us(1,1:images))
       allocate(F(3,Nions),F1(3,Nions),F2(3,Nions),FR(3,Nions))
@@ -226,23 +224,22 @@
       allocate(F1tmp(3,Nions),F2tmp(3,Nions),Ntmp(3,Nions))
       allocate(Gtmp(3,Nions),GNtmp(3,Nions),GNutmp(3,Nions))
       allocate(R0tmp(3,Nions),dRtmp(3,Nions))
-!      allocate(Feam(3*Nions),Ream(3*Nions))
       if(Seed/=0) call RMARIN(Seed,Seed)
       FirstRotation=.True.
       FirstTranslation=.True.
       Done=.False.
       call ReadDimerVar()
-      if(images==1)then
-        if(ARTFlag.eqv.DragFlag) then
-          if(IU6>=0) write(IU0,*) 'For Images=1 use ART or Drag.'
+      if(images==1) then
+        if(.NOT.DragFlag) then
+          if(IU6>=0) write(IU0,*) 'For Images=1 use Drag.'
           stop
         endif
-      elseif(images/=2)then
+      elseif(images/=2) then
         if(IU6>=0) write(IU0,*) 'Images must be 2 for the dimer.'
-        if(IU6>=0) write(IU0,*) 'Images must be 1 for ART or Drag.'
+        if(IU6>=0) write(IU0,*) 'Images must be 1 for Drag.'
         stop
       endif
-      if(ARTFlag.OR.DragFlag)then
+      if(DragFlag) then
         idir=0
         call MAKE_DIR_APP(idir)
         call RD_POSCAR_HEAD(LATT_CUR,T_I,NIOND,NIONPD,NTYPD,NTYPPD,IU0,IU6)
@@ -260,7 +257,6 @@
         call MAKE_DIR_APP(node)
         if(DragFlag) N0=RetUnit(R0)
       endif
-!      if(EAMFlag) call PotInit(7.1,7.25);
 #endif
 !MPI
       end subroutine Dimer_Init
@@ -574,39 +570,6 @@
       call UpDateDimer()
       end subroutine RestoreTmp
 !
-! EAM force evaluation
-!
-!      subroutine EAMForce()
-!      external Force
-!      do NI=1,NIONS
-!         do NJ=1,3
-!            Ream(3*(NI-1)+NJ)=R(NJ,NI)
-!         enddo
-!      enddo
-!      call FORCE(Nions,Ream,Feam,U,A(1,1),A(2,2),A(3,3))
-!      do NI=1,NIONS
-!         do NJ=1,3
-!            F(NJ,NI)=Feam(3*(NI-1)+NJ)
-!         enddo
-!      enddo
-!      end subroutine EAMForce
-!
-!
-!**********************************************************************
-!
-! Art Method
-!
-!**********************************************************************
-! 
-      subroutine ARTStep()
-      if(IU6>=0) write(IUdim,'(A10,A10,I7)') 'ART:','Iteration',Itr
-      R0tmp=R-R0
-      call SetPBC(R0tmp)
-      call SetUnit(R0tmp)
-      SPF=F-R0tmp*sum(F*R0tmp)*(1._q+Alpha)
-      end subroutine ARTStep
-!
-!
 !**********************************************************************
 !
 ! Drag Method
@@ -790,73 +753,13 @@
 !
 !**********************************************************************
 !
-! Writes vector out to OUTCAR
-!
-      subroutine WriteOut(V1,Name,IU)
-      real(q) :: V1(3,Nions)
-      character(*) :: Name
-      integer IU
-      write(IU,'(A7,A13)') 'Dimer:',Name
-      write(IU,'(3F14.6)') (V1(:,ni),ni=1,nions)
-      end subroutine WriteOut
-!
-! Writes vector out to OUTCAR (in exponential notation)
-!
-      subroutine WriteOutE(V1,Name,IU)
-      real(q) :: V1(3,Nions)
-      character(*) :: Name
-      integer IU
-      write(IU,'(A7,A13)') 'Dimer:',Name
-      write(IU,'(3E14.6)') (V1(:,ni),ni=1,nions)
-      end subroutine WriteOutE
-!
-! Writes position to image file (only if node==1)
-!
-      subroutine WriteImage(V1)
-      real(q) :: V1(3,Nions)
-      character(15) :: ImageFileName,ImageNumText
-      ImageNum=ImageNum+1
-      write(ImageNumText,*) ImageNum
-      ImageFileName = "Image"//Trim(ImageNumText(2:))//".dat"
-      open(unit=IUtmp, file='images/'//ImageFileName)
-      write(IUtmp,'(3F14.6)') (V1(:,ni),ni=1,nions)
-!      write(IUtmp,*) (V1(:,ni),ni=1,nions)
-      close(unit=IUtmp)
-      end subroutine WriteImage
-!
-! Writes normal to normal file (only if node==1)
-!
-      subroutine WriteNormal(V1)
-      real(q) :: V1(3,Nions)
-      character(15) :: NormalFileName,ImageNumText
-      write(ImageNumText,*) ImageNum
-      NormalFileName = "Normal"//Trim(ImageNumText(2:))//".dat"
-      open(unit=IUtmp, file='images/'//NormalFileName)
-      write(IUtmp,'(3F14.6)') (V1(:,ni),ni=1,nions)
-      close(unit=IUtmp)
-      end subroutine WriteNormal
-!
-! Writes force to force file (only if node==1)
-!
-      subroutine WriteForce(V1)
-      real(q) :: V1(3,Nions)
-      character(15) :: ForceFileName,ImageNumText
-      write(ImageNumText,*) ImageNum
-      ForceFileName = "Force"//Trim(ImageNumText(2:))//".dat"
-      open(unit=IUtmp, file='images/'//ForceFileName)
-      write(IUtmp,'(3F14.6)') (V1(:,ni),ni=1,nions)
-      close(unit=IUtmp)
-      end subroutine WriteForce
-!
 ! Write initial dimer variables
 !
       subroutine WriteDimerVar(IU)
       integer IU
       write(IU,'(/,A22,/)') 'Dimer Input Parameters'
-      write(IU,'(A20,L7)') 'ContFlag',ContFlag
       write(IU,'(A20,L7)') 'CGFlag',CGFlag
       write(IU,'(A20,L7)') 'NCGFlag',NCGFlag
-      write(IU,'(A20,L7)') 'ARTFlag',ARTFlag
       write(IU,'(A20,L7)') 'DragFlag',DragFlag
       write(IU,'(A20,I7)') 'Seed',Seed
       write(IU,'(A20,I7)') 'NM',NM
@@ -939,30 +842,18 @@
       real(q) :: RDUM
       if(IU6>=0) write(IUdim,'(A20)') 'Loading variables'
 
-      ContFlag=.False.
-      call RDATAB(.True.,'INCAR',DIO%IU5,'DContFlag','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,ContFlag,CHARAC,Nint,1,IERR)
       CGFlag=.True.
       call RDATAB(.True.,'INCAR',DIO%IU5,'DCGFlag','=','#',';','L', &
      &            IDUM,RDUM,CDUM,CGFlag,CHARAC,Nint,1,IERR)
       NCGFlag=.True.
       call RDATAB(.True.,'INCAR',DIO%IU5,'DNCGFlag','=','#',';','L', &
      &            IDUM,RDUM,CDUM,NCGFlag,CHARAC,Nint,1,IERR)
-      ImageFlag=.False.
-      call RDATAB(.True.,'INCAR',DIO%IU5,'DIFlag','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,ImageFlag,CHARAC,Nint,1,IERR)
       NoDriftFlag=.False.
       call RDATAB(.True.,'INCAR',DIO%IU5,'NoDriftFlag','=','#',';','L', &
      &            IDUM,RDUM,CDUM,NoDriftFlag,CHARAC,Nint,1,IERR)
-      ARTFlag=.False.
-      call RDATAB(.True.,'INCAR',DIO%IU5,'ARTFlag','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,ARTFlag,CHARAC,Nint,1,IERR)
       DragFlag=.False.
       call RDATAB(.True.,'INCAR',DIO%IU5,'DragFlag','=','#',';','L', &
      &            IDUM,RDUM,CDUM,DragFlag,CHARAC,Nint,1,IERR)
-      EAMFlag=.False.
-      call RDATAB(.True.,'INCAR',DIO%IU5,'DEAMFlag','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,EAMFlag,CHARAC,Nint,1,IERR)
       NM=1
       call RDATAB(.True.,'INCAR',DIO%IU5,'DNM','=','#',';','I', &
      &            NM,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
@@ -996,9 +887,6 @@
       MaxFN=1
       call RDATAB(.True.,'INCAR',DIO%IU5,'DMaxFN','=','#',';','I', &
      &            IDUM,MaxFN,CDUM,LDUM,CHARAC,Nint,1,IERR)
-      Alpha=1.0
-      call RDATAB(.True.,'INCAR',DIO%IU5,'DAlpha','=','#',';','I', &
-     &            IDUM,Alpha,CDUM,LDUM,CHARAC,Nint,1,IERR)
       IonStep=.False.
       NR=0
       if(IU6>=0) call WriteDimerVar(IUdim)

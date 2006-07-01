@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.2 2005-05-23 19:57:28 graeme Exp $
+! RCS:  $Id: dynmat.F,v 1.3 2006-07-01 18:59:24 graeme Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
@@ -15,9 +15,6 @@
     USE poscar
     USE lattice
     IMPLICIT NONE
-
-!bpu    REAL(q),ALLOCATABLE,SAVE :: posion_all(:,:,:)
-!bpu    REAL(q) :: spring=10
 
 !**********************************************************************
 !

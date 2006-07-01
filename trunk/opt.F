@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.9 2006-06-30 17:35:53 dano Exp $
+! RCS:  $Id: opt.F,v 1.10 2006-07-01 18:59:24 graeme Exp $
 !
 ! Module which implements our optimizers
 !
@@ -93,7 +93,7 @@
       nions=T_INFO%nions
       iu6=IO%IU6
 
-      ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd)
+      ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd, 6=md)
 
       iopt = 0
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'IOPT','=','#',';','F', &
@@ -146,7 +146,7 @@
         WRITE(IO%IU6,*) 'OPT: USING Quick-min optimizer'
         STOP
       ELSEIF(iopt==4) THEN
-        WRITE(IO%IU6,*) 'OPT: USING Steep-decent optimizer'
+        WRITE(IO%IU6,*) 'OPT: USING Steepest-descent optimizer'
         STOP
       ELSEIF(iopt==5) THEN
         WRITE(IO%IU6,*) 'OPT: USING Full BFGS optimizer'
