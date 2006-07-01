@@ -48,7 +48,7 @@
       REAL(q),DIMENSION(3,nions) :: posion,tifor 
       REAL(q),DIMENSION(3,3) :: latt_a,latt_b
       REAL(q) :: toten
-      REAL(q),EXTERNAL :: rane
+      REAL(q),EXTERNAL :: rang
 
       REAL(q),DIMENSION(3,3) :: A,B
       REAL(q),SAVE :: alpha,beta,eigold,eig
@@ -116,7 +116,8 @@
           DO i=1,3
             DO j=1,nions
               IF (linfo%lsfor(i,j)) THEN
-                w(i,j)=rane()-0.5_q
+!GH                w(i,j)=rane()-0.5_q
+                w(i,j)=rang(0._q,1._q)
               END IF
             END DO
           END DO
@@ -448,7 +449,7 @@
     SUBROUTINE eigenvector(il,eig)
       INTEGER,INTENT(IN) :: il
       REAL(q),INTENT(IN) :: eig
-      REAL(q),EXTERNAL :: rane
+      REAL(q),EXTERNAL :: rang
  
       INTEGER :: i
       REAL(q) :: shift,t
@@ -471,7 +472,8 @@
         IF (first_ii) THEN 
           first_ii=.false.
           DO i=1,il
-            bb(i)=rane()-0.5_q
+!GH            bb(i)=rane()-0.5_q
+             bb(i)=rang(0._q,1._q)
           END DO
           bb(1:il)=bb(1:il)/SQRT(DOT_PRODUCT(bb(1:il),bb(1:il)))
           aa(1:il)=bb(1:il)

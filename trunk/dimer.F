@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.10 2006-07-01 18:59:24 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.11 2006-07-01 19:48:14 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -685,11 +685,11 @@
 ! Sets V1 to be a random vector
 !
       subroutine SetRand(V1)
-      real(q) :: V1(3,Nions),RANE
-      external RANE
+      real(q) :: V1(3,Nions),RANG
+      external RANG
       do I=1,3
         do NI=1,NIONS
-          V1(I,NI)=RANE()
+          V1(I,NI)=RANG(0._q,1._q)
         enddo
       enddo
       end subroutine SetRand
