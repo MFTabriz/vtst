@@ -20,14 +20,14 @@
     private 
     public :: lbfgs_step, lbfgs_init  !call opt_init from chain_init
 
-    INTEGER :: nions,iu6
+    INTEGER :: nions,iu6,memory
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
     REAL(q),ALLOCATABLE :: direction(:,:),
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    REAL(q) :: finite_step,maxmove,memory
+    REAL(q) :: finite_step,maxmove
     LOGICAL :: fdstep
 
 !**********************************************************************
@@ -176,7 +176,7 @@
 
       finite_step=0.001_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
-     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'

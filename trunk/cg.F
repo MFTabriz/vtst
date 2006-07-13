@@ -101,7 +101,7 @@
 
       finite_step=0.001_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
-     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'

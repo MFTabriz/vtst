@@ -75,7 +75,7 @@
 
       maxmove = 0.2_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
-     &            IDUM,RMAXMOVE,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'

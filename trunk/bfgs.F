@@ -5,6 +5,10 @@
 !
 ! Version 1.01, June 2006
 !
+! To do 
+!   - maxtix opperaations
+!   - pbc
+!
 !**********************************************************************
 
   MODULE bfgs
@@ -139,7 +143,7 @@
 
       finite_step = 0.001_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
-     &            IDUM,RSTEP,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
@@ -156,8 +160,8 @@
       ENDIF
 
       dfp = .true.
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
-     &            IDUM,RDUM,CDUM,BFGSDFP,CHARAC,N,1,IERR)
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'BFGSDFP','=','#',';','F', &
+     &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(TIU0,*)'Error reading item ''BFGSDFP'' from file INCAR.'
