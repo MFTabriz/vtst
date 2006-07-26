@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.10 2006-07-01 18:59:24 graeme Exp $
+! RCS:  $Id: opt.F,v 1.11 2006-07-26 18:44:29 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -16,6 +16,7 @@
     USE qm
     USE bfgs
     USE sd
+!    USE dynamic
     
 
     IMPLICIT NONE
@@ -66,6 +67,9 @@
       ELSEIF (iopt==5) THEN
         CALL bfgs_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
+!      ELSEIF (iopt==6) THEN
+!        CALL dynamic_step(optflag,tinfo_nions,posion,toten,force, &
+!                        latt_a,latt_b,tinfo_iu6)
       ENDIF
 
       ! call periodic boundary conditions
@@ -174,6 +178,8 @@
         CALL sd_init(T_INFO,IO)
       ELSEIF (iopt==5) THEN
         CALL bfgs_init(T_INFO,IO)
+!      ELSEIF (iopt==6) THEN
+!        CALL dynamics_init(T_INFO,IO)
       ENDIF
 
     END SUBROUTINE opt_init
