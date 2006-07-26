@@ -31,7 +31,7 @@
 ! dynamics rutine using verlet velocity style dynamics
 !
 !**********************************************************************
-
+  CONTAINS
     SUBROUTINE dynamic_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
 
@@ -93,6 +93,8 @@
 !
 !**********************************************************************
     SUBROUTINE dynamic_init(T_INFO,IO)
+      USE base
+      USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
@@ -115,7 +117,7 @@
      &            thermosdat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''THERMOSDAT'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''THERMOSDAT'' from file INCAR.'
          STOP
       ENDIF
 
@@ -124,7 +126,7 @@
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''TIMESTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -133,7 +135,7 @@
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -142,7 +144,7 @@
      &            IDUM,temp,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''MDTEMP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''MDTEMP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -151,7 +153,7 @@
      &            IDUm,gam,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''MDGAMMA'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''MDGAMMA'' from file INCAR.'
          STOP
       ENDIF
 
@@ -160,7 +162,7 @@
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''MDALPHA'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''MDALPHA'' from file INCAR.'
          STOP
       ENDIF
 
@@ -226,8 +228,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
 
 

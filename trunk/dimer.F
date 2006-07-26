@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.11 2006-07-01 19:48:14 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.12 2006-07-26 22:20:06 dano Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -104,7 +104,9 @@
 !
 !**********************************************************************
 !
-    subroutine Dimer_Force(TINFO_NIONS,POSION,TOTEN,TIFOR,LATT_A,LATT_B,IO_IU6)
+    subroutine Dimer_Force(optflag,TINFO_NIONS,POSION,TOTEN,TIFOR, & 
+                                       LATT_A,LATT_B,IO_IU6)
+      logical :: optflag
       integer :: TINFO_NIONS
       integer :: IO_IU6
       real(q) :: POSION(3,NIONS)

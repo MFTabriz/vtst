@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.11 2006-07-26 18:44:29 dano Exp $
+! RCS:  $Id: opt.F,v 1.12 2006-07-26 22:20:06 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -14,7 +14,7 @@
     USE lbfgs
     USE cg
     USE qm
-    USE bfgs
+!    USE bfgs
     USE sd
 !    USE dynamic
     
@@ -23,7 +23,7 @@
     private
     public :: opt_step, opt_init  !call opt_init from chain_init
 
-    INTEGER :: nions,iu6
+    INTEGER :: nions,iu6,iopt
     REAL(q) :: dir2car(3,3),car2dir(3,3)
 
 !**********************************************************************
@@ -73,8 +73,7 @@
       ENDIF
 
       ! call periodic boundary conditions
-      set_pbc(posion)
-      !CALL set_pbc(posion)
+      CALL set_pbc(posion)
 
     END SUBROUTINE opt_step
 
@@ -85,10 +84,12 @@
 !**********************************************************************
 
     SUBROUTINE opt_init(T_INFO,IO)
+      USE base
+      USE poscar
       type(in_struct) :: IO
       type(type_info) :: T_INFO
 
-      INTEGER IDUM,IERR,N,ibrion,iopt
+      INTEGER IDUM,IERR,N,ibrion
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
@@ -104,7 +105,7 @@
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''IOPT'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''IOPT'' from file INCAR.'
          STOP
       ENDIF
 
@@ -113,7 +114,7 @@
      &            IDUM,POTIM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''POTIM'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''POTIM'' from file INCAR.'
          STOP
       ENDIF
 
@@ -122,7 +123,7 @@
      &            IBRION,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''IBRION'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''IBRION'' from file INCAR.'
          STOP
       ENDIF
 
@@ -139,7 +140,10 @@
         WRITE(IO%IU6,*) "OPT: USING VASP's Qucik-min optimizer"
         STOP
         RETURN
-      ELSEIF (iopt==0) RETURN ! using vasp optimizer
+      ELSEIF (iopt==0) THEN
+        WRITE(IO%IU6,*) "OPT: USING VASP OPTIMIZERS"
+        STOP
+        RETURN
       ELSEIF(iopt==1) THEN
         WRITE(IO%IU6,*) 'OPT: USING LBFGS optimizer'
         STOP
@@ -221,8 +225,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
 
   END MODULE opt

@@ -26,7 +26,7 @@
 ! Steepest-Decent method
 !
 !**********************************************************************
-
+  CONTAINS
     SUBROUTINE sd_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
 
@@ -37,7 +37,7 @@
       
       optflag = .false. ! gives control back to method
       step = force * alpha
-      IF (SQRT(SUM(step*step) .GT. maxmove) THEN
+      IF (SQRT(SUM(step*step)) .GT. maxmove) THEN
         step = maxmove*step/SQRT(SUM(step*step))
       ENDIF
 
@@ -55,6 +55,8 @@
 !**********************************************************************
 
     SUBROUTINE sd_init(T_INFO,IO)
+      USE base
+      USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
@@ -75,7 +77,7 @@
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''alpha'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''alpha'' from file INCAR.'
          STOP
       ENDIF
 
@@ -84,13 +86,13 @@
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
       ! initilize the vectors
       ALLOCATE(step(3,nions))
 
-    END SUBROUTINE sd_init()
+    END SUBROUTINE sd_init
 
   END MODULE sd

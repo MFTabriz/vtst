@@ -23,7 +23,7 @@
     INTEGER :: nions,iu6,memory
     REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
-    REAL(q),ALLOCATABLE :: direction(:,:),
+    REAL(q),ALLOCATABLE :: direction(:,:)
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
@@ -35,7 +35,7 @@
 ! Limited-memory bfgs method
 !
 !**********************************************************************
-
+  CONTAINS
     SUBROUTINE lbfgs_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
 
@@ -88,6 +88,7 @@
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(memory,:,:))
              rho(memory) = 1.0_q/SUM(change_in_F(memory,:,:)*change_in_R(memory,:,:))
+            ENDIF
         ELSE
            ! reset down the force
            itr = 0
@@ -105,7 +106,7 @@
         IF (itr .NE. 0) THEN
           DO im=1,bound 
             jm = (bound+1-im)
-            alpha(im) = rho(jm)*SUM(change_in_R(jmi,:,:)*direction)
+            alpha(im) = rho(jm)*SUM(change_in_R(jm,:,:)*direction)
             direction = direction-(alpha(im)*change_in_F(jm,:,:))
           ENDDO
           ! direction = Ho*direction !Ho is idenity matrix
@@ -150,6 +151,8 @@
 !**********************************************************************
 
     SUBROUTINE lbfgs_init(T_INFO,IO)
+      USE base
+      USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
@@ -170,7 +173,7 @@
      &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
          STOP
       ENDIF
 
@@ -179,7 +182,7 @@
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -188,7 +191,7 @@
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -237,8 +240,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
 
 

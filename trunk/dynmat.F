@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.3 2006-07-01 18:59:24 graeme Exp $
+! RCS:  $Id: dynmat.F,v 1.4 2006-07-26 22:20:06 dano Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
@@ -29,8 +29,9 @@
 !**********************************************************************
 
       CONTAINS
-      SUBROUTINE dynmat_force(nions,posion,toten,force,a,b,iu6)
+      SUBROUTINE dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
       
+      LOGICAL :: optflag
       INTEGER :: nions
       INTEGER :: iu6
       REAL(q) :: posion(3,nions)

@@ -43,7 +43,9 @@
     CONTAINS
 !--------------------------------------------------------------------------------------!
 
-    SUBROUTINE lanczos_force(nions,posion,toten,tifor,latt_a,latt_b,iu6)
+    SUBROUTINE lanczos_force(optflag,nions,posion,toten,tifor, &
+                                                 latt_a,latt_b,iu6)
+      LOGICAL :: optflag
       INTEGER :: nions,iu6
       REAL(q),DIMENSION(3,nions) :: posion,tifor 
       REAL(q),DIMENSION(3,3) :: latt_a,latt_b

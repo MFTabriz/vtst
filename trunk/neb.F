@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.10 2006-06-30 17:35:53 dano Exp $
+! RCS:  $Id: neb.F,v 1.11 2006-07-26 22:20:06 dano Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -52,6 +52,7 @@
       INTEGER :: tinfo_nions,iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
+      LOGICAL :: optflag
 
       ! local variables
       REAL(q) :: dist_prev(3,nions), dist_next(3,nions)
@@ -62,7 +63,7 @@
 
       REAL(q) :: toten_all(images)
       INTEGER :: node,ni
-
+ 
       ! variables for tangent
       REAL(q) :: max_diff_energy,min_diff_energy
       REAL(q) :: energy_diff_prev,energy_diff_next
@@ -223,9 +224,9 @@
 ! force projections
 !======================================================================
 
-      f_perp = force - Vproj(force,tangent)
+      f_perp = force - vproj(force,tangent)
       f_par = force - f_perp
-!      f_spring_par = spring*(Vproj(dist_prev,tangent)+Vproj(dist_next,tangent))
+!      f_spring_par = spring*(vproj(dist_prev,tangent)+vproj(dist_next,tangent))
       f_spring_par = spring*(sqrt(sum(dist_next**2))-sqrt(sum(dist_prev**2)))*tangent
 
 !======================================================================
@@ -249,8 +250,8 @@
 
       if(ldneb) then
          f_spring_vec = spring*(dist_prev+dist_next)
-         f_spring_perp = f_spring_vec-Vproj(f_spring_vec,tangent)
-         f_dneb = f_spring_perp-Vproj(f_spring_perp,f_perp)
+         f_spring_perp = f_spring_vec-vproj(f_spring_vec,tangent)
+         f_dneb = f_spring_perp-vproj(f_spring_perp,f_perp)
 
          ! smoothly turn off the dneb force at convergence
          if (.not.ldneborg) then
@@ -266,7 +267,7 @@
 !======================================================================
 
       if (lclimb_local .and. node==climbing_image) then
-         force = force - 2._q*Vproj(force,tangent)
+         force = force - 2._q*vproj(force,tangent)
       else
          force = f_spring_par + f_perp + f_dneb
       endif
@@ -477,7 +478,7 @@
       v1=mod(v1+100.5_q,1._q)-0.5_q
       call dirkar(nions,v1,dir2car)
       end subroutine set_pbc
-!======================================================================
+!=====e================================================================
 ! Returns a unit vector along v1
 !======================================================================
       function return_unit(V1)
@@ -496,8 +497,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       function vproj(v1,v2)
-      real(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*sum(v1*v2)/sqrt(sum(v2*v2))
+      real(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+      vproj=v2*sum(v1*v2)/sqrt(sum(v2*v2))
       end function vproj
 
 END MODULE neb

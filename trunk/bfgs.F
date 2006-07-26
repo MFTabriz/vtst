@@ -33,7 +33,7 @@
 ! full bfgs method
 !
 !**********************************************************************
-
+  CONTAINS
     SUBROUTINE bfgs_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
 
@@ -127,6 +127,8 @@
 !**********************************************************************
 
     SUBROUTINE bfgs_init(T_INFO,IO)
+      USE base
+      USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
@@ -146,7 +148,7 @@
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -155,7 +157,7 @@
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -164,7 +166,7 @@
      &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''BFGSDFP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''BFGSDFP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -211,8 +213,8 @@
 ! Vector projection of v1 on v2
 !======================================================================
       FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),proj(3,nions)
-      proj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
 
   END MODULE bfgs

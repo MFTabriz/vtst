@@ -27,14 +27,14 @@
 ! Conjugate gradient method
 !
 !**********************************************************************
-
+  CONTAINS
     SUBROUTINE cg_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
 
+      LOGICAL optflag
       INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
-      LOGICAL optflag
 
       REAL(q) :: a1,a2,gam,step_size
       REAL(q) :: fp1,fp2,Favg,curvature
@@ -44,7 +44,7 @@
         optflag = .true.
         a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
-        IF (a1 .LT. 0.5_q*a2) .AND. (a2 .NE. 0.0_q) THEN
+        IF ((a1 .LT. 0.5_q*a2) .AND. (a2 .NE. 0.0_q)) THEN
           gam = SUM(force*(force-Fold))/a2
         ELSE
           gam = 0.0_q
@@ -63,7 +63,7 @@
         IF (curvature .LT.  0.0_q) THEN
          step_size = maxmove
         ELSE
-          Favg = 0.5_q*(f1d+f2d)
+          Favg = 0.5_q*(fp1+fp2)
           step_size = Favg/curvature
           IF (ABS(step_size) .GT. maxmove) THEN
             step_size = SIGN(maxmove,step_size)
@@ -85,6 +85,8 @@
 !**********************************************************************
 
     SUBROUTINE cg_init(T_INFO,IO)
+      USE base
+      USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
@@ -97,14 +99,14 @@
       nions=T_INFO%nions
       iu6=IO%IU6
 
-      ! read in varables used for lbfgs
+      ! read in varables used for cg
 
       finite_step=0.001_q
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RSTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -113,7 +115,7 @@
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
