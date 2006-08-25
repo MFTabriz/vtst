@@ -18,7 +18,7 @@
     public :: dynamic_step, dynamic_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6,thermosdat
-    REAL(q) :: dir2car(3,3),car2dir(3,3)
+    REAL(q),Alocateable  R(:,:)
     REAL(q) :: dt,maxmove,temp
 
     ! varables for Langevin dynamics 
@@ -42,10 +42,13 @@
 
       REAL(q) :: a1,a2,curvature
 
-      nions=tinfo_nions
-      iu6=tinfo_iu6
-      dir2car=latt_a
-      car2dir=latt_b
+      R = posion
+
+      ! Convert the position into Cartesian coordinates
+      call dirkar(nions,R,latt_a)
+
+      ! give contral back to method 
+      optflag = .false.
 
       IF (thermosdat .EQ. 1) THEN
         posion = posion + c1*dt*velocity + c2*dt*dt*Fold/mass + randR
@@ -53,7 +56,12 @@
         Fold = force
       ELSE
 
-    RETURN
+
+      ! convert position back to direct cord
+      CALL kardir(nions,R,latt_b)
+      ! update posion
+      posion = R
+
     END SUBROUTINE dynmaic_step
 
 !**********************************************************************
@@ -113,7 +121,7 @@
       ! read in varables used for dynamics
 
       thermosdat=0
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'THERMOSDAT','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSDAT','=','#',';','I', &
      &            thermosdat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -122,7 +130,7 @@
       ENDIF
 
       dt = 0.01_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -131,7 +139,7 @@
       ENDIF
 
       maxmove = 0.2_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -140,7 +148,7 @@
       ENDIF
 
       temp = 300.0_q
-      CALL RDATAB(IO%LOPEN,0'INCAR',IO%IU5,'MDTEMP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDTEMP','=','#',';','F', &
      &            IDUM,temp,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -149,7 +157,7 @@
       ENDIF
 
       gam = 0.1_q
-      CALL RDATAB(IO%LOPEN,0'INCAR',IO%IU5,'MDGAMMA','=','#',';','F', &
+      CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDGAMMA','=','#',';','F', &
      &            IDUm,gam,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -158,7 +166,7 @@
       ENDIF
 
       alpha = 0.5_q
-      CALL RDATAB(IO%LOPEN,0'INCAR',IO%IU5,'MDALPHA','=','#',';','F', &
+      CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &

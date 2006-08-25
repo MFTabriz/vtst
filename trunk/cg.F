@@ -16,7 +16,7 @@
     public :: cg_step, cg_init  !call cg_init from opt_init
 
     INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: Fold(:,:)
+    REAL(q),ALLOCATABLE :: Fold(:,:),R(:,:)
     REAL(q),ALLOCATABLE :: direction(:,:),dir_unit(:,:)
 
     REAL(q) :: finite_step,maxmove
@@ -38,7 +38,9 @@
 
       REAL(q) :: a1,a2,gam,step_size
       REAL(q) :: fp1,fp2,Favg,curvature
-      
+
+      R = posion
+
       IF (fdstep) THEN
         fdstep = .false.
         optflag = .true.
@@ -53,7 +55,7 @@
         dir_unit = direction/SQRT(SUM(direction*direction))
         Fold = force
         ! Move from the original configuration
-        posion = posion+dir_unit*finite_step
+        R = R+dir_unit*finite_step
       ELSE
         fdstep = .true.
         optflag = .false.
@@ -72,10 +74,13 @@
           END IF
         END IF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        posion = posion+dir_unit*step_size
+        R = R+dir_unit*step_size
       END IF
-    
-    RETURN
+
+      ! convert position back to direct cord
+      CALL kardir(nions,R,latt_b)
+      ! update posion
+      posion = R
 
     END SUBROUTINE cg_step
 !**********************************************************************
@@ -102,7 +107,7 @@
       ! read in varables used for cg
 
       finite_step=0.001_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -111,7 +116,7 @@
       ENDIF
 
       maxmove=0.2_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -121,7 +126,7 @@
 
       ! initialize the variables
  
-      ALLOCATE(Fold(3,nions))
+      ALLOCATE(Fold(3,nions),R(3,nions))
       ALLOCATE(direction(3,nions),dir_unit(3,nions))
 
       fdstep=.true.  

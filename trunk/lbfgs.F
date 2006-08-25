@@ -21,7 +21,7 @@
     public :: lbfgs_step, lbfgs_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6,memory
-    REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
+    REAL(q),ALLOCATABLE ::R(:,:),Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
     REAL(q),ALLOCATABLE :: direction(:,:)
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
@@ -48,11 +48,11 @@
       REAL(q) :: a1,a2,curvature
       REAL(q) :: fp1,fp2,Favg,step_size
       INTEGER :: itr,bound,im,jm
-      
-      nions=tinfo_nions
-      iu6=tinfo_iu6
-      dir2car=latt_a
-      car2dir=latt_b
+
+      R = posion
+
+      ! Convert the position into Cartesian coordinates
+      call dirkar(nions,R,latt_a)
 
       IF (fdstep) THEN
         fdstep = .false.
@@ -65,9 +65,7 @@
            itr = itr+1
            IF (itr .LT. memory) THEN
              change_in_F(itr,:,:) = force-Fold
-             change_in_R(itr,:,:) = posion-Rold 
-             ! postions are in direct coordinates, convert to cartesian
-             CALL dirkar(nions,change_in_R(itr,:,:),dir2car)
+             change_in_R(itr,:,:) = R-Rold 
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(itr,:,:))
              rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
@@ -82,9 +80,7 @@
                rho(im) = rho(im+1)
              ENDDO
              change_in_F(memory,:,:) = force-Fold
-             change_in_R(memory,:,:) = posion-Rold
-             ! postions are in direct coordinates, convert to cartesian
-             CALL dirkar(nions,change_in_R(memory,:,:),dir2car)
+             change_in_R(memory,:,:) = R-Rold
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(memory,:,:))
              rho(memory) = 1.0_q/SUM(change_in_F(memory,:,:)*change_in_R(memory,:,:))
@@ -94,7 +90,7 @@
            itr = 0
         ENDIF
 
-        Rold = posion
+        Rold = R
         Fold = force
         ! compute Ho*g
         IF (itr .LT. memory) THEN
@@ -118,7 +114,7 @@
         direction =direction/SQRT(SUM(direction*direction))
 
         ! finite step down force
-        posion = posion + direction*finite_step
+        R = R + direction*finite_step
       ELSE
         fdstep = .true.
         optflag = .false. ! gives control back to method
@@ -138,10 +134,14 @@
           ENDIF
         ENDIF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        posion = posion+(direction*step_size)
+        R = R+(direction*step_size)
       ENDIF
 
-    RETURN
+      ! convert position back to direct cord
+      CALL kardir(nions,R,latt_b)
+      ! update posion
+      posion = R
+
     END SUBROUTINE lbfgs_step
 
 !**********************************************************************
@@ -169,7 +169,7 @@
       ! read in varables used for lbfgs
 
       memory=4
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','I', &
      &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -178,7 +178,7 @@
       ENDIF
 
       finite_step=0.001_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -187,7 +187,7 @@
       ENDIF
 
       maxmove=0.2_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -197,7 +197,7 @@
 
       ! initialize the variables: vectors and matricies
       ALLOCATE(change_in_F(memory,3,nions),change_in_R(memory,3,nions))
-      ALLOCATE(Fold(3,nions),Rold(3,nions),direction(3,nions))
+      ALLOCATE(R(3,nions),Fold(3,nions),Rold(3,nions),direction(3,nions))
       ALLOCATE(rho(memory),alpha(memory))
 
 

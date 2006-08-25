@@ -45,10 +45,10 @@
       REAL(q) :: a1,a2,curvature
       REAL(q) :: fp1,fp2,Favg,step_size
 
-      nions=tinfo_nions
-      iu6=tinfo_iu6
-      dir2car=latt_a
-      car2dir=latt_b
+      R = posion
+
+      ! Convert the position into Cartesian coordinates
+      call dirkar(nions,R,latt_a)
 
       IF (fdstep) THEN
         fdstep = .false.
@@ -66,7 +66,7 @@
            !invH = idenity
         ENDIF
 
-        Rold = posion
+        Rold = R
         Fold = force
         ! compute Ho*g
 
@@ -74,7 +74,7 @@
         ! direction = Ho*direction !Ho is idenity matrix
         direction = return_unit(direction)
         ! finite step down force
-        posion = posion + direction*finite_step
+        R = R + direction*finite_step
       ELSE
         fdstep = .true.
         optflag = .false. ! gives control back to method
@@ -94,9 +94,13 @@
           ENDIF
         ENDIF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        posion = posion+(direction*step_size)
+        R = R+(direction*step_size)
       ENDIF
-    RETURN
+
+      ! convert position back to direct cord
+      CALL kardir(nions,R,latt_b)
+      ! update posion
+      posion = R
     END SUBROUTINE bfgs_step
 
 !**********************************************************************
@@ -144,7 +148,7 @@
       ! read in the varables for bfgs
 
       finite_step = 0.001_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -153,7 +157,7 @@
       ENDIF
 
       maxmove = 0.2_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -162,7 +166,7 @@
       ENDIF
 
       dfp = .true.
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'BFGSDFP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'BFGSDFP','=','#',';','L', &
      &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &

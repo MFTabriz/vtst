@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.11 2006-07-26 22:20:06 dano Exp $
+! RCS:  $Id: neb.F,v 1.12 2006-08-25 21:44:33 dano Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -74,10 +74,10 @@
       INTEGER :: climbing_image,max_energy_image
       LOGICAL :: lclimb_local
 
+      optflag = .true.
       IF (images==0) GOTO 9999
 !      IF (spring==-1000) RETURN
 
-      optflag = .true.
 #if defined(MPI) || defined (MPI_CHAIN)
 !
 ! communicate all positions to all nodes (brute force, but simple)
@@ -296,7 +296,7 @@
 #endif
 
  9999 continue
-    
+      return   
     END SUBROUTINE neb_force
 
 !**********************************************************************

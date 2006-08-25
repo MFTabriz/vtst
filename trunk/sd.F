@@ -17,7 +17,7 @@
 
     INTEGER :: nions,iu6
 
-    REAL(q),ALLOCATABLE :: step(:,:)
+    REAL(q),ALLOCATABLE :: step(:,:),R(:,:)
     REAL(q) :: alpha,maxmove
 
 
@@ -35,16 +35,25 @@
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
       
-      optflag = .false. ! gives control back to method
+      optflag = .false. ! gives control back to the method
+
+      R = posion
+
+      ! Convert the position into Cartesian coordinates
+      call dirkar(nions,R,latt_a)
+
       step = force * alpha
       IF (SQRT(SUM(step*step)) .GT. maxmove) THEN
         step = maxmove*step/SQRT(SUM(step*step))
       ENDIF
 
-      posion = posion+step
-    
+      R = R+step
 
-    RETURN
+      ! convert position back to direct cord
+      CALL kardir(nions,R,latt_b)
+      ! update posion
+      posion = R
+
     END SUBROUTINE sd_step
 
 
@@ -73,7 +82,7 @@
       ! loading variables for sd step
 
       alpha = 0.1_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -82,7 +91,7 @@
       ENDIF
 
       maxmove = 0.2_q
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -91,7 +100,7 @@
       ENDIF
 
       ! initilize the vectors
-      ALLOCATE(step(3,nions))
+      ALLOCATE(step(3,nions),R(3,nions))
 
     END SUBROUTINE sd_init
 

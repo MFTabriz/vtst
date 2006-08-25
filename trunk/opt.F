@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.12 2006-07-26 22:20:06 dano Exp $
+! RCS:  $Id: opt.F,v 1.13 2006-08-25 21:44:33 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -64,9 +64,9 @@
       ELSEIF (iopt==4) THEN
         CALL sd_step(optflag,tinfo_nions,posion,toten,force, &
                         latt_a,latt_b,tinfo_iu6)
-      ELSEIF (iopt==5) THEN
-        CALL bfgs_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
+!      ELSEIF (iopt==5) THEN
+!        CALL bfgs_step(optflag,tinfo_nions,posion,toten,force, &
+!                        latt_a,latt_b,tinfo_iu6)
 !      ELSEIF (iopt==6) THEN
 !        CALL dynamic_step(optflag,tinfo_nions,posion,toten,force, &
 !                        latt_a,latt_b,tinfo_iu6)
@@ -101,8 +101,8 @@
       ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd, 6=md)
 
       iopt = 0
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'IOPT','=','#',';','F', &
-     &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
+     &            iopt,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(iu6,*)'Error reading item ''IOPT'' from file INCAR.'
@@ -110,8 +110,8 @@
       ENDIF
 
       potim = 0
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'potim','=','#',';','F', &
-     &            IDUM,POTIM,CDUM,LDUM,CHARAC,N,1,IERR)
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'POTIM','=','#',';','F', &
+     &            IDUM,potim,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(iu6,*)'Error reading item ''POTIM'' from file INCAR.'
@@ -119,8 +119,8 @@
       ENDIF
 
       ibrion = 0
-      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'IBRION','=','#',';','F', &
-     &            IBRION,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IBRION','=','#',';','I', &
+     &            ibrion,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(iu6,*)'Error reading item ''IBRION'' from file INCAR.'
@@ -128,44 +128,45 @@
       ENDIF
 
       ! write out the optimizer chosen
-      IF(iopt==0 .AND. ibrion==1) THEN
-        WRITE(IO%IU6,*) "OPT: USING VASP's QUASI-newton optimizer"
-        STOP
+      IF( (iopt.EQ.0) .AND. (ibrion.EQ.1) ) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) "OPT: USING VASP's QUASI-newton optimizer"
         RETURN
-      ELSEIF(iopt==0 .AND. ibrion==2) THEN
-        WRITE(IO%IU6,*) "OPT: USING VASP's conjugate-gradient optimizer"
-        STOP
+      ELSEIF( (iopt.EQ.0) .AND. (ibrion.EQ.2) ) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) "OPT: USING VASP's conjugate-gradient optimizer"
         RETURN
-      ELSEIF(iopt==0 .AND. ibrion==3) THEN
-        WRITE(IO%IU6,*) "OPT: USING VASP's Qucik-min optimizer"
-        STOP
+      ELSEIF( (iopt.EQ.0) .AND. (ibrion.EQ.3) ) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) "OPT: USING VASP's Qucik-min optimizer"
         RETURN
-      ELSEIF (iopt==0) THEN
-        WRITE(IO%IU6,*) "OPT: USING VASP OPTIMIZERS"
-        STOP
+      ELSEIF (iopt.EQ.0) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) "OPT: USING VASP OPTIMIZERS"
         RETURN
-      ELSEIF(iopt==1) THEN
-        WRITE(IO%IU6,*) 'OPT: USING LBFGS optimizer'
-        STOP
-      ELSEIF(iopt==2) THEN
-        WRITE(IO%IU6,*) 'OPT: USING conjugate-gradient optimizer'
-        STOP
-      ELSEIF(iopt==3) THEN
-        WRITE(IO%IU6,*) 'OPT: USING Quick-min optimizer'
-        STOP
-      ELSEIF(iopt==4) THEN
-        WRITE(IO%IU6,*) 'OPT: USING Steepest-descent optimizer'
-        STOP
-      ELSEIF(iopt==5) THEN
-        WRITE(IO%IU6,*) 'OPT: USING Full BFGS optimizer'
-        STOP
-      ELSEIF(iopt==6) THEN
-        WRITE(IO%IU6,*) 'OPT: Verlet dynamics'
-        STOP
+      ELSEIF (iopt.EQ.1) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING LBFGS optimizer'
+      ELSEIF (iopt.EQ.2) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING conjugate-gradient optimizer'
+      ELSEIF (iopt.EQ.3) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING Quick-min optimizer'
+      ELSEIF (iopt.EQ.4) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING Steepest-descent optimizer'
+      ELSEIF (iopt.EQ.5) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING Full BFGS optimizer'
+      ELSEIF (iopt.EQ.6) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: Verlet dynamics'
       ENDIF
 
       IF(potim/=0 .OR. ibrion/=3) THEN
-        WRITE(IO%IU6,*) 'OPT: Must set IBRION=3 and POTIM=0 for IOPT>0'
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: Must set IBRION=3 and POTIM=0 for IOPT>0'
         STOP
       ENDIF
 
@@ -180,8 +181,8 @@
         CALL qm_init(T_INFO,IO)
       ELSEIF (iopt==4) THEN
         CALL sd_init(T_INFO,IO)
-      ELSEIF (iopt==5) THEN
-        CALL bfgs_init(T_INFO,IO)
+!      ELSEIF (iopt==5) THEN
+!        CALL bfgs_init(T_INFO,IO)
 !      ELSEIF (iopt==6) THEN
 !        CALL dynamics_init(T_INFO,IO)
       ENDIF
