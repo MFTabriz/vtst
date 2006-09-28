@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.8 2006-08-25 21:44:33 dano Exp $
+! RCS:  $Id: chain.F,v 1.9 2006-09-28 20:27:14 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -16,7 +16,7 @@
 ! code.  The only advantage of this dynamical matrix implementation
 ! is that you can combine forces from multiple vasp runs.  This
 ! makes it easier to separate a large calculation into serveral jobs,
-! and systematically check for convergence of the normal modes, or
+! and systematiCALLy check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
 !**********************************************************************
@@ -64,13 +64,13 @@
         optflag=.TRUE.
       ELSE
         IF(ICHAIN==0) THEN
-          call neb_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL neb_force(optflag,nions,posion,toten,force,a,b,iu6)
         ELSEIF(ICHAIN==1) THEN
-          call dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
         ELSEIF(ICHAIN==2) THEN
-          call dimer_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL dimer_force(optflag,nions,posion,toten,force,a,b,iu6)
         ELSEIF(ICHAIN==3) THEN
-          call lanczos_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL lanczos_force(optflag,nions,posion,toten,force,a,b,iu6)
         ENDIF
       ENDIF
 
@@ -82,11 +82,11 @@
             ftotmag=ftotmag+force(nj,ni)**2
             ftemp=ftemp+force(nj,ni)**2
          ENDDO
-         if (ftemp.gt.fmaxatom) fmaxatom=ftemp
+         IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
       ENDDO
-      ftotmag=sqrt(ftotmag/real(nions))
-      fmaxatom=sqrt(fmaxatom)
-      if (iu6>=0) write(iu6,4693) fmaxatom,ftotmag
+      ftotmag=SQRT(ftotmag/REAL(nions))
+      fmaxatom=SQRT(fmaxatom)
+      IF (iu6>=0) WRITE(iu6,4693) fmaxatom,ftotmag
  4693 format(1x,' FORCES: max atom, RMS ',2f12.6)
 
       ! our own optimizers (optflag: do or do not optimize)  
@@ -115,19 +115,19 @@
       TYPE (type_info) :: T_I
       TYPE (dynamics) :: DYN
 
-      integer :: IERR,N,IOPT
-      character*1 :: CHARAC
-      complex(q) :: CDUM 
-      logical :: LDUM
-      real(q) :: RDUM
+      INTEGER :: IERR,N,IOPT
+      CHARACTER*1 :: CHARAC
+      COMPLEX(q) :: CDUM 
+      LOGICAL :: LDUM
+      REAL(q) :: RDUM
 
       ! initialize optimizer
-      call opt_init(T_INFO, IO)
+      CALL opt_init(T_INFO, IO)
       optflag=.FALSE.
 
       ! initialize chain based method
       ICHAIN=0
-      call RDATAB(.True.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
      &            ICHAIN,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -136,7 +136,7 @@
       ENDIF
 
       IOPT=0
-      call RDATAB(.True.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -145,26 +145,26 @@
       ENDIF
 
 
-      if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
+      IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
       IF(ICHAIN==0) THEN
         IF(IMAGES>0) THEN
-          if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the NEB'
+          IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the NEB'
         ENDIF
-        call neb_init(T_INFO,IO)
+        CALL neb_init(T_INFO,IO)
       ELSEIF(ICHAIN==1) THEN
-        if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the Dynamical Matrix'
-        call dynmat_init(T_INFO,IO)
+        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Dynamical Matrix'
+        CALL dynmat_init(T_INFO,IO)
       ELSEIF(ICHAIN==2) THEN
-        if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the Dimer method'
-        call dimer_init(T_INFO,IO)
+        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Dimer method'
+        CALL dimer_init(T_INFO,IO)
         IF(iopt==0) THEN
           WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Dimer method'
           STOP
         ENDIF
       ELSEIF(ICHAIN==3) THEN
-        if(IO%IU6>=0) write(IO%IU6,*) 'CHAIN: Running the Lanczos method'
-        call lanczos_init(T_INFO,IO)
+        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Lanczos method'
+        CALL lanczos_init(T_INFO,IO)
         IF(iopt==0) THEN
           WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
           STOP
@@ -176,19 +176,19 @@
 
 !**********************************************************************
 !
-! Returns true if hyper nudged elastic band method is used
+! Returns true IF hyper nudged elastic band method is used
 !
 !**********************************************************************
 !
-      function LHYPER_NUDGE()
-      logical LHYPER_NUDGE
-!      if (images==0 .OR. spring /= 0 ) then
-      if (images==0 ) then
+      FUNCTION LHYPER_NUDGE()
+      LOGICAL LHYPER_NUDGE
+!      IF (images==0 .OR. spring /= 0 ) THEN
+      IF (images==0 ) THEN
         LHYPER_NUDGE=.FALSE.
-      else
+      ELSE
         LHYPER_NUDGE=.TRUE.
-      endif
-      end function LHYPER_NUDGE
+      ENDIF
+      END FUNCTION LHYPER_NUDGE
 !
 !
 !**********************************************************************
@@ -199,25 +199,25 @@
 !
 ! Sum over elements
 !
-      subroutine sum_chain(value)
-      real(q) :: value
-      if (images==0) return
-!      if (spring==-1000) return
+      SUBROUTINE sum_chain(value)
+      REAL(q) :: value
+      IF (images==0) RETURN
+!      IF (spring==-1000) RETURN
       CALLMPI_C(M_sum_d(comm_chain,value,1))
-      end subroutine sum_chain
+      END SUBROUTINE sum_chain
 !
-! logical sum over elements
+! LOGICAL sum over elements
 !
-      subroutine and_chain(value)
-      logical :: value
-      real(q) :: sum
-      if (images==0) return
-!      if (spring==-1000) return
-      sum=1
-      if (value) sum=0
-      CALLMPI_C(M_sum_d(comm_chain,sum,1))
+      SUBROUTINE and_chain(value)
+      LOGICAL :: value
+      REAL(q) :: sum_all
+      IF (images==0) RETURN
+!      IF (spring==-1000) RETURN
+      sum_all=1
+      IF (value) sum_all=0
+      CALLMPI_C(M_sum_d(comm_chain,sum_all,1))
       value=.TRUE.
-      if (sum>=1) value=.FALSE.
-      end subroutine and_chain
+      IF (sum_all>=1) value=.FALSE.
+      END SUBROUTINE and_chain
 
 END MODULE chain

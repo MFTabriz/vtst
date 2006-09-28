@@ -368,29 +368,29 @@
      
     SUBROUTINE read_variables(io)
       TYPE(in_struct) :: io
-      integer :: IDUM,IERR,Nint
-      character*1 :: CHARAC
-      complex(q) :: CDUM
-      logical :: LDUM
-      real(q) :: RDUM
+      INTEGER :: IDUM,IERR,Nint
+      CHARACTER*1 :: CHARAC
+      COMPLEX(q) :: CDUM
+      LOGICAL :: LDUM
+      REAL(q) :: RDUM
       
       ltol=1.0e-2_q
-      call RDATAB(.True.,'INCAR',IO%IU5,'Sltol','=','#',';','F', &
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sltol','=','#',';','F', &
      &            IDUM,ltol,CDUM,LDUM,CHARAC,Nint,1,IERR)
       dR=1.0e-3_q
-      call RDATAB(.True.,'INCAR',IO%IU5,'SdR','=','#',';','F', &
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'SdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,Nint,1,IERR)
       maxmove=0.3_q
-      call RDATAB(.True.,'INCAR',IO%IU5,'Smaxmove','=','#',';','F', &
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Smaxmove','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,Nint,1,IERR)
-      dt=0.15_q  
-      call RDATAB(.True.,'INCAR',IO%IU5,'Sdt','=','#',';','F', &
+      dt=0.15_q
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sdt','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,Nint,1,IERR)
-      nl=20 
-      call RDATAB(.True.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
+      nl=20
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
      &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
-      ifcg=.true.   
-      call RDATAB(.True.,'INCAR',IO%IU5,'Sifcg','=','#',';','L', &
+      ifcg=.TRUE.
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sifcg','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ifcg,CHARAC,Nint,1,IERR)
 
     RETURN        

@@ -17,8 +17,8 @@
     USE lattice
 
     IMPLICIT NONE
-    private 
-    public :: lbfgs_step, lbfgs_init  !call opt_init from chain_init
+    PRIVATE 
+    PUBLIC :: lbfgs_step, lbfgs_init  !CALL opt_init from chain_init
 
     INTEGER :: nions,iu6,memory
     REAL(q),ALLOCATABLE ::R(:,:),Rold(:,:),Fold(:,:)
@@ -52,11 +52,11 @@
       R = posion
 
       ! Convert the position into Cartesian coordinates
-      call dirkar(nions,R,latt_a)
+      CALL dirkar(nions,R,latt_a)
 
       IF (fdstep) THEN
-        fdstep = .false.
-        optflag = .true. ! keeps contol so it can do finite step
+        fdstep = .FALSE.
+        optflag = .TRUE. ! keeps contol so it can do finite step
         ! check for reset of direction
         a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
@@ -116,8 +116,8 @@
         ! finite step down force
         R = R + direction*finite_step
       ELSE
-        fdstep = .true.
-        optflag = .false. ! gives control back to method
+        fdstep = .TRUE.
+        optflag = .FALSE. ! gives control back to method
         ! calculate curvature down direction
         fp1 = SUM(Fold*direction)
         fp2 = SUM(force*direction)
@@ -128,7 +128,7 @@
           Favg = 0.5_q*(fp1+fp2)
           step_size = Favg/curvature
           IF(ABS(step_size) .GT. maxmove) THEN
-            step_size=sign(maxmove,step_size)
+            step_size=SIGN(maxmove,step_size)
           ELSE
             step_size = step_size-0.5_q*finite_step  !(*)
           ENDIF
@@ -201,7 +201,7 @@
       ALLOCATE(rho(memory),alpha(memory))
 
 
-      fdstep=.true.
+      fdstep=.TRUE.
     END SUBROUTINE lbfgs_init
 
 !**********************************************************************

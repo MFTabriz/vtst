@@ -14,8 +14,8 @@
     USE lattice
 
     IMPLICIT NONE
-    private :: bivarate
-    public :: dynamic_step, dynamic_init  !call opt_init from chain_init
+    PRIVATE :: bivarate
+    PUBLIC :: dynamic_step, dynamic_init  !CALL opt_init from chain_init
 
     INTEGER :: nions,iu6,thermosdat
     REAL(q),Alocateable  R(:,:)
@@ -45,10 +45,10 @@
       R = posion
 
       ! Convert the position into Cartesian coordinates
-      call dirkar(nions,R,latt_a)
+      CALL dirkar(nions,R,latt_a)
 
       ! give contral back to method 
-      optflag = .false.
+      optflag = .FALSE.
 
       IF (thermosdat .EQ. 1) THEN
         posion = posion + c1*dt*velocity + c2*dt*dt*Fold/mass + randR

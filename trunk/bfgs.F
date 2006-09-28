@@ -17,7 +17,7 @@
 
     IMPLICIT NONE
     private
-    public :: bfgs_step, bfgs_init  !call bfgs_init from opt_init
+    public :: bfgs_step, bfgs_init  !CALL bfgs_init from opt_init
 
     INTEGER :: nions,iu6
     REAL(q),ALLOCATABLE :: direction(:,:)
@@ -48,11 +48,11 @@
       R = posion
 
       ! Convert the position into Cartesian coordinates
-      call dirkar(nions,R,latt_a)
+      CALL dirkar(nions,R,latt_a)
 
       IF (fdstep) THEN
         fdstep = .false.
-        optflag = .true. ! keeps contol so it can do finite step
+        optflag = .TRUE. ! keeps contol so it can do finite step
         ! check for reset of direction
         a1 = ABS(SUM(F*Fold))
         a2 = SUM(Fold*Fold)
@@ -76,7 +76,7 @@
         ! finite step down force
         R = R + direction*finite_step
       ELSE
-        fdstep = .true.
+        fdstep = .TRUE.
         optflag = .false. ! gives control back to method
         ! calculate curvature down direction
         fp1 = SUM(Fold*direction)
@@ -165,7 +165,7 @@
          STOP
       ENDIF
 
-      dfp = .true.
+      dfp = .TRUE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'BFGSDFP','=','#',';','L', &
      &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -179,7 +179,7 @@
       ALLOCATE(invH(3*nions,3*nions))
 
      ! set invH as indenty
-      fdstep = .true.
+      fdstep = .TRUE.
     END SUBROUTINE bfgs_init
 !**********************************************************************
 !

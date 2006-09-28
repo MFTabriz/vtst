@@ -12,8 +12,8 @@
     USE lattice
 
     IMPLICIT NONE
-    private 
-    public :: sd_step, sd_init  !call sd_init from opt_init
+    PRIVATE 
+    PUBLIC :: sd_step, sd_init  !call sd_init from opt_init
 
     INTEGER :: nions,iu6
 

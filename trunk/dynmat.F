@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.4 2006-07-26 22:20:06 dano Exp $
+! RCS:  $Id: dynmat.F,v 1.5 2006-09-28 20:27:14 graeme Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
@@ -47,26 +47,26 @@
       iimages=images
       if (iimages.eq.0) iimages=1
 
-      if (IU6>=0) write(iu6,11)
- 11   format('DOING DYMAT, READING DISPLACECAR')
+      if (IU6>=0) WRITE(iu6,11)
+ 11   FORMAT('DOING DYMAT, READING DISPLACECAR')
 
 #if defined(MPI) || defined(MPI_CHAIN)
       if(images>0) node=comm_chain%node_me
 #endif
 
-      if (IU6>=0) write(iu6,12) node,iimages
- 12   format('FOR ',i3,' OUT OF ',i3)
+      if (IU6>=0) WRITE(iu6,12) node,iimages
+ 12   FORMAT('FOR ',i3,' OUT OF ',i3)
 
 !----------------------------------------------------------------------
-! write high precision forces and positions for extracting matrix
+! WRITE high precision forces and positions for extracting matrix
       if (IU6>=0) then
          WRITE(IU6,172)
          DO J=1,NIONS
-            write(IU6,*) 'DYNMAT: Loop at J=',J
+            WRITE(IU6,*) 'DYNMAT: Loop at J=',J
             VTMP=POSION(1:3,J)
-            write(IU6,*) 'DYNMAT: Before DIRKAR'
+            WRITE(IU6,*) 'DYNMAT: Before DIRKAR'
             CALL DIRKAR(1,VTMP,A)
-            write(IU6,*) 'DYNMAT: After DIRKAR'
+            WRITE(IU6,*) 'DYNMAT: After DIRKAR'
             WRITE(IU6,176) VTMP
          ENDDO
       
@@ -100,24 +100,24 @@
             WRITE(IU6,14) 0,0
             WRITE(IU6,15) toten
          endif
- 13      format('DYMAT: ******************************')
- 14      format('DYMAT: DISPLACEMENT      ',i3,i3)
- 15      format('DYMAT: ENERGY            ',f16.6)
- 16      format('DYMAT: ------------------------------')
- 17      format('DYMAT: DEGREE OF FREEDOM ',i3,i3,i3)
- 18      format('DYMAT: FORCE             ',f16.10)
- 19      format('DYMAT: VECTOR            ',3f10.6)
+ 13      FORMAT('DYMAT: ******************************')
+ 14      FORMAT('DYMAT: DISPLACEMENT      ',i3,i3)
+ 15      FORMAT('DYMAT: ENERGY            ',f16.6)
+ 16      FORMAT('DYMAT: ------------------------------')
+ 17      FORMAT('DYMAT: DEGREE OF FREEDOM ',i3,i3,i3)
+ 18      FORMAT('DYMAT: FORCE             ',f16.10)
+ 19      FORMAT('DYMAT: VECTOR            ',3f10.6)
 
-! write some info out
+! WRITE some info out
          k=0
          DO i=1,nions
             DO j=1,3
-               IF (displacement(j,i).ne.0) THEN
+               IF (displacement(j,i).NE.0) THEN
                   k=k+1
-                  if (IU6>=0) THEN
+                  IF (IU6>=0) THEN
                      WRITE(IU6,16) 
                      WRITE(IU6,17) i,j,k
-                  endif
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
@@ -126,7 +126,7 @@
          total_dof=0
          DO i=1,nions
             DO j=1,3
-               IF (displacement(j,i).ne.0) THEN
+               IF (displacement(j,i).NE.0) THEN
                   total_dof=total_dof+1
                ENDIF
             ENDDO
@@ -139,9 +139,9 @@
          flag=0
          DO i=1,nions
             DO j=1,3
-               if (displacement(j,i).ne.0.and.flag==0) THEN
+               IF (displacement(j,i).NE.0.AND.flag==0) THEN
                   current_dof=current_dof+1
-                  if (my_first_dof.eq.current_dof) THEN
+                  IF (my_first_dof.EQ.current_dof) THEN
                      nj=j
                      ni=i
                      flag=1
@@ -162,37 +162,37 @@
          DO j=1,3
             posion(j,ni)=posion(j,ni)-displacevector(j,1)
          ENDDO
-! write some info
+! WRITE some info
          k=0
          DO i=1,nions
             DO j=1,3
-               IF (displacement(j,i).ne.0) THEN
+               IF (displacement(j,i).NE.0) THEN
                   k=k+1
-                  if (IU6>=0) then
+                  IF (IU6>=0) THEN
                      WRITE(IU6,16) 
                      WRITE(IU6,17) i,j,k
-                  endif
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
 ! update position in displacement array
          nj=nj+1
-         IF (nj.gt.3) THEN
+         IF (nj.GT.3) THEN
             nj=1
             ni=ni+1
          ENDIF
       ENDIF
 
 ! find new displacement         
-      DO WHILE (displacement(nj,ni).eq.0.and.ni.le.nions)
+      DO WHILE (displacement(nj,ni).EQ.0.AND.ni.LE.nions)
          nj=nj+1
-         IF (nj.gt.3) THEN
+         IF (nj.GT.3) THEN
             nj=1
             ni=ni+1
          ENDIF
       ENDDO
 
-      if (ni.gt.nions) goto 100 ! for serial job, we must be done
+      IF (ni.GT.nions) GOTO 100 ! for serial job, we must be done
       
 ! zero displacement vector
       DO j=1,3
@@ -207,11 +207,11 @@
          posion(j,ni)=posion(j,ni)+displacevector(j,1)
       ENDDO
 
- 100  continue
-      if (IU6>=0) then
-         write(iu6,20) 
-      endif
- 20   format('DYMAT: LEAVING')
+ 100  CONTINUE
+      IF (IU6>=0) THEN
+         WRITE(iu6,20) 
+      ENDIF
+ 20   FORMAT('DYMAT: LEAVING')
 
     END SUBROUTINE dynmat_force
 
@@ -259,7 +259,7 @@
          STOP
       ENDIF
 
-      if(tiu6>=0) write(tiu6,*)'DYNMAT: Setting node=',node
+      if(tiu6>=0) WRITE(tiu6,*)'DYNMAT: Setting node=',node
 
 #endif
     END SUBROUTINE dynmat_init

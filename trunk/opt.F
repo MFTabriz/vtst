@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.13 2006-08-25 21:44:33 dano Exp $
+! RCS:  $Id: opt.F,v 1.14 2006-09-28 20:27:14 graeme Exp $
 !
 ! Module which implements our optimizers
 !
@@ -20,8 +20,8 @@
     
 
     IMPLICIT NONE
-    private
-    public :: opt_step, opt_init  !call opt_init from chain_init
+    PRIVATE
+    PUBLIC :: opt_step, opt_init  !call opt_init from chain_init
 
     INTEGER :: nions,iu6,iopt
     REAL(q) :: dir2car(3,3),car2dir(3,3)
@@ -86,8 +86,8 @@
     SUBROUTINE opt_init(T_INFO,IO)
       USE base
       USE poscar
-      type(in_struct) :: IO
-      type(type_info) :: T_INFO
+      TYPE(in_struct) :: IO
+      TYPE(type_info) :: T_INFO
 
       INTEGER IDUM,IERR,N,ibrion
       CHARACTER*1 CHARAC
@@ -198,7 +198,7 @@
 
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions. This should really be changed to use the
+! boundary conditions. This should REALly be changed to use the
 ! Wigner-Sitz cell
 !======================================================================
       SUBROUTINE set_pbc(v1)
@@ -211,8 +211,8 @@
 ! Returns a unit vector along v1
 !======================================================================
       FUNCTION return_unit(V1)
-      real(q) :: v1(3,nions)
-      real(q),dimension(3,nions) :: return_unit
+      REAL(q) :: v1(3,nions)
+      REAL(q),DIMENSION(3,nions) :: return_unit
       return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
       END FUNCTION return_unit
 !======================================================================
