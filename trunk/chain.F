@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.9 2006-09-28 20:27:14 graeme Exp $
+! RCS:  $Id: chain.F,v 1.10 2006-10-04 17:54:34 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -33,12 +33,22 @@
     USE opt
 
     IMPLICIT NONE
+    SAVE
     PRIVATE
     PUBLIC :: chain_force, chain_init
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
-    INTEGER ICHAIN
+    INTEGER :: ICHAIN
 !    REAL SPRING
-    LOGICAL optflag
+    LOGICAL :: optflag
+
+#ifdef EAM
+    ! Variables used for calling the EAM potential (testing)
+    LOGICAL :: eaminit
+    REAL(q),ALLOCATABLE :: Ream(:),Feam(:)
+    REAL(q),ALLOCATABLE :: Rvasp(:),Fvasp(:)
+    REAL(q) :: Uvasp
+#endif
+
 
 !**********************************************************************
 !
@@ -55,21 +65,33 @@
       REAL(q) :: posion(3,nions)
       REAL(q) :: force(3,nions),toten
       REAL(q) :: a(3,3),b(3,3)
-      LOGICAL :: optflag
+
+#ifdef EAM
+      IF (.NOT.eaminit) THEN
+        Ream=posion
+        Rvasp=posion
+        Fvasp=force
+        Uvasp=toten
+      ENDIF
+      posion=Ream
+      EAMForce(nions,posion,a,Feam,Ueam)
+      force=Feam
+      toten=Ueam
+#endif
 
       ! optflag indicates who has control
       !  true: optimizer is active
       !  false: chain method is active (for dimer/lanczos)
-      IF(IMAGES==0) THEN
+      IF (IMAGES==0) THEN
         optflag=.TRUE.
       ELSE
-        IF(ICHAIN==0) THEN
+        IF (ICHAIN==0) THEN
           CALL neb_force(optflag,nions,posion,toten,force,a,b,iu6)
-        ELSEIF(ICHAIN==1) THEN
+        ELSEIF (ICHAIN==1) THEN
           CALL dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
-        ELSEIF(ICHAIN==2) THEN
+        ELSEIF (ICHAIN==2) THEN
           CALL dimer_force(optflag,nions,posion,toten,force,a,b,iu6)
-        ELSEIF(ICHAIN==3) THEN
+        ELSEIF (ICHAIN==3) THEN
           CALL lanczos_force(optflag,nions,posion,toten,force,a,b,iu6)
         ENDIF
       ENDIF
@@ -91,6 +113,13 @@
 
       ! our own optimizers (optflag: do or do not optimize)  
       CALL opt_step(optflag,nions,posion,toten,force,a,b,iu6)
+
+#ifdef EAM
+      ! copy saved variables back for vasp
+      posion=Rvasp
+      force=Fvasp
+      toten=Uvasp
+#endif
 
     END SUBROUTINE chain_force
 
@@ -120,6 +149,10 @@
       COMPLEX(q) :: CDUM 
       LOGICAL :: LDUM
       REAL(q) :: RDUM
+
+#ifdef EAM
+      external POTINIT
+#endif
 
       ! initialize optimizer
       CALL opt_init(T_INFO, IO)
@@ -171,6 +204,13 @@
         ENDIF
       ENDIF
 
+#if defined(EAM)
+      POTINIT()
+      eaminit=.FALSE.
+      ALLOCATE(Feam(3*Nions),Ream(3*Nions))
+      ALLOCATE(Fvasp(3*Nions),Rvasp(3*Nions))
+#endif
+
     END SUBROUTINE chain_init
 
 
@@ -219,5 +259,43 @@
       value=.TRUE.
       IF (sum_all>=1) value=.FALSE.
       END SUBROUTINE and_chain
+
+#if defined(EAM)
+!
+!**********************************************************************
+!
+! Empirical potential, for testing purposes only
+!
+!**********************************************************************
+!
+      SUBROUTINE EAMForce(NIONS,POSION,A,Ream,Feam,Ueam)
+      INTEGER :: NIONS
+      REAL(q) :: POSION(3,NIONS)
+      REAL(q) :: Ream(3,NIONS),Feam(3,NIONS)
+      REAL(q) :: Rtmp(3*NIONS),Ftmp(3*NIONS)
+      REAL(q) :: A(3,3)
+      REAL(q) :: Ueam
+      INTEGER :: NI,NJ
+
+      external Force
+
+      ! Convert positions to Cartesian
+      Ream=POSION
+      call DIRKAR(NIONS,Ream,A)
+      ! 
+      do NI=1,NIONS
+         do NJ=1,3
+            Rtmp(3*(NI-1)+NJ)=R(NJ,NI)
+         enddo
+      enddo
+      call FORCE(Nions,Rtmp,Ftmp,Ueam,A(1,1),A(2,2),A(3,3))
+      do NI=1,NIONS
+         do NJ=1,3
+            Feam(NJ,NI)=Ftmp(3*(NI-1)+NJ)
+         enddo
+      enddo
+      end subroutine EAMForce
+#endif
+
 
 END MODULE chain
