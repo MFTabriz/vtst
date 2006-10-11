@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.10 2006-10-04 17:54:34 graeme Exp $
+! RCS:  $Id: chain.F,v 1.11 2006-10-11 17:54:44 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -61,7 +61,7 @@
     SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
       INTEGER :: nions,ni,nj
       INTEGER :: iu6
-      REAL(q) :: ftotmag, fmaxatom,ftemp
+      REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim
       REAL(q) :: posion(3,nions)
       REAL(q) :: force(3,nions),toten
       REAL(q) :: a(3,3),b(3,3)
@@ -98,18 +98,24 @@
 
       ftotmag=0.
       fmaxatom=0.
+      fmaxdim=0.
       DO ni=1,nions
          ftemp=0.
          DO nj=1,3
-            ftotmag=ftotmag+force(nj,ni)**2
+            ftot=ftot+force(nj,ni)**2
             ftemp=ftemp+force(nj,ni)**2
+            IF(fmaxdim.gt.ABS(force(nj,ni)) THEN
+                fmaxdim=ABS(force(nj,ni)
+            ENDIF
          ENDDO
          IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
       ENDDO
-      ftotmag=SQRT(ftotmag/REAL(nions))
+      frms=SQRT(ftot/REAL(nions))
       fmaxatom=SQRT(fmaxatom)
-      IF (iu6>=0) WRITE(iu6,4693) fmaxatom,ftotmag
+      IF (iu6>=0) WRITE(iu6,4693) fmaxatom,frms
  4693 format(1x,' FORCES: max atom, RMS ',2f12.6)
+      IF (iu6>=0) WRITE(iu6,4694) SQRT(ftot),fmaxdim
+ 4694 format(1x,' FORCE total and by dimension',2f12.6)
 
       ! our own optimizers (optflag: do or do not optimize)  
       CALL opt_step(optflag,nions,posion,toten,force,a,b,iu6)
