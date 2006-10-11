@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.13 2006-09-28 20:27:14 graeme Exp $
+! RCS:  $Id: neb.F,v 1.14 2006-10-11 18:22:16 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -78,7 +78,7 @@
       IF (images==0) GOTO 9999
 !      IF (spring==-1000) RETURN
 
-#IF defined(MPI) || defined (MPI_CHAIN)
+#if defined(MPI) || defined (MPI_CHAIN)
 !
 ! communicate all positions to all nodes (brute force, but simple)
 !
@@ -293,7 +293,7 @@
          WRITE(iu6,4699) SUM(f_spring_par*tangent),SUM(f_par*tangent)
       ENDIF
 
-#ENDIF
+#endif
 
  9999 CONTINUE
       RETURN   
@@ -330,7 +330,7 @@
 
       ! quick RETURN, IF we are not running in image mode
       IF (images==0) RETURN
-#IF defined(MPI) || defined(MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
 
       ! read the spring constant
 
@@ -457,7 +457,7 @@
       CALL MAKE_DIR_APP(node)
 ! for moving ENDpoints
 !      CALL MAKE_DIR_APP(node-1)
-#ENDIF
+#endif
 
     END SUBROUTINE neb_init
 

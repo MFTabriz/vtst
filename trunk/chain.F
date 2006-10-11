@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.11 2006-10-11 17:54:44 graeme Exp $
+! RCS:  $Id: chain.F,v 1.12 2006-10-11 18:22:16 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -16,7 +16,7 @@
 ! code.  The only advantage of this dynamical matrix implementation
 ! is that you can combine forces from multiple vasp runs.  This
 ! makes it easier to separate a large calculation into serveral jobs,
-! and systematiCALLy check for convergence of the normal modes, or
+! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
 !**********************************************************************
@@ -37,6 +37,9 @@
     PRIVATE
     PUBLIC :: chain_force, chain_init
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
+#ifdef EAM
+    PRIVATE :: EAMForce
+#endif
     INTEGER :: ICHAIN
 !    REAL SPRING
     LOGICAL :: optflag
@@ -44,9 +47,10 @@
 #ifdef EAM
     ! Variables used for calling the EAM potential (testing)
     LOGICAL :: eaminit
-    REAL(q),ALLOCATABLE :: Ream(:),Feam(:)
-    REAL(q),ALLOCATABLE :: Rvasp(:),Fvasp(:)
-    REAL(q) :: Uvasp
+    REAL(q),ALLOCATABLE :: Ream(:,:),Feam(:,:)
+    REAL(q),ALLOCATABLE :: Rvasp(:,:),Fvasp(:,:)
+    REAL(q),ALLOCATABLE :: Free(:,:)
+    REAL(q) :: Uvasp,Ueam
 #endif
 
 
@@ -68,15 +72,22 @@
 
 #ifdef EAM
       IF (.NOT.eaminit) THEN
+        eaminit=.TRUE.
         Ream=posion
         Rvasp=posion
         Fvasp=force
         Uvasp=toten
       ENDIF
       posion=Ream
-      EAMForce(nions,posion,a,Feam,Ueam)
+      IF (iu6>0) WRITE(IU6,*) 'Calling EAMForce'
+      IF (iu6>0) WRITE(IU6,*) 'posion'
+      IF (iu6>0) WRITE(IU6,'(3F14.6)') posion
+      CALL EAMForce(iu6,nions,posion,a,Feam,Ueam)
       force=Feam
       toten=Ueam
+      IF (iu6>0) WRITE(IU6,*) 'force'
+      IF (iu6>0) WRITE(IU6,'(3F14.6)') force
+      IF (iu6>0) WRITE(IU6,*) 'U ',Ueam
 #endif
 
       ! optflag indicates who has control
@@ -96,7 +107,7 @@
         ENDIF
       ENDIF
 
-      ftotmag=0.
+      ftot=0.
       fmaxatom=0.
       fmaxdim=0.
       DO ni=1,nions
@@ -104,8 +115,8 @@
          DO nj=1,3
             ftot=ftot+force(nj,ni)**2
             ftemp=ftemp+force(nj,ni)**2
-            IF(fmaxdim.gt.ABS(force(nj,ni)) THEN
-                fmaxdim=ABS(force(nj,ni)
+            IF(fmaxdim.LT.ABS(force(nj,ni))) THEN
+                fmaxdim=ABS(force(nj,ni))
             ENDIF
          ENDDO
          IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
@@ -121,6 +132,7 @@
       CALL opt_step(optflag,nions,posion,toten,force,a,b,iu6)
 
 #ifdef EAM
+      Ream=posion
       ! copy saved variables back for vasp
       posion=Rvasp
       force=Fvasp
@@ -144,11 +156,7 @@
       USE base
       TYPE (in_struct) :: IO
       TYPE (type_info) :: T_INFO
-
-      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
-      TYPE (latt) :: LATT_CUR
-      TYPE (type_info) :: T_I
-      TYPE (dynamics) :: DYN
+      INTEGER :: NI,NJ
 
       INTEGER :: IERR,N,IOPT
       CHARACTER*1 :: CHARAC
@@ -156,8 +164,8 @@
       LOGICAL :: LDUM
       REAL(q) :: RDUM
 
-#ifdef EAM
-      external POTINIT
+#if defined(EAM)
+      external EAM_POTINIT
 #endif
 
       ! initialize optimizer
@@ -182,7 +190,6 @@
               WRITE(IO%IU0,*)'Error reading item ''IOPT'' from file INCAR.'
          STOP
       ENDIF
-
 
       IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
@@ -211,10 +218,25 @@
       ENDIF
 
 #if defined(EAM)
-      POTINIT()
+      CALL EAM_POTINIT()
       eaminit=.FALSE.
-      ALLOCATE(Feam(3*Nions),Ream(3*Nions))
-      ALLOCATE(Fvasp(3*Nions),Rvasp(3*Nions))
+      ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
+      ALLOCATE(Fvasp(3,T_INFO%nions),Rvasp(3,T_INFO%nions))
+      ALLOCATE(Free(3,T_INFO%nions))
+
+      Free(:,:)=1._q
+      IF(T_INFO%LSDYN) THEN
+        DO NI=1,T_INFO%nions
+          DO NJ=1,3
+            IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI)=0._q
+!            IF (.NOT.T_INFO%LSFOR(NJ,NI)) THEN
+!               Free(NJ,NI)=0._q
+!            ELSE
+!               Free(NJ,NI)=1._q
+!            ENDIF
+          ENDDO
+        ENDDO
+      ENDIF
 #endif
 
     END SUBROUTINE chain_init
@@ -274,32 +296,49 @@
 !
 !**********************************************************************
 !
-      SUBROUTINE EAMForce(NIONS,POSION,A,Ream,Feam,Ueam)
-      INTEGER :: NIONS
+      SUBROUTINE EAMForce(iu6,NIONS,POSION,A,Feam,Ueam)
+      INTEGER :: NIONS,iu6
       REAL(q) :: POSION(3,NIONS)
-      REAL(q) :: Ream(3,NIONS),Feam(3,NIONS)
-      REAL(q) :: Rtmp(3*NIONS),Ftmp(3*NIONS)
+      REAL(q) :: Reamcar(3,NIONS),Feam(3,NIONS)
+!      REAL(q) :: Rtmp(15000),Ftmp(15000)
       REAL(q) :: A(3,3)
-      REAL(q) :: Ueam
       INTEGER :: NI,NJ
 
-      external Force
+      REAL*8 :: Rtmp(3*NIONS),Ftmp(3*NIONS)
+      REAL*8 :: Ueam
+      REAL*8 :: Ax,Ay,Az
 
+      external EAM_FORCE
+
+      Ax=A(1,1)
+      Ay=A(2,2)
+      Az=A(3,3)
+
+      IF (IU6>0) WRITE(IU6,*) 'IN EAMForce'
       ! Convert positions to Cartesian
-      Ream=POSION
-      call DIRKAR(NIONS,Ream,A)
+      Reamcar=POSION
+      call DIRKAR(NIONS,Reamcar,A)
+      IF (IU6>0) WRITE(IU6,*) 'Reamcar'
+      IF (IU6>0) WRITE(IU6,'(3F14.8)') Reamcar(:,:)
+!      IF (IU6>0) WRITE(IU6,*) 'Free'
+!      IF (IU6>0) WRITE(IU6,'(3F14.8)') Free(:,:)
       ! 
       do NI=1,NIONS
          do NJ=1,3
-            Rtmp(3*(NI-1)+NJ)=R(NJ,NI)
+            Rtmp(3*(NI-1)+NJ)=Reamcar(NJ,NI)
          enddo
       enddo
-      call FORCE(Nions,Rtmp,Ftmp,Ueam,A(1,1),A(2,2),A(3,3))
+!      IF (IU6>0) WRITE(IU6,*) 'Ax,Ay,Az: ',A(1,1),A(2,2),A(3,3)
+      call EAM_FORCE(Nions,Rtmp,Ftmp,Ueam,Ax,Ay,Az)
       do NI=1,NIONS
          do NJ=1,3
             Feam(NJ,NI)=Ftmp(3*(NI-1)+NJ)
          enddo
       enddo
+      Feam=Feam*Free
+      IF (IU6>0) WRITE(IU6,*) 'EAMForce'
+      IF (IU6>0) WRITE(IU6,'(3F14.8)') FEAM(:,:)
+      IF (IU6>0) WRITE(IU6,*) 'Ueam: ',Ueam
       end subroutine EAMForce
 #endif
 

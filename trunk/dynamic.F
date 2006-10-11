@@ -19,7 +19,7 @@
 
     INTEGER :: nions,iu6,thermosdat
     REAL(q),Alocateable  R(:,:)
-    REAL(q) :: dt,maxmove,temp
+    REAL(q) :: dt,temp
 
     ! varables for Langevin dynamics 
     REAL(q) :: c0,c1,c2
@@ -135,15 +135,6 @@
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
               WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
-         STOP
-      ENDIF
-
-      maxmove = 0.2_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
-     &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
-      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 

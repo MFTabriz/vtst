@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.13 2006-09-28 20:27:14 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.14 2006-10-11 18:22:16 graeme Exp $
 !
 ! This MODULE implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -115,7 +115,7 @@
 
       IF(images==0) RETURN
       ! IF(spring==-1000) RETURN
-    #if defined(MPI) || defined(MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
       U=TOTEN
       F=TIFOR
       R=POSION
@@ -172,7 +172,7 @@
       IF(IU6>=0) CALL WFORCE(IUout)
 !      CALL flush_(IUdim)
 !      CALL flush_(IUout)
-#ENDIF
+#endif
       END SUBROUTINE Dimer_Force
 !
 !
@@ -194,7 +194,7 @@
       INTEGER IERR,idir
 
       IF(images==0) RETURN
-#IF defined(MPI) || defined(MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
       DIO=IO
       DINFO=T_INFO
       IU6=DIO%IU6
@@ -259,7 +259,7 @@
         CALL MAKE_DIR_APP(node)
         IF(DragFlag) N0=RetUnit(R0)
       ENDIF
-#ENDIF
+#endif
 !MPI
       END SUBROUTINE Dimer_Init
 !
@@ -720,33 +720,33 @@
 !
 ! Remove DrIFt
 !
-      SUBROUTINE SetNoDrIFt(V1)
+      SUBROUTINE SetNoDrift(V1)
       REAL(q) :: V1(3,Nions)
       REAL(q) VTMP(3)
-      IF((.NOT.DINFO%LSDYN).AND.NoDrIFtFlag) THEN
+      IF((.NOT.DINFO%LSDYN).AND.NoDriftFlag) THEN
         VTMP=SUM(V1,DIM=2)
         DO NI=1,NIONS
           V1(:,NI)=V1(:,NI)-VTMP
         ENDDO
-        IF(IU6>=0) WRITE(IUdim,'(A20,3F14.6)') 'DrIFt',VTMP(:)
+        IF(IU6>=0) WRITE(IUdim,'(A20,3F14.6)') 'Drift',VTMP(:)
       ENDIF
-      END SUBROUTINE SetNoDrIFt
+      END SUBROUTINE SetNoDrift
 !
-! Remove DrIFt
+! Remove Drift
 !
-      FUNCTION RetNoDrIFt(V1)
+      FUNCTION RetNoDrift(V1)
       REAL(q)::V1(3,Nions)
-      REAL(q),DIMENSION(3,Nions)::RetNoDrIFt
+      REAL(q),DIMENSION(3,Nions)::RetNoDrift
       REAL(q) VTMP(3)
-      RetNoDrIFt=V1
+      RetNoDrift=V1
       IF(.NOT.DINFO%LSDYN) THEN
         VTMP=SUM(V1,DIM=2)
         DO NI=1,NIONS
-          RetNoDrIFt(:,NI)=V1(:,NI)-VTMP
+          RetNoDrift(:,NI)=V1(:,NI)-VTMP
         ENDDO
-        IF(IU6>=0) WRITE(IUdim,'(A20,3F14.6)') 'DrIFt ',VTMP(:)
+        IF(IU6>=0) WRITE(IUdim,'(A20,3F14.6)') 'Drift ',VTMP(:)
       ENDIF
-      END FUNCTION RetNoDrIFt
+      END FUNCTION RetNoDrift
 !
 !
 !**********************************************************************
@@ -824,7 +824,7 @@
           ENDIF
           N=R1-R2
         ENDIF
-!        CALL SetNoDrIFt(N)
+!        CALL SetNoDrift(N)
         CALL SetPBC(N)
         CALL SetSelZero(N)
         CALL SetUnit(N)

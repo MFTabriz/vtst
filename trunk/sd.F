@@ -40,7 +40,14 @@
       R = posion
 
       ! Convert the position into Cartesian coordinates
-      call dirkar(nions,R,latt_a)
+      CALL dirkar(nions,R,latt_a)
+
+!Debug
+      IF(IU6>=0) WRITE(tinfo_iu6,'(A5)') 'R: '
+      IF(IU6>=0) WRITE(tinfo_iu6,'(3F14.6)') R(:,:)
+      IF(IU6>=0) WRITE(tinfo_iu6,'(A5)') 'F: '
+      IF(IU6>=0) WRITE(tinfo_iu6,'(3F14.6)') force(:,:)
+      IF(IU6>=0) WRITE(tinfo_iu6,'(A5,F14.6)') 'U: ',toten
 
       step = force * alpha
       IF (SQRT(SUM(step*step)) .GT. maxmove) THEN
@@ -82,7 +89,7 @@
       ! loading variables for sd step
 
       alpha = 0.1_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'SDALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
@@ -91,11 +98,11 @@
       ENDIF
 
       maxmove = 0.2_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RMAXMOVE','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''RMAXMOVE'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
