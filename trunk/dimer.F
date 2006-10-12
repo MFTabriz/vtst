@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.14 2006-10-11 18:22:16 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.15 2006-10-12 00:04:26 graeme Exp $
 !
 ! This MODULE implements the dimer method.  For more information refer
 ! to the article J.Chem.Phys 111, 7010 (1999) and the web page
@@ -74,7 +74,7 @@
       INTEGER :: ImageNum,Seed,Itr,NNFLAG
       REAL(q),ALLOCATABLE :: Fs(:,:,:),Rs(:,:,:),Vs(:,:,:),Us(:,:)
       REAL(q),ALLOCATABLE :: F(:,:),V(:,:),N(:,:),M(:,:),dV(:,:),N0(:,:)
-      REAL(q),ALLOCATABLE :: R(:,:),R0(:,:),R1(:,:),R2(:,:),Gold(:,:)
+      REAL(q),ALLOCATABLE :: R(:,:),R0(:,:),R1(:,:),R2(:,:)
       REAL(q),ALLOCATABLE :: GN(:,:),G(:,:),Gu(:,:),GNu(:,:),GNold(:,:)
       REAL(q),ALLOCATABLE :: FN(:,:),FNP1(:,:),FNP2(:,:),FNold(:,:)
       REAL(q),ALLOCATABLE :: SPF(:,:),FR(:,:),FN1(:,:),FN2(:,:),FM(:,:)
@@ -220,8 +220,7 @@
       ALLOCATE(FN(3,Nions),FN1(3,Nions),FN2(3,Nions),dV(3,Nions))
       ALLOCATE(G(3,Nions),Gu(3,Nions),GN(3,Nions),GNu(3,Nions))
       ALLOCATE(FM(3,Nions),FNP1(3,Nions),FNP2(3,Nions))
-      ALLOCATE(FNold(3,Nions),GNold(3,Nions),N0(3,Nions))
-      ALLOCATE(Fold(3,Nions),Gold(3,Nions))
+      ALLOCATE(Fold(3,Nions),FNold(3,Nions),GNold(3,Nions),N0(3,Nions))
       ALLOCATE(FP1(3,Nions),FP2(3,Nions))
       ALLOCATE(F1tmp(3,Nions),F2tmp(3,Nions),Ntmp(3,Nions))
       ALLOCATE(Gtmp(3,Nions),GNtmp(3,Nions),GNutmp(3,Nions))
@@ -459,14 +458,12 @@
             FirstRotation=.FALSE.
             Gam=0
             Fold=SPF
-            Gold=SPF
           ELSE
             Gam=SUM(SPF*(SPF-Fold))/SUM(Fold**2)
           ENDIF
-          G=SPF+Gold*Gam
+          G=SPF+G*Gam
           Gu=RetUnit(G)
           Fold=SPF
-          Gold=G
           FP1=Gu*SUM(SPF*Gu)
           FrP1=SUM(FP1*Gu)
           IF(IU6>=0) THEN
@@ -647,8 +644,8 @@
       Dist=SQRT(SUM(V12**2))
       END FUNCTION Dist
 !
-! Sets a vector to have the smallest length consistent the the periodic boundaries
-! This should REALly be changed to USE the Wigner-Sitz cell
+! Sets a vector to have the smallest length consistent with the periodic boundaries
+! This should be changed to use the Wigner-Sitz cell
 !
       SUBROUTINE SetPBC(V1)
       REAL(q) :: V1(3,Nions)
@@ -718,7 +715,7 @@
       ENDIF
       END SUBROUTINE SetSelZero
 !
-! Remove DrIFt
+! Remove Drift
 !
       SUBROUTINE SetNoDrift(V1)
       REAL(q) :: V1(3,Nions)

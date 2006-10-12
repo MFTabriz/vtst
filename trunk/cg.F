@@ -12,12 +12,13 @@
     USE lattice
 
     IMPLICIT NONE
-    private 
-    public :: cg_step, cg_init  !call cg_init from opt_init
+    SAVE
+    PRIVATE 
+    PUBLIC :: cg_step, cg_init  !call cg_init from opt_init
 
     INTEGER :: nions,iu6
     REAL(q),ALLOCATABLE :: Fold(:,:),R(:,:)
-    REAL(q),ALLOCATABLE :: direction(:,:),dir_unit(:,:)
+    REAL(q),ALLOCATABLE :: g(:,:),g_unit(:,:)
 
     REAL(q) :: finite_step,maxmove
     LOGICAL :: fdstep
@@ -41,26 +42,29 @@
 
       R = posion
 
+      ! Convert the position into Cartesian coordinates
+      CALL dirkar(nions,R,latt_a)
+
       IF (fdstep) THEN
         fdstep = .false.
         optflag = .true.
         a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
-        IF ((a1 .LT. 0.5_q*a2) .AND. (a2 .NE. 0.0_q)) THEN
+        IF ((a1 .LE. 0.5_q*a2) .AND. (a2 .NE. 0.0_q)) THEN
           gam = SUM(force*(force-Fold))/a2
         ELSE
           gam = 0.0_q
         END IF
-        direction = force+direction*gam
-        dir_unit = direction/SQRT(SUM(direction*direction))
+        g = force+g*gam
+        g_unit = g/SQRT(SUM(g*g))
         Fold = force
         ! Move from the original configuration
-        R = R+dir_unit*finite_step
+        R = R+g_unit*finite_step
       ELSE
         fdstep = .true.
         optflag = .false.
-        fp1 = SUM(Fold*dir_unit)
-        fp2 = SUM(force*dir_unit)
+        fp1 = SUM(Fold*g_unit)
+        fp2 = SUM(force*g_unit)
         curvature = (fp1-fp2)/finite_step
         IF (curvature .LT.  0.0_q) THEN
          step_size = maxmove
@@ -68,13 +72,13 @@
           Favg = 0.5_q*(fp1+fp2)
           step_size = Favg/curvature
           IF (ABS(step_size) .GT. maxmove) THEN
-            step_size = SIGN(maxmove,step_size)
+            step_size = SIGN(maxmove,step_size)-SIGN(finite_step,step_size)
           ELSE
             step_size = step_size-0.5_q*finite_step   ! (*)
           END IF
         END IF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        R = R+dir_unit*step_size
+        R = R+g_unit*step_size
       END IF
 
       ! convert position back to direct cord
@@ -83,6 +87,7 @@
       posion = R
 
     END SUBROUTINE cg_step
+
 !**********************************************************************
 !
 ! Conjugate gradient initilizer
@@ -106,12 +111,12 @@
 
       ! read in varables used for cg
 
-      finite_step=0.001_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+      finite_step=0.01_q
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''RSTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FDSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -127,9 +132,14 @@
       ! initialize the variables
  
       ALLOCATE(Fold(3,nions),R(3,nions))
-      ALLOCATE(direction(3,nions),dir_unit(3,nions))
+      ALLOCATE(g(3,nions),g_unit(3,nions))
 
-      fdstep=.true.  
+      Fold=0._q
+      g=0._q
+
+      ! start optimization with a finite difference step
+      fdstep=.true.
+
     END SUBROUTINE cg_init
 
   END MODULE cg

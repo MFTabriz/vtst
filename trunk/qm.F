@@ -12,6 +12,7 @@
     USE lattice
 
     IMPLICIT NONE
+    SAVE
     private
     public :: qm_step, qm_init  !call qm_init from opt_init
 
@@ -41,8 +42,11 @@
       ! Convert the position into Cartesian coordinates
       call dirkar(nions,R,latt_a)
 
+      ! remove antiparallel components of the velocity along the force
+      WHERE(velocity*force<0) velocity=0._q
+
       IF ((SUM(force*velocity)) .GE. 0.0_q) THEN
-        velocity = SUM(velocity*force)*force/SQRT(SUM(force*force))
+        velocity = SUM(velocity*force)*force/SUM(force*force)
       ELSE
         velocity = velocity*0.0_q
       ENDIF
@@ -92,7 +96,7 @@
          STOP
       ENDIF
 
-      dt = 0.01_q
+      dt = 0.1_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -104,6 +108,8 @@
   
       ! initlize vectors
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
+
+      velocity=0._q
 
     END SUBROUTINE qm_init
 

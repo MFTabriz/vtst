@@ -17,18 +17,19 @@
     USE lattice
 
     IMPLICIT NONE
+    SAVE
     PRIVATE 
     PUBLIC :: lbfgs_step, lbfgs_init  !CALL opt_init from chain_init
 
-    INTEGER :: nions,iu6,memory
+    INTEGER :: nions,iu6,memory,itr
     REAL(q),ALLOCATABLE ::R(:,:),Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: rho(:),alpha(:)
     REAL(q),ALLOCATABLE :: direction(:,:)
-    REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_F,change_in_R
+    REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: change_in_G,change_in_R
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: finite_step,maxmove
-    LOGICAL :: fdstep
+    LOGICAL :: fdstep,reset_flag
 
 !**********************************************************************
 !
@@ -47,77 +48,112 @@
       REAL(q) :: beta
       REAL(q) :: a1,a2,curvature
       REAL(q) :: fp1,fp2,Favg,step_size
-      INTEGER :: itr,bound,im,jm
+      INTEGER :: bound,im,jm
 
       R = posion
+      dir2car=LATT_A
+      car2dir=LATT_B
 
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
-      IF (fdstep) THEN
+      IF (fdstep) THEN  ! Finite difference step
+
         fdstep = .FALSE.
         optflag = .TRUE. ! keeps contol so it can do finite step
+
         ! check for reset of direction
         a1 = ABS(SUM(force*Fold))
         a2 = SUM(Fold*Fold)
-        IF (a1 .LT. 0.5_q*a2 .AND. a2 .ne. 0.0_q) THEN
-           ! find new direct
+!        IF ((a1 .LE. 0.5_q*a2) .AND. (a2 .NE. 0.0_q)) THEN
+        IF ((a1 .GT. 0.5_q*a2) .OR. (a2 .EQ. 0.0_q)) THEN
+           reset_flag=.TRUE.
+        ENDIF
+
+        ! Reset the lbfgs memory
+        IF(reset_flag) THEN
+           IF(iu6>0) write(iu6,*) ' LBFGS, init'
+           itr=0
+           reset_flag=.FALSE.
+        ELSE
+           ! find new direction
            itr = itr+1
            IF (itr .LT. memory) THEN
-             change_in_F(itr,:,:) = force-Fold
+             IF(iu6>0) write(iu6,*) ' LBFGS, adding new vector'
+
+             change_in_G(itr,:,:) = -(force-Fold)
+             IF(iu6>0) write(iu6,*) ' LBFGS, DeltaG:'
+             IF(iu6>0) write(iu6,'(3f16.8)') change_in_G(itr,:,:)
+
              change_in_R(itr,:,:) = R-Rold 
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(itr,:,:))
-             rho(itr) = 1.0_q/SUM(change_in_F(itr,:,:)*change_in_R(itr,:,:))
+             IF(iu6>0) write(iu6,*) ' LBFGS, DeltaR:'
+             IF(iu6>0) write(iu6,'(3f16.8)') change_in_R(itr,:,:)
+
+             rho(itr) = 1.0_q/SUM(change_in_G(itr,:,:)*change_in_R(itr,:,:))
+             IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
            ELSE
+             IF(iu6>0) write(iu6,*) ' LBFGS, shifting vectors'
              DO im = 1,memory-1
-               change_in_F(im,:,:) = change_in_F(im+1,:,:)
+               change_in_G(im,:,:) = change_in_G(im+1,:,:)
              ENDDO
              DO im = 1,memory-1
                change_in_R(im,:,:) = change_in_R(im+1,:,:)
              ENDDO
              DO im = 1,memory-1
                rho(im) = rho(im+1)
+!               IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
              ENDDO
-             change_in_F(memory,:,:) = force-Fold
+             change_in_G(memory,:,:) = -(force-Fold)
              change_in_R(memory,:,:) = R-Rold
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(memory,:,:))
-             rho(memory) = 1.0_q/SUM(change_in_F(memory,:,:)*change_in_R(memory,:,:))
+             rho(memory) = 1.0_q/SUM(change_in_G(memory,:,:)*change_in_R(memory,:,:))
             ENDIF
-        ELSE
-           ! reset down the force
-           itr = 0
         ENDIF
 
         Rold = R
         Fold = force
+
         ! compute Ho*g
         IF (itr .LT. memory) THEN
           bound = itr
         ELSE
           bound = memory
         ENDIF
-        direction = force
+        IF(iu6>0) write(iu6,*) ' LBFGS, bound: ',bound
+        direction = -1._q*force
         IF (itr .NE. 0) THEN
           DO im=1,bound 
             jm = (bound+1-im)
             alpha(im) = rho(jm)*SUM(change_in_R(jm,:,:)*direction)
-            direction = direction-(alpha(im)*change_in_F(jm,:,:))
+            direction = direction-(alpha(im)*change_in_G(jm,:,:))
           ENDDO
-          ! direction = Ho*direction !Ho is idenity matrix
+          ! direction = -Ho*direction !Ho is identity matrix
+          direction= -1._q*direction
           DO im=1,bound
-            beta = rho(im)*SUM(change_in_F(im,:,:)*direction)
+            beta = rho(im)*SUM(change_in_G(im,:,:)*direction)
             direction = direction+change_in_R(im,:,:)*(alpha(im)-beta)
           ENDDO
+        ELSE
+          ! direction = -Ho*direction !Ho is identity matrix
+          direction= -1._q*direction
         ENDIF
-        direction =direction/SQRT(SUM(direction*direction))
+        direction = direction/SQRT(SUM(direction*direction))
+
+        IF(iu6>0) write(iu6,*) ' LBFGS, direction:'
+        IF(iu6>0) write(iu6,'(3f16.8)') direction(:,:)
+
 
         ! finite step down force
         R = R + direction*finite_step
-      ELSE
+
+      ELSE  ! Translation step
+
         fdstep = .TRUE.
         optflag = .FALSE. ! gives control back to method
+
         ! calculate curvature down direction
         fp1 = SUM(Fold*direction)
         fp2 = SUM(force*direction)
@@ -127,8 +163,8 @@
         ELSE
           Favg = 0.5_q*(fp1+fp2)
           step_size = Favg/curvature
-          IF(ABS(step_size) .GT. maxmove) THEN
-            step_size=SIGN(maxmove,step_size)
+          IF (ABS(step_size) .GT. maxmove) THEN
+            step_size = SIGN(maxmove,step_size)-SIGN(finite_step,step_size)
           ELSE
             step_size = step_size-0.5_q*finite_step  !(*)
           ENDIF
@@ -156,7 +192,6 @@
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
-
       INTEGER IDUM,IERR,N
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
@@ -169,20 +204,20 @@
       ! read in varables used for lbfgs
 
       memory=4
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'NLBFGSMEM','=','#',';','I', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ILBFGSMEM','=','#',';','I', &
      &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''NBFGSMEM'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''IBFGSMEM'' from file INCAR.'
          STOP
       ENDIF
 
       finite_step=0.001_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'RSTEP','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''RSTEP'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FDSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -196,12 +231,17 @@
       ENDIF
 
       ! initialize the variables: vectors and matricies
-      ALLOCATE(change_in_F(memory,3,nions),change_in_R(memory,3,nions))
+      ALLOCATE(change_in_G(memory,3,nions),change_in_R(memory,3,nions))
       ALLOCATE(R(3,nions),Fold(3,nions),Rold(3,nions),direction(3,nions))
       ALLOCATE(rho(memory),alpha(memory))
 
+      change_in_G=0._q
+      change_in_R=0._q
+      Fold=0._q
 
+      reset_flag=.TRUE.
       fdstep=.TRUE.
+
     END SUBROUTINE lbfgs_init
 
 !**********************************************************************
@@ -221,28 +261,6 @@
       v1=MOD(v1+100.5_q,1._q)-0.5_q
       CALL dirkar(nions,v1,dir2car)
       END SUBROUTINE set_pbc
-!======================================================================
-! Returns a unit vector along v1
-!======================================================================
-      FUNCTION return_unit(V1)
-      real(q) :: v1(3,nions)
-      real(q),dimension(3,nions) :: return_unit
-      return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
-      END FUNCTION return_unit
-!======================================================================
-! Sets V1 to be a unit vector
-!======================================================================
-      SUBROUTINE set_unit(V1)
-      REAL(q) :: v1(3,nions)
-      v1=return_unit(v1)
-      END SUBROUTINE set_unit
-!======================================================================
-! Vector projection of v1 on v2
-!======================================================================
-      FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
-      END FUNCTION vproj
-
 
   END MODULE lbfgs
+
