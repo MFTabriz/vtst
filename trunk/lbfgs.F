@@ -124,22 +124,22 @@
         ENDIF
         IF(iu6>0) write(iu6,*) ' LBFGS, bound: ',bound
         direction = -1._q*force
+        
+        ! calculate Ho*g
         IF (itr .NE. 0) THEN
           DO im=1,bound 
             jm = (bound+1-im)
             alpha(jm) = rho(jm)*SUM(change_in_R(jm,:,:)*direction)
             direction = direction-(alpha(jm)*change_in_G(jm,:,:))
           ENDDO
-          ! direction = -Ho*direction !Ho is identity matrix
-          direction= -1._q*direction
+          ! direction = Ho*direction !Ho is identity matrix
           DO im=1,bound
             beta = rho(im)*SUM(change_in_G(im,:,:)*direction)
             direction = direction+change_in_R(im,:,:)*(alpha(im)-beta)
           ENDDO
-        ELSE
-          ! direction = -Ho*direction !Ho is identity matrix
-          direction= -1._q*direction
         ENDIF
+        ! direction down gradent
+        direction= -1._q*direction
         direction = direction/SQRT(SUM(direction*direction))
 
         IF(iu6>0) write(iu6,*) ' LBFGS, direction:'
