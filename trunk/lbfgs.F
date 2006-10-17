@@ -127,8 +127,8 @@
         IF (itr .NE. 0) THEN
           DO im=1,bound 
             jm = (bound+1-im)
-            alpha(im) = rho(jm)*SUM(change_in_R(jm,:,:)*direction)
-            direction = direction-(alpha(im)*change_in_G(jm,:,:))
+            alpha(jm) = rho(jm)*SUM(change_in_R(jm,:,:)*direction)
+            direction = direction-(alpha(jm)*change_in_G(jm,:,:))
           ENDDO
           ! direction = -Ho*direction !Ho is identity matrix
           direction= -1._q*direction
