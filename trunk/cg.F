@@ -111,7 +111,7 @@
 
       ! read in varables used for cg
 
-      finite_step=0.01_q
+      finite_step=0.005_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
