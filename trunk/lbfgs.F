@@ -78,7 +78,7 @@
         ELSE
            ! find new direction
            itr = itr+1
-           IF (itr .LT. memory) THEN
+           IF (itr .LE. memory) THEN
              IF(iu6>0) write(iu6,*) ' LBFGS, adding new vector'
 
              change_in_G(itr,:,:) = -(force-Fold)
@@ -92,25 +92,20 @@
              IF(iu6>0) write(iu6,'(3f16.8)') change_in_R(itr,:,:)
 
              rho(itr) = 1.0_q/SUM(change_in_G(itr,:,:)*change_in_R(itr,:,:))
-             IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
            ELSE
              IF(iu6>0) write(iu6,*) ' LBFGS, shifting vectors'
              DO im = 1,memory-1
                change_in_G(im,:,:) = change_in_G(im+1,:,:)
-             ENDDO
-             DO im = 1,memory-1
                change_in_R(im,:,:) = change_in_R(im+1,:,:)
-             ENDDO
-             DO im = 1,memory-1
                rho(im) = rho(im+1)
-!               IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
              ENDDO
              change_in_G(memory,:,:) = -(force-Fold)
              change_in_R(memory,:,:) = R-Rold
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(memory,:,:))
              rho(memory) = 1.0_q/SUM(change_in_G(memory,:,:)*change_in_R(memory,:,:))
-            ENDIF
+           ENDIF
+           IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
         ENDIF
 
         Rold = R
@@ -238,6 +233,8 @@
       change_in_G=0._q
       change_in_R=0._q
       Fold=0._q
+      rho=0._q
+      alpha=0._q
 
       reset_flag=.TRUE.
       fdstep=.TRUE.
