@@ -16,8 +16,9 @@
     USE lattice
 
     IMPLICIT NONE
-    private
-    public :: bfgs_step, bfgs_init  !CALL bfgs_init from opt_init
+    SAVE
+    PRIVATE
+    PUBLIC :: bfgs_step, bfgs_init  !CALL bfgs_init from opt_init
 
     INTEGER :: nions,iu6
     REAL(q),ALLOCATABLE :: direction(:,:)
@@ -50,21 +51,22 @@
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
-      IF (fdstep) THEN
-        fdstep = .false.
+      IF (fdstep) THENa
+
+        fdstep = .FALSE.
         optflag = .TRUE. ! keeps contol so it can do finite step
+
         ! check for reset of direction
         a1 = ABS(SUM(F*Fold))
         a2 = SUM(Fold*Fold)
-        IF (a1 .LT. 0.5_q*a2) THEN
+!        IF (a1 .LT. 0.5_q*a2) THEN
+        IF ((a1 .GT. 0.5_q*a2) .OR. (a2 .EQ. 0.0_q)) THEN
+           reset_flag=.TRUE.
+        ENDIF
+
            ! find new direct
            !updateing the hessian
-           CALL invH_update() 
-        ELSE
-           ! reset down the force
-           ! reset the hessian
-           !invH = idenity
-        ENDIF
+        CALL invH_update() 
 
         Rold = R
         Fold = force
@@ -108,10 +110,14 @@
 ! William Press's Numerical Recipes in C p 427
 !**********************************************************************
  ! need to get function and check on reshaping
-    SUBROUTINE invH_update()
+    SUBROUTINE invH_update(nions)
       REAL(q) :: a,b
+      INTEGER :: im,jm,km
           a = SUM(change_in_R*change_in_F)
           W = outter_product(change_in_R,change_in_R) !matrix
+!          DO im = 1,nions
+!            DO jm = 1,3
+!              W = change_in_R(jm,im)*change_in_R(jm,im)
           A = matrixmultiply(invH,change_in_F) !vector
           AA = outerproduct(A,A)  !matrix
           b = vdot(change_in_F,A)  !scaler

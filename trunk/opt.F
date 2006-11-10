@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.14 2006-09-28 20:27:14 graeme Exp $
+! RCS:  $Id: opt.F,v 1.15 2006-11-10 09:44:03 dano Exp $
 !
 ! Module which implements our optimizers
 !
@@ -16,6 +16,7 @@
     USE qm
 !    USE bfgs
     USE sd
+    USE fire
 !    USE dynamic
     
 
@@ -70,6 +71,9 @@
 !      ELSEIF (iopt==6) THEN
 !        CALL dynamic_step(optflag,tinfo_nions,posion,toten,force, &
 !                        latt_a,latt_b,tinfo_iu6)
+      ELSEIF (iopt==7) THEN
+        CALL fire_step(optflag,tinfo_nions,posion,toten,force, &
+                        latt_a,latt_b,tinfo_iu6)
       ENDIF
 
       ! call periodic boundary conditions
@@ -98,7 +102,8 @@
       nions=T_INFO%nions
       iu6=IO%IU6
 
-      ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm, 4=bfgs, 5=sd, 6=md)
+      ! read iopt (0=use vasp optimizers, 1=lbfgs, 2=cg, 3=qm,
+      !       4=sd, 5=bfgs, 6=md, 7=fire)
 
       iopt = 0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
@@ -162,6 +167,9 @@
       ELSEIF (iopt.EQ.6) THEN
         IF (IO%IU0>=0) &
              WRITE(IO%IU6,*) 'OPT: Verlet dynamics'
+      ELSEIF (iopt.EQ.7) THEN
+        IF (IO%IU0>=0) &
+             WRITE(IO%IU6,*) 'OPT: USING FIRE optimizer'
       ENDIF
 
       IF(potim/=0 .OR. ibrion/=3) THEN
@@ -185,6 +193,8 @@
 !        CALL bfgs_init(T_INFO,IO)
 !      ELSEIF (iopt==6) THEN
 !        CALL dynamics_init(T_INFO,IO)
+      ELSEIF (iopt==7) THEN
+        CALL fire_init(T_INFO,IO)
       ENDIF
 
     END SUBROUTINE opt_init
