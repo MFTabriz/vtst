@@ -118,56 +118,56 @@
       ENDIF
       
       dtmax = 1.0_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEPMAX','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEMAX','=','#',';','F', &
      &            IDUM,dtmax,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMESTEPMAX'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FTIMEMAX'' from file INCAR.'
          STOP
       ENDIF
       
       finc = 1.1_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMEINC','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEINC','=','#',';','F', &
      &            IDUM,finc,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMEINC'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FTIMEINC'' from file INCAR.'
          STOP
       ENDIF
       
       fdec = 0.5_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMEDEC','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEDEC','=','#',';','F', &
      &            IDUM,fdec,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMEDEC'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FTIMEDEC'' from file INCAR.'
          STOP
       ENDIF
       
       fa = 0.99_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ALPHADEC','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHADEC','=','#',';','F', &
      &            IDUM,fa,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''ALPHADEC'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FALPHADEC'' from file INCAR.'
          STOP
       ENDIF
       
       alpha_start = 0.1_q
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ALPHASTART','=','#',';','F', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
      &            IDUM,alpha_start,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''ALPHASTART'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FALPHA'' from file INCAR.'
          STOP
       ENDIF
 
       Nmin = 5
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'INMIN','=','#',';','I', &
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FNMIN','=','#',';','I', &
      &            Nmin,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''INMIN'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''FNMIN'' from file INCAR.'
          STOP
       ENDIF
       
