@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.17 2006-12-29 23:19:11 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.18 2006-12-29 23:30:06 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -44,7 +44,7 @@
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
       REAL(q) :: U,U0,CN,Cth,dR,MaxFN,MinFN,F0r,FNr
-      REAL(q) :: FN1,FN2,FD1,FD2,GamN,dTh,Th
+      REAL(q) :: FN1,FN2,GamN,dTh,Th
       LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag,FdStep
 
     CONTAINS
@@ -125,6 +125,7 @@
           OptFlag = .true.
         ELSE
           CALL RotateDimer()
+          IF (NumRot>=MaxRot) OptFlag = .true.
         END IF
       END IF
 
@@ -178,14 +179,10 @@
     SUBROUTINE UpdateDimer()
       F1 = F
       F2 = 2._q*F0-F1
-      FD1 = SUM(F1*N)
-      FD2 = SUM(F2*N)
-      FN1 = F1-N*SUM(F1*N)
-      FN2 = F2-N*SUM(F2*N)
-      FN = (FN1-FN2)/(2._q*dR)
+      FN = ((F1-N*SUM(F1*N))-(F2-N*SUM(F2*N))/(2._q*dR)
       FNr = SQRT(SUM(FN**2))
       F0r = SQRT(SUM(F0**2))
-      CN = (FD2-FD1)/(2._q*dR)
+      CN = (SUM(F2*N)-SUM(F1*N))/(2._q*dR)
     END SUBROUTINE UpdateDimer
 
 ! Dimer rotation
@@ -211,9 +208,9 @@
         GNu = GN/SQRT(SUM(GN*GN))
         FN1 = SUM(FN*GNu)
         CALL Rotate(N,GNu,PI/4._q)
-        IF (IU6>=0) WRITE(IU6,'(A7,A20,F14.6)') 'Dimer:','FN1',FN1
         R = R0+N*dR
         FdStep = .false.
+        IF (IU6>=0) WRITE(IU6,'(A7,A20,F14.6)') 'Dimer:','FN1',FN1
       ELSE
         ! Rotation step
         NumRot = NumRot+1
@@ -224,18 +221,14 @@
           Th = PI/(-2._q) - PI/4._q
         END IF
         IF (FN2>0._q) Th = Th + PI/2._q
-        IF (IU6>=0) THEN
-          WRITE(IU6,'(A7,A10,F14.6,/)') 'Dimer:','FN2',FN2
-          WRITE(IU6,'(A7,A10,F14.6,/)') 'Dimer:','Th',Th
-          WRITE(IUout,'(5F16.7)') F0r,FNr,U0,CN,Th
-        END IF
         CALL Rotate(N,GNu,Th)
         CALL SetUnit(N)
         R = R0+N*dR
-        IF (NumRot>=MaxRot) THEN
-          OptFlag = .true.
-        ELSE
-          FdStep = .false.
+        FdStep = .true.
+        IF (IU6>=0) THEN
+          WRITE(IU6,'(A7,A10,F14.6)') 'Dimer:','FN2',FN2
+          WRITE(IU6,'(A7,A10,F14.6,/)') 'Dimer:','Th',Th
+          WRITE(IUout,'(5F16.7)') F0r,FNr,U0,CN,Th
         END IF
       END IF
     END SUBROUTINE RotateDimer
