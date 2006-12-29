@@ -34,9 +34,11 @@
     INTEGER :: nions,iu6,iu0,nl
     INTEGER,PARAMETER :: lanout=831
     REAL(q),ALLOCATABLE,DIMENSION(:) :: d,e,aa,bb
-    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: F,R,w,qq,qqold,F0,R0,z,Fpar,Feff
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: F,R,w,qq,qqold,F0,R0,z,Fpar,Feff,vel,dc,dco, &
+  &                                       fco,f1,f2,dcu
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: PP
-    REAL(q) :: dR,ltol
+    REAL(q) :: dR,ltol,dt,maxmove
+    LOGICAL :: ifcg
 
     CONTAINS
 !--------------------------------------------------------------------------------------!
@@ -70,6 +72,26 @@
       F=tifor
       R=posion
       CALL dirkar(nions,R,A)
+
+!!!!!!!!!!!! TEST CG !!!!!!!!!!!!!!!!!!
+!      if (first) then                !
+!        first=.false.                !
+!        fd_step=.true.               !
+!      end if                         !
+!      Feff=F                         !
+!      R0=R                           !
+!      call cg(fd_step)               !
+!      posion=R                       !
+!      call kardir(nions,posion,B)    !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!!!!!!!!!!!! TEST QUICK-MIN !!!!!!!!!!!
+!      Feff=F                         !
+!      R0=R                           !
+!      call quickmin()                !
+!      posion=R                       !
+!      call kardir(nions,posion,B)    !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       IF (first) THEN
         first=.false.
@@ -172,14 +194,7 @@
               CLOSE(210)
             END IF
             IF (iu6 > 0) CALL output(300,itr)
-          END IF
-
-
-          ! go back to optimizer
-          optflag=.true.
-          ! iterate once we get back
-          ! set new and/or fd_step?
-
+          END IF        
           IF (ifcg) THEN
             iterate=.false.
             IF (.NOT. fd_step) F0=F   ! for feffective 
@@ -194,7 +209,6 @@
 ! If the eigenvalue has converged, exit to a new step
             new=.true.
           END IF
-
         ELSE
           IF (it > 1) THEN
             eigold=eig
@@ -208,13 +222,11 @@
           PP(:,:,it)=qq
           R=R0+qq*dR
         END IF
-
-      END IF
+      END IF                       ! end IF (new)
       posion=R
       CALL kardir(nions,posion,B)
 
 !v0.02      CALL FLUSH(lanout)
-      IF (iu6>=0) CALL WFORCE(lanout)
   
       RETURN
     END SUBROUTINE lanczos_force
@@ -250,6 +262,19 @@
       d=0.0_q
       e=0.0_q
       Feff=0.0_q
+      IF (ifcg) THEN
+        ALLOCATE(dc(3,nions),dco(3,nions),fco(3,nions),f1(3,nions),f2(3,nions),        &    
+  &              dcu(3,nions))
+        dc=0.0_q
+        dco=0.0_q
+        fco=0.0_q
+        f1=0.0_q 
+        f2=0.0_q   
+        dcu=0.0_q
+      ELSE
+        ALLOCATE(vel(3,nions))
+        vel=0.0_q
+      END IF
 
     RETURN
     END SUBROUTINE lanczos_init
@@ -273,6 +298,73 @@
 
 !--------------------------------------------------------------------------------------!
 
+    SUBROUTINE cg(fd_step)
+      LOGICAL,INTENT(INOUT) :: fd_step
+
+      REAL(q),PARAMETER :: gamma=0.5_q
+      REAL(q) :: c1,c2,f1d,f2d,fr,cr,step,s
+
+      IF (fd_step) THEN
+        fd_step=.false.
+        f1=Feff
+        c1=ABS(SUM(f1*fco))
+        c2=SUM(fco*fco)
+        IF (c1 < gamma*c2) THEN
+          s=SUM(f1*(f1-fco))/c2
+        ELSE
+          s=0.0_q
+        END IF
+        dc=f1+s*dco
+        dcu=dc/SQRT(SUM(dc*dc))
+        fco=f1
+        dco=dc
+! Move from the original configuration
+        R=R0+dcu*dR
+      ELSE
+        fd_step=.true.
+        f2=Feff
+        f1d=SUM(F1*dcu)
+        f2d=SUM(f2*dcu)
+        cr=(f1d-f2d)/dR
+        IF (cr < 0.0_q) THEN
+         step=maxmove
+        ELSE
+          fr=0.5_q*(f1d+f2d)
+          step=fr/cr
+          IF (ABS(step) > maxmove) THEN
+            step=SIGN(maxmove,step)
+          ELSE
+            step=step-0.5_q*dR     ! (*)
+          END IF
+        END IF
+! Move now from the configuration after the fd_step, so (*) has a "-" sign
+        R=R+dcu*step
+      END IF
+
+    RETURN
+    END SUBROUTINE cg
+
+!--------------------------------------------------------------------------------------!
+        
+    SUBROUTINE quickmin()
+        
+      REAL(q),DIMENSION(3,nions) :: dv,dRq
+      REAL(q) :: t
+        
+      dv=Feff*dt
+      WHERE(Feff*vel < 0.0_q) vel=0.0_q
+      vel=Feff*SUM(vel*Feff)/SUM(Feff*Feff)
+      vel=vel+dv
+      dRq=vel*dt
+      t=SQRT(SUM(dRq*dRq)) 
+      IF (t > MaxMove) dRq=dRq/t*MaxMove
+      R=R0+dRq
+        
+    RETURN
+    END SUBROUTINE quickmin
+        
+!------------------------------------------------------------------------------------!
+     
     SUBROUTINE read_variables(io)
       TYPE(in_struct) :: io
       INTEGER :: IDUM,IERR,Nint
@@ -287,6 +379,12 @@
       dR=1.0e-3_q
       call RDATAB(.TRUE.,'INCAR',IO%IU5,'SdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,Nint,1,IERR)
+      maxmove=0.3_q
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Smaxmove','=','#',';','F', &
+     &            IDUM,maxmove,CDUM,LDUM,CHARAC,Nint,1,IERR)
+      dt=0.15_q
+      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sdt','=','#',';','F', &
+     &            IDUM,dt,CDUM,LDUM,CHARAC,Nint,1,IERR)
       nl=20
       call RDATAB(.TRUE.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
      &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
@@ -312,7 +410,9 @@
           WRITE(lanout,'(A,1I3)')    'Maximum size of Lanczos matrix          ... nl      = ',nl
           WRITE(lanout,'(A,1ES8.1)') 'Finite difference step length           ... dR      = ',dR
           WRITE(lanout,'(A,1ES8.1)') 'Tolerance for eigenvalue convergence    ... ltol    = ',ltol
+          WRITE(lanout,'(A,1ES8.1)') 'Time step length for Quick-Min          ... dt      = ',dt
           WRITE(lanout,'(A,1ES8.1)') 'Maximum total movement in one step      ... maxmove = ',maxmove
+          WRITE(lanout,'(A,1L2)')    'Use conjugate gradients when minimizing ... ifcg    = ',ifcg
           WRITE(lanout,*) ' '
         CASE (50)
           WRITE(lanout,'(A)') 'eig   Step#   Iteration     Eig           EigOld       |(Eig-EigOld)/EigOld|'

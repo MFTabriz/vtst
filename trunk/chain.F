@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.12 2006-10-11 18:22:16 graeme Exp $
+! RCS:  $Id: chain.F,v 1.13 2006-12-29 23:09:32 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -229,11 +229,6 @@
         DO NI=1,T_INFO%nions
           DO NJ=1,3
             IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI)=0._q
-!            IF (.NOT.T_INFO%LSFOR(NJ,NI)) THEN
-!               Free(NJ,NI)=0._q
-!            ELSE
-!               Free(NJ,NI)=1._q
-!            ENDIF
           ENDDO
         ENDDO
       ENDIF

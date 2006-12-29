@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb_org.F,v 1.1 2006-06-05 17:01:39 graeme Exp $
+! RCS:  $Id: neb_old.F,v 1.1 2006-12-29 23:09:32 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
