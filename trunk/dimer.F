@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.16 2006-12-29 23:09:32 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.17 2006-12-29 23:19:11 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -29,6 +29,7 @@
       USE main_mpi
       USE poscar
       USE lattice
+      USE constant
 
       IMPLICIT NONE
       SAVE 
@@ -38,13 +39,13 @@
       TYPE(in_struct) :: DIO
       TYPE(TYPE_info) :: DINFO
       INTEGER :: Nions,IU0,IU6,IUout,IUdim
-      INTEGER :: i,j,MaxNR,NR,Seed,Itr
+      INTEGER :: i,j,MaxRot,NumRot,Seed,Itr
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
       REAL(q) :: U,U0,CN,Cth,dR,MaxFN,MinFN,F0r,FNr
       REAL(q) :: FN1,FN2,FD1,FD2,GamN,dTh,Th
-      LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag
+      LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag,FdStep
 
     CONTAINS
 
@@ -119,7 +120,7 @@
         CALL UpdateDimer()
         IF (IU6>=0) CALL WriteDimerData(IU6)
         ! check to see if rotation is converged
-        IF (FNr<FNrMin) THEN
+        IF (FNr<MinFN) THEN
           IF (IU6>=0) WRITE(IU6,'(A7,A20)') 'Dimer:','Rotation converged'
           OptFlag = .true.
         ELSE
@@ -130,9 +131,9 @@
       IF (OptFlag) THEN  ! going back to the optimizer; set R and F
         R=R0
         IF (CN<0) THEN
-          F = FR-N*SUM(FR*N)*2._q
+          F = F0-N*SUM(F0*N)*2._q
         ELSE
-          F = N*SUM(FR*N)*(-1._q)
+          F = N*SUM(F0*N)*(-1._q)
         END IF
         FdStep = .true.
         NumRot = 0
@@ -153,6 +154,7 @@
 ! Read or generate the initial lowest mode
 
     SUBROUTINE InitMode()
+      REAL(q),EXTERNAL :: RANG
       ! If the MODECAR file exists, read N, otherwise use random N
       INQUIRE(FILE='MODECAR',EXIST=ModecarFlag)
       IF (ModecarFlag) THEN
@@ -161,7 +163,12 @@
         READ(210,*) (N(1:3,i) , i=1,Nions)
         CLOSE(210)
       ELSE
-      CALL SetRand(N)
+        DO i = 1,Nions
+          DO j = 1,3
+            N(j,i) = RANG(0._q,1._q)
+          END DO
+        END DO
+      END IF
       CALL SetConstraints(N)
       CALL SetUnit(N)
     END SUBROUTINE InitMode
@@ -211,19 +218,19 @@
         ! Rotation step
         NumRot = NumRot+1
         FN2 = SUM(FN*GNu)
-        IF (F2/=0._q) THEN
-          Th = ATAN(F1/F2)/(-2._q) - PI/4._q
+        IF (FN2/=0._q) THEN
+          Th = ATAN(FN1/FN2)/(-2._q) - PI/4._q
         ELSE
           Th = PI/(-2._q) - PI/4._q
         END IF
-        IF (F2>0._q) Th = Th + PI/2._q
+        IF (FN2>0._q) Th = Th + PI/2._q
         IF (IU6>=0) THEN
           WRITE(IU6,'(A7,A10,F14.6,/)') 'Dimer:','FN2',FN2
           WRITE(IU6,'(A7,A10,F14.6,/)') 'Dimer:','Th',Th
           WRITE(IUout,'(5F16.7)') F0r,FNr,U0,CN,Th
         END IF
         CALL Rotate(N,GNu,Th)
-        SetUnit(N)
+        CALL SetUnit(N)
         R = R0+N*dR
         IF (NumRot>=MaxRot) THEN
           OptFlag = .true.
@@ -265,19 +272,6 @@
       REAL(q),DIMENSION(:,:) :: V
       V = V*(1._q/SQRT(SUM(V*V)))
     END SUBROUTINE SetUnit
-
-! Sets V to be a random vector
-
-    SUBROUTINE SetRand(V)
-      ! check this:  what is rane and what about -0.5
-      REAL(q) :: V(3,Nions)
-      REAL(q),EXTERNAL :: RANG
-      DO i = 1,Nions
-        DO j = 1,3
-          V(j,i) = RANG(0._q,1._q)
-        END DO
-      END DO
-    END SUBROUTINE SetRand
 
 ! Set the constained coordinates in a vector to zero
 
