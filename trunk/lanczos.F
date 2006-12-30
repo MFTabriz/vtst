@@ -106,7 +106,6 @@
         new=.false.
         iterate=.true.
         converged=.false.
-        IF (ifcg) fd_step=.true.
         beta=SQRT(SUM(w*w))        
 ! Save the forces and coordinates at the point we are in.
         F0=F
@@ -118,7 +117,8 @@
         qq=w/beta
         it=1  
         PP(:,:,it)=qq
-        R=R0+qq*dR   
+        R=R0+qq*dR
+        optflag=.true.
       ELSE
         IF (iterate) THEN
           z=F-F0
@@ -132,24 +132,14 @@
           IF (it > 1) THEN
             aa(1:it)=-d(1:it)/dR
             bb(1:it)=-e(1:it)/dR
-
+!            CALL dstev('N',it,aa(1:it),bb(1:it),ze,ldz,work,info)
             CALL dsterf(it,aa(1:it),bb(1:it),info)
-
             IF (info /= 0) THEN
               WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTERF '
               WRITE(*,'(A)') ' WHEN FINDING ALL THE EIGENVALUES FOR TRI(A)'
               WRITE(*,'(A)') ' HARD STOP ... lanczos.f90'
               STOP
             END IF
-! v0.02
-!            CALL dstev('N',it,aa(1:it),bb(1:it),ze,ldz,work,info)
-!            IF (info /= 0) THEN
-!              WRITE(*,'(A)') ' SOME PROBLEM WITH LAPACK ROUTINE DSTEV '
-!              WRITE(*,'(A)') ' WHEN FINDING ALL THE EIGENVALUES FOR TRI(A)'
-!              WRITE(*,'(A)') ' HARD STOP ... lanczos.f90'
-!              STOP
-!            END IF
-! v0.02
             eig=aa(1)
             converged=(ABS((eig-eigold)/eigold) < ltol)
             IF (iu6 > 0) CALL output(200,itr,it,eig,eigold)
@@ -190,6 +180,7 @@
           ELSE 
             CALL feffective(eig)
             IF (iu6 > 0) CALL output(400,itr,it,eig,U=U)
+!GH: need to return here
             CALL quickmin()
 ! If the eigenvalue has converged, exit to a new step
             new=.true.
@@ -312,7 +303,6 @@
           WRITE(lanout,'(A,1I3)')    'Maximum size of Lanczos matrix          ... nl      = ',nl
           WRITE(lanout,'(A,1ES8.1)') 'Finite difference step length           ... dR      = ',dR
           WRITE(lanout,'(A,1ES8.1)') 'Tolerance for eigenvalue convergence    ... ltol    = ',ltol
-          WRITE(lanout,'(A,1ES8.1)') 'Maximum total movement in one step      ... maxmove = ',maxmove
           WRITE(lanout,*) ' '
         CASE (50)
           WRITE(lanout,'(A)') 'eig   Step#   Iteration     Eig           EigOld       |(Eig-EigOld)/EigOld|'

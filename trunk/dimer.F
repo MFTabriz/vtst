@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.18 2006-12-29 23:30:06 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.19 2006-12-30 07:33:34 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -179,7 +179,7 @@
     SUBROUTINE UpdateDimer()
       F1 = F
       F2 = 2._q*F0-F1
-      FN = ((F1-N*SUM(F1*N))-(F2-N*SUM(F2*N))/(2._q*dR)
+      FN = ((F1-N*SUM(F1*N))-(F2-N*SUM(F2*N)))/(2._q*dR)
       FNr = SQRT(SUM(FN**2))
       F0r = SQRT(SUM(F0**2))
       CN = (SUM(F2*N)-SUM(F1*N))/(2._q*dR)
