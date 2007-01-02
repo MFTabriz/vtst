@@ -61,6 +61,10 @@
       U=toten
       F=tifor
       R=posion
+
+! If the optimizer has control, return immediately 
+      IF (optflag) RETURN
+
       CALL dirkar(nions,R,A)
 
       IF (first) THEN
@@ -110,8 +114,6 @@
         it=1  
         PP(:,:,it)=qq
         R=R0+qq*dR
-! Do not pass control back to the optimizer
-        optflag=.false.
       ELSE
         IF (iterate) THEN
           z=F-F0
