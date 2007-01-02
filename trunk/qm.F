@@ -16,21 +16,18 @@
     private
     public :: qm_step, qm_init  !call qm_init from opt_init
 
-    INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: step(:,:),velocity(:,:),R(:,:)
+    INTEGER :: nions,iu0,iu6
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
     REAL(q) :: maxmove,dt
 
-
-!**********************************************************************
-!
-! Qucik-min method
-!
-!**********************************************************************
   CONTAINS
-    SUBROUTINE qm_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
+!**********************************************************************
+! Quick-Min method
+!**********************************************************************
+
+    SUBROUTINE qm_step(optflag,posion,toten,force,latt_a,latt_b)
+
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL :: optflag
@@ -43,7 +40,7 @@
       call dirkar(nions,R,latt_a)
 
       ! remove antiparallel components of the velocity along the force
-      WHERE(velocity*force<0) velocity=0._q
+      WHERE (velocity*force<0) velocity=0._q
 
       IF ((SUM(force*velocity)) .GE. 0.0_q) THEN
         velocity = SUM(velocity*force)*force/SUM(force*force)
@@ -67,9 +64,7 @@
     END SUBROUTINE qm_step
 
 !**********************************************************************
-!
-! Qucik-min init
-!
+! Quick-Min init
 !**********************************************************************
 
     SUBROUTINE qm_init(T_INFO,IO)
@@ -85,14 +80,14 @@
       REAL(q) RDUM
 
       nions=T_INFO%nions
+      iu0=IO%IU0
       iu6=IO%IU6
 
       maxmove = 0.2_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -100,16 +95,18 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''TIMESTEP'' from file INCAR.'
          STOP
       ENDIF
-      
   
-      ! initlize vectors
+      ! initialize vectors
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
-
       velocity=0._q
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','QM, MAXMOVE',maxmove
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','QM, TIMESTEP',dt
+      END IF
 
     END SUBROUTINE qm_init
 

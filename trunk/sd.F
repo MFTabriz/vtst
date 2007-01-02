@@ -20,17 +20,13 @@
     REAL(q),ALLOCATABLE :: step(:,:),R(:,:)
     REAL(q) :: alpha,maxmove
 
-
 !**********************************************************************
-!
 ! Steepest-Decent method
-!
 !**********************************************************************
-  CONTAINS
-    SUBROUTINE sd_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
+  CONTAINS
+    SUBROUTINE sd_step(optflag,posion,toten,force,latt_a,latt_b)
+
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
@@ -42,32 +38,26 @@
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
-!Debug
-      IF(IU6>=0) WRITE(tinfo_iu6,'(A5)') 'R: '
-      IF(IU6>=0) WRITE(tinfo_iu6,'(3F14.6)') R(:,:)
-      IF(IU6>=0) WRITE(tinfo_iu6,'(A5)') 'F: '
-      IF(IU6>=0) WRITE(tinfo_iu6,'(3F14.6)') force(:,:)
-      IF(IU6>=0) WRITE(tinfo_iu6,'(A5,F14.6)') 'U: ',toten
-
-      step = force * alpha
+      step = force*alpha
       IF (SQRT(SUM(step*step)) .GT. maxmove) THEN
         step = maxmove*step/SQRT(SUM(step*step))
       ENDIF
-
       R = R+step
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A4,A,F14.6)') 'OPT:','SD, step size',SQRT(SUM(step*step))
+      END IF
 
       ! convert position back to direct cord
       CALL kardir(nions,R,latt_b)
+
       ! update posion
       posion = R
 
     END SUBROUTINE sd_step
 
-
 !**********************************************************************
-!
 ! Steepest-Decent init
-!
 !**********************************************************************
 
     SUBROUTINE sd_init(T_INFO,IO)
@@ -76,15 +66,15 @@
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
-
-      INTEGER IDUM,IERR,N
+      INTEGER IDUM,IERR,N,iu0
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
       REAL(q) RDUM
 
       nions=T_INFO%nions
-      iu6=IO%IU6 
+      iu0=IO%iu0
+      iu6=IO%iu6
 
       ! loading variables for sd step
 
@@ -92,8 +82,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'SDALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''alpha'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''alpha'' from file INCAR.'
          STOP
       ENDIF
 
@@ -101,10 +90,14 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','SD, SDALPHA',alpha
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','SD, MAXMOVE',maxmove
+      END IF
 
       ! initilize the vectors
       ALLOCATE(step(3,nions),R(3,nions))

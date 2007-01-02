@@ -37,10 +37,8 @@
 !
 !**********************************************************************
   CONTAINS
-    SUBROUTINE lbfgs_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
+    SUBROUTINE lbfgs_step(optflag,posion,toten,force,latt_a,latt_b)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
@@ -72,28 +70,28 @@
 
         ! Reset the lbfgs memory
         IF(reset_flag) THEN
-           IF(iu6>0) write(iu6,*) ' LBFGS, init'
+           IF(iu6>0) write(iu6,*) 'OPT: LBFGS, init'
            itr=0
            reset_flag=.FALSE.
         ELSE
            ! find new direction
            itr = itr+1
            IF (itr .LE. memory) THEN
-             IF(iu6>0) write(iu6,*) ' LBFGS, adding new vector'
+             IF(iu6>0) write(iu6,*) 'OPT: LBFGS, adding new vector'
 
              change_in_G(itr,:,:) = -(force-Fold)
-             IF(iu6>0) write(iu6,*) ' LBFGS, DeltaG:'
+             IF(iu6>0) write(iu6,*) 'OPT: LBFGS, DeltaG:'
              IF(iu6>0) write(iu6,'(3f16.8)') change_in_G(itr,:,:)
 
              change_in_R(itr,:,:) = R-Rold 
              ! apply periodic boundary conditions to these vector differences
              CALL set_pbc(change_in_R(itr,:,:))
-             IF(iu6>0) write(iu6,*) ' LBFGS, DeltaR:'
+             IF(iu6>0) write(iu6,*) 'OPT: LBFGS, DeltaR:'
              IF(iu6>0) write(iu6,'(3f16.8)') change_in_R(itr,:,:)
 
              rho(itr) = 1.0_q/SUM(change_in_G(itr,:,:)*change_in_R(itr,:,:))
            ELSE
-             IF(iu6>0) write(iu6,*) ' LBFGS, shifting vectors'
+             IF(iu6>0) write(iu6,*) 'OPT: LBFGS, shifting vectors'
              DO im = 1,memory-1
                change_in_G(im,:,:) = change_in_G(im+1,:,:)
                change_in_R(im,:,:) = change_in_R(im+1,:,:)
@@ -105,7 +103,7 @@
              CALL set_pbc(change_in_R(memory,:,:))
              rho(memory) = 1.0_q/SUM(change_in_G(memory,:,:)*change_in_R(memory,:,:))
            ENDIF
-           IF(iu6>0) write(iu6,*) ' LBFGS, itr,rho: ',itr,rho(itr)
+           IF(iu6>0) write(iu6,*) 'OPT: LBFGS, itr,rho: ',itr,rho(itr)
         ENDIF
 
         Rold = R
@@ -117,7 +115,7 @@
         ELSE
           bound = memory
         ENDIF
-        IF(iu6>0) write(iu6,*) ' LBFGS, bound: ',bound
+        IF(iu6>0) write(iu6,*) 'OPT: LBFGS, bound: ',bound
         direction = -1._q*force
         
         ! calculate Ho*g
@@ -137,7 +135,7 @@
         direction= -1._q*direction
         direction = direction/SQRT(SUM(direction*direction))
 
-        IF(iu6>0) write(iu6,*) ' LBFGS, direction:'
+        IF(iu6>0) write(iu6,*) 'OPT: LBFGS, direction:'
         IF(iu6>0) write(iu6,'(3f16.8)') direction(:,:)
 
 
@@ -176,9 +174,7 @@
     END SUBROUTINE lbfgs_step
 
 !**********************************************************************
-!
 ! lbfgs init
-!
 !**********************************************************************
 
     SUBROUTINE lbfgs_init(T_INFO,IO)
@@ -187,41 +183,39 @@
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
-      INTEGER IDUM,IERR,N
+      INTEGER IDUM,IERR,N,iu0
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM
       REAL(q) RDUM
 
-      nions=T_INFO%nions
-      iu6=IO%IU6
+      nions = T_INFO%nions
+      iu0 = IO%IU0
+      iu6 = IO%IU6
 
       ! read in varables used for lbfgs
 
-      memory=4
+      memory = 4
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ILBFGSMEM','=','#',';','I', &
      &            memory,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''IBFGSMEM'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''IBFGSMEM'' from file INCAR.'
          STOP
       ENDIF
 
-      finite_step=0.005_q
+      finite_step = 0.005_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FDSTEP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FDSTEP'' from file INCAR.'
          STOP
       ENDIF
 
-      maxmove=0.2_q
+      maxmove = 0.2_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -230,33 +224,36 @@
       ALLOCATE(R(3,nions),Fold(3,nions),Rold(3,nions),direction(3,nions))
       ALLOCATE(rho(memory),alpha(memory))
 
-      change_in_G=0._q
-      change_in_R=0._q
-      Fold=0._q
-      rho=0._q
+      change_in_G = 0._q
+      change_in_R = 0._q
+      Fold = 0._q
+      rho = 0._q
       alpha=0._q
 
-      reset_flag=.TRUE.
-      fdstep=.TRUE.
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MEMORY',memory
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP',finite_step
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MAXMOVE',maxmove
+      END IF
+
+      reset_flag = .TRUE.
+      fdstep = .TRUE.
 
     END SUBROUTINE lbfgs_init
 
 !**********************************************************************
-!
 ! Vector Functions
-!
 !**********************************************************************
 
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions. This should really be changed to use the
-! Wigner-Sitz cell
+! boundary conditions.
 !======================================================================
-      SUBROUTINE set_pbc(v1)
-      REAL(q) :: v1(3,nions)
-      CALL kardir(nions,v1,car2dir)
-      v1=MOD(v1+100.5_q,1._q)-0.5_q
-      CALL dirkar(nions,v1,dir2car)
+      SUBROUTINE set_pbc(v)
+      REAL(q) :: v(3,nions)
+      CALL kardir(nions,v,car2dir)
+      v = MOD(v+100.5_q,1._q)-0.5_q
+      CALL dirkar(nions,v,dir2car)
       END SUBROUTINE set_pbc
 
   END MODULE lbfgs

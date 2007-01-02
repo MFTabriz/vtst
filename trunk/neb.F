@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.14 2006-10-11 18:22:16 graeme Exp $
+! RCS:  $Id: neb.F,v 1.15 2007-01-02 05:09:10 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -11,16 +11,13 @@
 ! Version 1.03, June 2006
 ! - Removed variable springs
 !
-!   TODO
-!     - optimizer module with cg, qm, lbfgs 
-!     - new optimizer flags, reset IBRION, POTIM
-!     - reWRITE neb code
-!         - movable endpoints
-!         - string method?
-!         - climbing image convergence criteria (default?)
-!         - climb to all saddles (default?)
-!         - minimize local minima?
-!         - correct treatment of first and last images?
+! TODO
+!   - movable endpoints
+!   - string method?
+!   - climbing image convergence criteria (default?)
+!   - climb to all saddles (default?)
+!   - minimize local minima?
+!   - correct treatment of first and last images?
 !
 !**********************************************************************
 
@@ -32,9 +29,9 @@
 
     IMPLICIT NONE
     PRIVATE
-    PUBLIC :: neb_force,neb_init
+    PUBLIC :: neb_step,neb_init
 
-    INTEGER :: nions    
+    INTEGER :: nions,iu0,iu6
     REAL(q),ALLOCATABLE :: posion_all(:,:,:)
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: spring,energy_first,energy_last
@@ -48,8 +45,7 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE neb_force(optflag,tinfo_nions,posion,toten,force,latt_a,latt_b,iu6)
-      INTEGER :: tinfo_nions,iu6
+    SUBROUTINE neb_step(optflag,posion,toten,force,latt_a,latt_b)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL :: optflag
@@ -164,12 +160,12 @@
             energy_diff_prev = energy_first-toten_all(node)
          ENDIF
          IF (node.NE.images) THEN
-            energy_diff_next=toten_all(node+1)-toten_all(node)
+            energy_diff_next = toten_all(node+1)-toten_all(node)
          ELSE
-            energy_diff_next=energy_last-toten_all(node)
+            energy_diff_next = energy_last-toten_all(node)
          ENDIF
-         min_diff_energy=MIN(ABS(energy_diff_prev),ABS(energy_diff_next))
-         max_diff_energy=MAX(ABS(energy_diff_prev),ABS(energy_diff_next))
+         min_diff_energy = MIN(ABS(energy_diff_prev),ABS(energy_diff_next))
+         max_diff_energy = MAX(ABS(energy_diff_prev),ABS(energy_diff_next))
          IF (iu6>0) WRITE(iu6,'(A30,2F12.6)') &
             'NEB: diff energy (min, max): ', min_diff_energy,max_diff_energy
          IF (energy_diff_prev.GT.energy_diff_next) THEN
@@ -179,7 +175,7 @@
          ENDIF
       ENDIF
 
-      ! USE (old) central difference tangent
+      ! use (old) central difference tangent
       IF (ltangentold) THEN
          tangent = RETURN_unit(dist_next) - RETURN_unit(dist_prev)
       ENDIF
@@ -192,13 +188,13 @@
 !======================================================================
 
       IF (lclimb) THEN
-         lclimb_local=.TRUE.
-         ! USE energy of first image IF specIFied in the INCAR
+         lclimb_local = .TRUE.
+         ! use energy of first image if specified in the INCAR
          IF(energy_first.NE.0) THEN
-            max_energy_image=0
+            max_energy_image = 0
             max_energy = energy_first
          ELSE
-            max_energy_image=1
+            max_energy_image = 1
             max_energy = toten_all(1)
          ENDIF
          DO ni=1,images
@@ -207,7 +203,7 @@
                max_energy_image = ni
             ENDIF
          ENDDO
-         IF(energy_last.NE.0 .AND. energy_last.GT.max_energy) THEN
+         IF (energy_last.NE.0 .AND. energy_last.GT.max_energy) THEN
             max_energy_image = images+1
             max_energy = energy_last
          ENDIF
@@ -215,8 +211,8 @@
          IF (max_energy_image > 0 .AND. max_energy_image < images+1) THEN
             climbing_image = max_energy_image
          ELSE
-            lclimb_local=.FALSE.
-            IF(iu6>=0) WRITE(iu6) 'NEB: no climbing image found'
+            lclimb_local = .FALSE.
+            IF (iu6>=0) WRITE(iu6) 'NEB: no climbing image found'
          ENDIF
       ENDIF
 
@@ -232,7 +228,7 @@
 !======================================================================
 ! Double nudging
 !   for details, see: Trygubenko and Wales, JCP 120, 2082 (2005)
-!   turn on by setting LDNEB=.TRUE.
+!   turn on by setting LDNEB = .TRUE.
 !
 !   The idea here is to add a portion of the perpENDicular spring force
 !   to stabilize and possibly accelerate convergence of the NEB,
@@ -243,12 +239,11 @@
 !   climbing image, however, will not be affected by double nudging.
 !
 !   We are using an algorithm which smoothly turns off the double
-!   nudging as the NEB converges.  To USE the original method,
+!   nudging as the NEB converges.  To use the original method,
 !   set LDNEBORG=.TRUE.
-!
 !======================================================================
 
-      IF(ldneb) THEN
+      IF (ldneb) THEN
          f_spring_vec = spring*(dist_prev+dist_next)
          f_spring_perp = f_spring_vec-vproj(f_spring_vec,tangent)
          f_dneb = f_spring_perp-vproj(f_spring_perp,f_perp)
@@ -297,12 +292,12 @@
 
  9999 CONTINUE
       RETURN   
-    END SUBROUTINE neb_force
+    END SUBROUTINE neb_step
 
 !**********************************************************************
 !
 ! Initialize the chain (repeated image mode)
-! Read the spring constant and the two ENDpoint images, which are kept
+! Read the spring constant and the two endpoint images, which are kept
 ! fixed during the optimization
 !
 !**********************************************************************
@@ -323,100 +318,82 @@
       LOGICAL LDUM
       REAL(q) RDUM
 
-      INTEGER tiu6, tiu0
-      tiu6 = IO%IU6
-      tiu0 = IO%IU0
+      iu6 = IO%IU6
+      iu0 = IO%IU0
       nions = T_INFO%NIONS
 
       ! quick RETURN, IF we are not running in image mode
       IF (images==0) RETURN
 #if defined(MPI) || defined(MPI_CHAIN)
 
-      ! read the spring constant
-
       spring=-5.
-
+      ! read the spring constant
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'SPRING','=','#',';','F', &
      &            IDUM,spring,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-            WRITE(TIU0,*)'Error reading item ''SPRING'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*) 'Error reading item ''SPRING'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,F14.6)') 'NEB:','SPRING',spring
 
-
+      lclimb=.TRUE.
       ! read climbing image flag to move maximum energy image to the saddle
-
-      lclimb=.FALSE.
-      
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LCLIMB','=','#',';','L', &
      &            IDUM,RDUM,CDUM,lclimb,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-            WRITE(TIU0,*)'Error reading item ''LCLIMB'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LCLIMB'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,L7)') 'NEB:','LCLIMB',lclimb
-
-      ! read old tangent flag
 
       ltangentold=.FALSE.
-      
+      ! read old tangent flag
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LTANGENTOLD','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ltangentold,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-            WRITE(TIU0,*)'Error reading item ''LTANGENTOLD'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LTANGENTOLD'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,L7)') 'NEB:','LTANGENTOLD',ltangentold
 
-      ! read dneb flag (TRUE = dneb, FALSE = neb)
-      
       ldneb=.FALSE.
       ldneborg=.FALSE.
-      
+      ! read dneb flag (TRUE = dneb, FALSE = neb)
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEB','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ldneb,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-            WRITE(TIU0,*)'Error reading item ''LDNEB'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LDNEB'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,L7)') 'NEB:','LDNEB',ldneb
-
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LDNEBORG','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ldneborg,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-            WRITE(TIU0,*)'Error reading item ''LDNEBORG'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LDNEBORG'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,L7)') 'NEB:','LDNEBORG',ldneborg
-
-      ! read energies of END points
 
       energy_first=0.0
       energy_last=0.0
-
+      ! read energies of END points
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'EFIRST','=','#',';','F', &
      &            IDUM,energy_first,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''EFIRST'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''EFIRST'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,F14.6)') 'NEB:','EFIRST',energy_first
-
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'ELAST','=','#',';','F', &
      &            IDUM,energy_last,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(TIU0,*)'Error reading item ''ELAST'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ELAST'' from file INCAR.'
          STOP
       ENDIF
-      IF(tiu6>0) WRITE(tiu6,'(A5,A16,F14.6)') 'NEB:','ELAST',energy_last
+
+      IF (iu6>0) THEN
+        WRITE(iu6,'(A5,A16,F14.6)') 'NEB:','SPRING',spring
+        WRITE(iu6,'(A5,A16,L7)') 'NEB:','LCLIMB',lclimb
+        WRITE(iu6,'(A5,A16,L7)') 'NEB:','LTANGENTOLD',ltangentold
+        WRITE(iu6,'(A5,A16,L7)') 'NEB:','LDNEB',ldneb
+        WRITE(iu6,'(A5,A16,L7)') 'NEB:','LDNEBORG',ldneborg
+        WRITE(iu6,'(A5,A16,F14.6)') 'NEB:','EFIRST',energy_first
+        WRITE(iu6,'(A5,A16,F14.6)') 'NEB:','ELAST',energy_last
+      ENDIF
 
       ! ALLOCATE the positions
       ALLOCATE(posion_all(3,t_info%nions,0:images+1))
@@ -428,11 +405,10 @@
       CALL RD_POSCAR_HEAD(LATT_CUR, T_I, &
            NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
       CALL RD_POSCAR(LATT_CUR, T_I, DYN, &
-           NIOND,NIONPD, NTYPD,NTYPPD, &
-           IO%IU0, IO%IU6)
+           NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
 
       IF (T_I%NIONS /= T_INFO%NIONS) THEN
-         IF (IO%IU0>=0) WRITE(TIU0,*)'ERROR: image mode number of ions wrong'
+         IF (IU0>=0) WRITE(IU0,*)'ERROR: image mode number of ions wrong'
          STOP
       ENDIF
       posion_all(:,:,0)= DYN%POSION
@@ -444,11 +420,10 @@
       CALL RD_POSCAR_HEAD(LATT_CUR, T_I, &
            NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
       CALL RD_POSCAR(LATT_CUR, T_I, DYN, &
-           NIOND,NIONPD, NTYPD,NTYPPD, &
-           IO%IU0, IO%IU6)
+           NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
 
       IF (T_I%NIONS /= T_INFO%NIONS) THEN
-         IF (IO%IU0>=0) WRITE(TIU0,*)'ERROR: image mode number of ions wrong'
+         IF (IU0>=0) WRITE(IU0,*)'ERROR: image mode number of ions wrong'
          STOP
       ENDIF
       posion_all(:,:,images+1)= DYN%POSION
@@ -462,15 +437,12 @@
     END SUBROUTINE neb_init
 
 !**********************************************************************
-!
 ! Vector Functions
-!
 !**********************************************************************
 
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions. This should really be changed to use the
-! Wigner-Sitz cell
+! boundary conditions.
 !======================================================================
       SUBROUTINE set_pbc(v1)
       REAL(q) :: v1(3,nions)

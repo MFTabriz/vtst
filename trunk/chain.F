@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.13 2006-12-29 23:09:32 graeme Exp $
+! RCS:  $Id: chain.F,v 1.14 2007-01-02 05:09:10 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -53,12 +53,9 @@
     REAL(q) :: Uvasp,Ueam
 #endif
 
-
 !**********************************************************************
-!
 !  General force routine for any method using the repeated image mode.
 !  The variable ICHAIN determines which method to use (see Chain_Init)
-!
 !**********************************************************************
 
   CONTAINS
@@ -79,31 +76,31 @@
         Uvasp=toten
       ENDIF
       posion=Ream
-      IF (iu6>0) WRITE(IU6,*) 'Calling EAMForce'
-      IF (iu6>0) WRITE(IU6,*) 'posion'
-      IF (iu6>0) WRITE(IU6,'(3F14.6)') posion
+      IF (iu6>0) WRITE(iu6,*) 'Calling EAMForce'
+      IF (iu6>0) WRITE(iu6,*) 'posion'
+      IF (iu6>0) WRITE(iu6,'(3F14.6)') posion
       CALL EAMForce(iu6,nions,posion,a,Feam,Ueam)
       force=Feam
       toten=Ueam
-      IF (iu6>0) WRITE(IU6,*) 'force'
-      IF (iu6>0) WRITE(IU6,'(3F14.6)') force
-      IF (iu6>0) WRITE(IU6,*) 'U ',Ueam
+      IF (iu6>0) WRITE(iu6,*) 'force'
+      IF (iu6>0) WRITE(iu6,'(3F14.6)') force
+      IF (iu6>0) WRITE(iu6,*) 'U ',Ueam
 #endif
 
       ! optflag indicates who has control
       !  true: optimizer is active
       !  false: chain method is active (for dimer/lanczos)
-      IF (IMAGES==0) THEN
+      IF (IMAGES==0 .AND. ICHAIN==0) THEN
         optflag=.TRUE.
       ELSE
         IF (ICHAIN==0) THEN
-          CALL neb_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL neb_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==1) THEN
-          CALL dynmat_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL dynmat_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==2) THEN
-          CALL dimer_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL dimer_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==3) THEN
-          CALL lanczos_force(optflag,nions,posion,toten,force,a,b,iu6)
+          CALL lanczos_step(optflag,posion,toten,force,a,b)
         ENDIF
       ENDIF
 
@@ -129,7 +126,7 @@
  4694 format(1x,' FORCE total and by dimension',2f12.6)
 
       ! our own optimizers (optflag: do or do not optimize)  
-      CALL opt_step(optflag,nions,posion,toten,force,a,b,iu6)
+      CALL opt_step(optflag,posion,toten,force,a,b)
 
 #ifdef EAM
       Ream=posion
@@ -142,21 +139,19 @@
     END SUBROUTINE chain_force
 
 !**********************************************************************
-!
 ! Initialize the chain (repeated image mode) and determine which of the
 ! three possible methods to use based on the ICHAIN variable:
 !   ICHAIN==0: nudged elastic band (default)
 !   ICHAIN==1: dynamical matrix
 !   ICHAIN==2: dimer method
 !   ICHAIN==3: lanczos method
-!
 !**********************************************************************
 
-    SUBROUTINE chain_init (T_INFO, IO)
+    SUBROUTINE chain_init(T_INFO, IO)
       USE base
       TYPE (in_struct) :: IO
       TYPE (type_info) :: T_INFO
-      INTEGER :: NI,NJ
+      INTEGER :: NI,NJ,IU0,IU6
 
       INTEGER :: IERR,N,IOPT
       CHARACTER*1 :: CHARAC
@@ -167,6 +162,8 @@
 #if defined(EAM)
       external EAM_POTINIT
 #endif
+      IU0=IO%IU0
+      IU6=IO%IU6
 
       ! initialize optimizer
       CALL opt_init(T_INFO, IO)
@@ -177,8 +174,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
      &            ICHAIN,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(IO%IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
          STOP
       ENDIF
 
@@ -186,33 +182,32 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(IO%IU0,*)'Error reading item ''IOPT'' from file INCAR.'
+         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''IOPT'' from file INCAR.'
          STOP
       ENDIF
 
-      IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
+      IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
       IF(ICHAIN==0) THEN
         IF(IMAGES>0) THEN
-          IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the NEB'
+          IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the NEB'
         ENDIF
         CALL neb_init(T_INFO,IO)
       ELSEIF(ICHAIN==1) THEN
-        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Dynamical Matrix'
+        IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Dynamical Matrix'
         CALL dynmat_init(T_INFO,IO)
       ELSEIF(ICHAIN==2) THEN
-        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Dimer method'
+        IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Dimer method'
         CALL dimer_init(T_INFO,IO)
         IF(iopt==0) THEN
-          WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Dimer method'
+          IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Must set IOPT>0 to use the Dimer method'
           STOP
         ENDIF
       ELSEIF(ICHAIN==3) THEN
-        IF(IO%IU6>=0) WRITE(IO%IU6,*) 'CHAIN: Running the Lanczos method'
+        IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Lanczos method'
         CALL lanczos_init(T_INFO,IO)
         IF(iopt==0) THEN
-          WRITE(IO%IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
+          IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
           STOP
         ENDIF
       ENDIF
@@ -236,13 +231,10 @@
 
     END SUBROUTINE chain_init
 
+!**********************************************************************
+! Returns true if hyper nudged elastic band method is used
+!**********************************************************************
 
-!**********************************************************************
-!
-! Returns true IF hyper nudged elastic band method is used
-!
-!**********************************************************************
-!
       FUNCTION LHYPER_NUDGE()
       LOGICAL LHYPER_NUDGE
 !      IF (images==0 .OR. spring /= 0 ) THEN
@@ -252,30 +244,25 @@
         LHYPER_NUDGE=.TRUE.
       ENDIF
       END FUNCTION LHYPER_NUDGE
-!
-!
+
 !**********************************************************************
-!
 ! MPI routines
-!
 !**********************************************************************
-!
+
 ! Sum over elements
-!
+
       SUBROUTINE sum_chain(value)
       REAL(q) :: value
       IF (images==0) RETURN
-!      IF (spring==-1000) RETURN
       CALLMPI_C(M_sum_d(comm_chain,value,1))
       END SUBROUTINE sum_chain
-!
+
 ! LOGICAL sum over elements
-!
+
       SUBROUTINE and_chain(value)
       LOGICAL :: value
       REAL(q) :: sum_all
       IF (images==0) RETURN
-!      IF (spring==-1000) RETURN
       sum_all=1
       IF (value) sum_all=0
       CALLMPI_C(M_sum_d(comm_chain,sum_all,1))
@@ -284,18 +271,15 @@
       END SUBROUTINE and_chain
 
 #if defined(EAM)
-!
+
 !**********************************************************************
-!
 ! Empirical potential, for testing purposes only
-!
 !**********************************************************************
-!
+
       SUBROUTINE EAMForce(iu6,NIONS,POSION,A,Feam,Ueam)
       INTEGER :: NIONS,iu6
       REAL(q) :: POSION(3,NIONS)
       REAL(q) :: Reamcar(3,NIONS),Feam(3,NIONS)
-!      REAL(q) :: Rtmp(15000),Ftmp(15000)
       REAL(q) :: A(3,3)
       INTEGER :: NI,NJ
 
@@ -315,15 +299,12 @@
       call DIRKAR(NIONS,Reamcar,A)
       IF (IU6>0) WRITE(IU6,*) 'Reamcar'
       IF (IU6>0) WRITE(IU6,'(3F14.8)') Reamcar(:,:)
-!      IF (IU6>0) WRITE(IU6,*) 'Free'
-!      IF (IU6>0) WRITE(IU6,'(3F14.8)') Free(:,:)
       ! 
       do NI=1,NIONS
          do NJ=1,3
             Rtmp(3*(NI-1)+NJ)=Reamcar(NJ,NI)
          enddo
       enddo
-!      IF (IU6>0) WRITE(IU6,*) 'Ax,Ay,Az: ',A(1,1),A(2,2),A(3,3)
       call EAM_FORCE(Nions,Rtmp,Ftmp,Ueam,Ax,Ay,Az)
       do NI=1,NIONS
          do NJ=1,3
@@ -336,6 +317,5 @@
       IF (IU6>0) WRITE(IU6,*) 'Ueam: ',Ueam
       end subroutine EAMForce
 #endif
-
 
 END MODULE chain

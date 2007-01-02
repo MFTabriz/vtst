@@ -2,7 +2,7 @@
 !**********************************************************************
 !
 ! Module for Fast Inertial Relaxation Engine (FIRE)
-! from Erik Bitzek,PHYSICAL REVIEW LETTER  97, 170201 (2006)
+! from Erik Bitzek, Phys. Rev. Lett. 97, 170201 (2006)
 !
 ! Version 1.01, Nov 2006
 !
@@ -17,22 +17,18 @@
     private
     public :: fire_step, fire_init  !call fire_init from opt_init
 
-    INTEGER :: nions,iu6,Nsteps,Nmin
-    REAL(q),ALLOCATABLE :: step(:,:),velocity(:,:),R(:,:)
+    INTEGER :: nions,iu0,iu6,Nsteps,Nmin
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
     REAL(q) :: maxmove,dt,dtmax
     REAL(q) :: finc,fdec,fa,alpha,alpha_start
 
-
 !**********************************************************************
-!
 ! Fast Inertial Relaxation Engine (FIRE) method
-!
 !**********************************************************************
-  CONTAINS
-    SUBROUTINE fire_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
+  CONTAINS
+    SUBROUTINE fire_step(optflag,posion,toten,force,latt_a,latt_b)
+
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       REAL(q) :: Power
@@ -44,7 +40,6 @@
 
       ! Convert the position into Cartesian coordinates
       call dirkar(nions,R,latt_a)
-
 
       Power = SUM(force*velocity)
       IF (SUM(force*velocity) .GT. 0.0_q) THEN
@@ -79,9 +74,7 @@
     END SUBROUTINE fire_step
 
 !**********************************************************************
-!
 ! Fire init
-!
 !**********************************************************************
 
     SUBROUTINE fire_init(T_INFO,IO)
@@ -97,14 +90,14 @@
       REAL(q) RDUM
 
       nions=T_INFO%nions
+      iu0=IO%IU0
       iu6=IO%IU6
 
       maxmove = 0.2_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -112,8 +105,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''TIMESTEP'' from file INCAR.'
          STOP
       ENDIF
       
@@ -121,8 +113,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEMAX','=','#',';','F', &
      &            IDUM,dtmax,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FTIMEMAX'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FTIMEMAX'' from file INCAR.'
          STOP
       ENDIF
       
@@ -130,8 +121,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEINC','=','#',';','F', &
      &            IDUM,finc,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FTIMEINC'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FTIMEINC'' from file INCAR.'
          STOP
       ENDIF
       
@@ -139,8 +129,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FTIMEDEC','=','#',';','F', &
      &            IDUM,fdec,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FTIMEDEC'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FTIMEDEC'' from file INCAR.'
          STOP
       ENDIF
       
@@ -148,8 +137,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHADEC','=','#',';','F', &
      &            IDUM,fa,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FALPHADEC'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FALPHADEC'' from file INCAR.'
          STOP
       ENDIF
       
@@ -157,8 +145,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHA','=','#',';','F', &
      &            IDUM,alpha_start,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FALPHA'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FALPHA'' from file INCAR.'
          STOP
       ENDIF
 
@@ -166,18 +153,26 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FNMIN','=','#',';','I', &
      &            Nmin,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FNMIN'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FNMIN'' from file INCAR.'
          STOP
       ENDIF
-      
-      
-  
+
       ! initlize vectors
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
 
       velocity = 0._q
       Nsteps = 0
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, MAXMOVE',maxmove
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, TIMESTEP',dt
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEMAX',dtmax
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEINC',finc
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEDEC',fdec
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FALPHADEC',fa
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FALPHA',alpha_start
+        WRITE(iu6,'(A5,A,I4)') 'OPT:','FIRE, FNMIN',Nmin
+      END IF
 
     END SUBROUTINE fire_init
 

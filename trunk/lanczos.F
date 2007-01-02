@@ -27,11 +27,11 @@
     IMPLICIT NONE
     SAVE
     PRIVATE
-    PUBLIC :: lanczos_force,lanczos_init
+    PUBLIC :: lanczos_step,lanczos_init
 
     TYPE(in_struct) :: lio
     TYPE(type_info) :: linfo
-    INTEGER :: nions,iu6,iu0,nl
+    INTEGER :: nions,iu0,iu6,nl
     INTEGER,PARAMETER :: lanout=831
     REAL(q),ALLOCATABLE,DIMENSION(:) :: d,e,aa,bb
     REAL(q),ALLOCATABLE,DIMENSION(:,:) :: F,R,w,qq,qqold,F0,R0,z,Fpar,Feff
@@ -41,10 +41,8 @@
     CONTAINS
 !--------------------------------------------------------------------------------------!
 
-    SUBROUTINE lanczos_force(optflag,nions,posion,toten,tifor, &
-                                                 latt_a,latt_b,iu6)
+    SUBROUTINE lanczos_step(optflag,posion,toten,tifor,latt_a,latt_b)
       LOGICAL :: optflag
-      INTEGER :: nions,iu6
       REAL(q),DIMENSION(3,nions) :: posion,tifor 
       REAL(q),DIMENSION(3,3) :: latt_a,latt_b
       REAL(q) :: toten
@@ -54,15 +52,9 @@
       REAL(q),SAVE :: alpha,beta,eigold,eig
       REAL(q) :: U
       INTEGER,SAVE :: it=0,itr=0
-      INTEGER :: i,j
+      INTEGER :: i,j,info
       LOGICAL,SAVE :: first=.true.,new,iterate,converged,fd_step
       LOGICAL :: ertil
-
-! Variables for diagonalization of the tridiagonal Lanczos matrix
-!v0.02      INTEGER,PARAMETER :: ldz=1 
-      INTEGER :: info
-!v0.02      REAL(q),DIMENSION(ldz) :: work   
-!v0.02      REAL(q),DIMENSION(ldz,ldz) :: ze
 
       A=latt_a
       B=latt_b
@@ -118,7 +110,8 @@
         it=1  
         PP(:,:,it)=qq
         R=R0+qq*dR
-        optflag=.true.
+! Do not pass control back to the optimizer
+        optflag=.false.
       ELSE
         IF (iterate) THEN
           z=F-F0
@@ -143,7 +136,7 @@
             eig=aa(1)
             converged=(ABS((eig-eigold)/eigold) < ltol)
             IF (iu6 > 0) CALL output(200,itr,it,eig,eigold)
-          END IF             
+          END IF
         END IF
 ! If the size of the Lanczos matrix has reached its maximum allowed dimension (nl),
 ! the continue on with the latest (unconverged) eigenvalue and print a warning 
@@ -153,39 +146,21 @@
           IF (iu6 > 0) CALL output(250,itr)
         END IF
         IF (converged) THEN
-! Only need to find the mode once but goes through here twice if CG is used, so ...
-          IF (iterate) THEN
-            CALL eigenvector(it,eig)
-            IF (iu6 > 0) THEN
-              OPEN(210,FILE='NEWMODECAR',ACTION='write',STATUS='replace')
-              WRITE(210,'(3ES20.10)') (w(:,i) , i=1,nions)
-              CLOSE(210)
-            END IF
-            IF (iu6 > 0) CALL output(300,itr)
+          CALL eigenvector(it,eig)
+          IF (iu6 > 0) THEN
+            OPEN(210,FILE='NEWMODECAR',ACTION='write',STATUS='replace')
+            WRITE(210,'(3ES20.10)') (w(:,i) , i=1,nions)
+            CLOSE(210)
           END IF
-
-
-          ! go back to optimizer
+          IF (iu6 > 0) CALL output(300,itr)
+          F0=F   ! for feffective 
+          CALL feffective(eig)
+          IF (iu6 > 0) CALL output(400,itr,it,eig,U=U)
+! Pass control back to the optimizer, with R0 and Feff
+          R=R0
+          tifor=Feff
+          new=.true.
           optflag=.true.
-          ! iterate once we get back
-          ! set new and/or fd_step?
-
-          IF (ifcg) THEN
-            iterate=.false.
-            IF (.NOT. fd_step) F0=F   ! for feffective 
-            CALL feffective(eig)
-            CALL cg(fd_step)
-            IF ((.NOT. fd_step) .AND. (iu6 > 0)) CALL output(400,itr,it,eig,U=U)   ! only output from the point, not after fd step
-            IF (fd_step) new=.true.
-          ELSE 
-            CALL feffective(eig)
-            IF (iu6 > 0) CALL output(400,itr,it,eig,U=U)
-!GH: need to return here
-            CALL quickmin()
-! If the eigenvalue has converged, exit to a new step
-            new=.true.
-          END IF
-
         ELSE
           IF (it > 1) THEN
             eigold=eig
@@ -204,11 +179,10 @@
       posion=R
       CALL kardir(nions,posion,B)
 
-!v0.02      CALL FLUSH(lanout)
       IF (iu6>=0) CALL WFORCE(lanout)
   
       RETURN
-    END SUBROUTINE lanczos_force
+    END SUBROUTINE lanczos_step
 
 !--------------------------------------------------------------------------------------!
 
@@ -281,9 +255,6 @@
       nl=20
       call RDATAB(.TRUE.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
      &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
-      ifcg=.TRUE.
-      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sifcg','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,ifcg,CHARAC,Nint,1,IERR)
 
     RETURN        
     END SUBROUTINE read_variables

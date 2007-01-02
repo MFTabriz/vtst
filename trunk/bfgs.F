@@ -18,12 +18,10 @@
     IMPLICIT NONE
     SAVE
     PRIVATE
-    PUBLIC :: bfgs_step, bfgs_init  !CALL bfgs_init from opt_init
+    PUBLIC :: bfgs_step, bfgs_init  ! CALL bfgs_init from opt_init
 
-    INTEGER :: nions,iu6
-    REAL(q),ALLOCATABLE :: direction(:,:)
-    REAL(q),ALLOCATABLE :: Rold(:,:),Fold(:,:)
-    REAL(q),ALLOCATABLE :: invH(:,:)
+    INTEGER :: nions,iu0,iu6
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: direction,Rold,Fold,invH
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: finite_step,maxmove
@@ -35,10 +33,8 @@
 !
 !**********************************************************************
   CONTAINS
-    SUBROUTINE bfgs_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
+    SUBROUTINE bfgs_step(optflag,posion,toten,force,latt_a,latt_b)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
@@ -51,7 +47,7 @@
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
-      IF (fdstep) THENa
+      IF (fdstep) THEN
 
         fdstep = .FALSE.
         optflag = .TRUE. ! keeps contol so it can do finite step
@@ -71,7 +67,6 @@
         Rold = R
         Fold = force
         ! compute Ho*g
-
 
         ! direction = Ho*direction !Ho is idenity matrix
         direction = return_unit(direction)
@@ -106,11 +101,12 @@
     END SUBROUTINE bfgs_step
 
 !**********************************************************************
-! Update the Inv HESSIAN
+! Update the inverse Hessian
 ! William Press's Numerical Recipes in C p 427
+! TODO: need to get function and check on reshaping
 !**********************************************************************
- ! need to get function and check on reshaping
-    SUBROUTINE invH_update(nions)
+
+    SUBROUTINE invH_update()
       REAL(q) :: a,b
       INTEGER :: im,jm,km
           a = SUM(change_in_R*change_in_F)
@@ -131,9 +127,7 @@
     END SUBROUTINE invH_update
 
 !**********************************************************************
-!
 ! full bfgs init
-!
 !**********************************************************************
 
     SUBROUTINE bfgs_init(T_INFO,IO)
@@ -149,6 +143,7 @@
       REAL(q) RDUM
 
       nions = T_INFO%nions
+      iu0 = IO%IU0
       iu6 = IO%IU6
 
       ! read in the varables for bfgs
@@ -157,8 +152,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''FDSTEP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''FDSTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -166,8 +160,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'MAXMOVE','=','#',';','F', &
      &            IDUM,maxmove,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MAXMOVE'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''MAXMOVE'' from file INCAR.'
          STOP
       ENDIF
 
@@ -175,8 +168,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'BFGSDFP','=','#',';','L', &
      &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''BFGSDFP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''BFGSDFP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -186,17 +178,22 @@
 
      ! set invH as indenty
       fdstep = .TRUE.
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, FDSTEP',finite_step
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, MAXMOVE',maxmove
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, BFGSDFP',dfp
+      END IF
+
     END SUBROUTINE bfgs_init
+
 !**********************************************************************
-!
 ! Vector Functions
-!
 !**********************************************************************
 
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions. This should really be changed to use the
-! Wigner-Sitz cell
+! boundary conditions.
 !======================================================================
       SUBROUTINE set_pbc(v1)
       REAL(q) :: v1(3,nions)

@@ -5,8 +5,6 @@
 !
 ! Version 1.01, July 2006
 !
-! TO DO
-!
 !**********************************************************************
 
   MODULE dynamic
@@ -15,27 +13,24 @@
 
     IMPLICIT NONE
     PRIVATE :: bivarate
-    PUBLIC :: dynamic_step, dynamic_init  !CALL opt_init from chain_init
+    PUBLIC :: dynamic_step, dynamic_init
 
-    INTEGER :: nions,iu6,thermosdat
-    REAL(q),Alocateable  R(:,:)
+    INTEGER :: nions,iu0,iu6,thermostat
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) ::  R
     REAL(q) :: dt,temp
 
     ! varables for Langevin dynamics 
     REAL(q) :: c0,c1,c2
-    REAL(q),ALLOCATABLE :: Fold(:,:),velocity(:,:),randR(:,:),randV(:,:)
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: Fold,velocity,randR,randV
 
 
 !**********************************************************************
-!
-! dynamics rutine using verlet velocity style dynamics
-!
+! Dynamics routine using verlet velocity dynamics
 !**********************************************************************
+
   CONTAINS
-    SUBROUTINE dynamic_step(optflag,tinfo_nions,posion,toten,force, &
-                        latt_a,latt_b,tinfo_iu6)
+    SUBROUTINE dynamic_step(optflag,posion,toten,force,latt_a,latt_b)
 
-      INTEGER :: tinfo_nions,tinfo_iu6
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
@@ -50,12 +45,11 @@
       ! give contral back to method 
       optflag = .FALSE.
 
-      IF (thermosdat .EQ. 1) THEN
+      IF (thermostat .EQ. 1) THEN
         posion = posion + c1*dt*velocity + c2*dt*dt*Fold/mass + randR
         velocity = c0*velocity+(c1-c2)*dt*Fold/mass+c2*dt*force/mass+randV
         Fold = force
       ELSE
-
 
       ! convert position back to direct cord
       CALL kardir(nions,R,latt_b)
@@ -94,18 +88,15 @@
       RETURN
      END SUBROUTINE  
 
-
 !**********************************************************************
-!
 ! dynamic initilizer
-!
 !**********************************************************************
+
     SUBROUTINE dynamic_init(T_INFO,IO)
       USE base
       USE poscar
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
-
 
       INTEGER IDUM,IERR,N
       CHARACTER*1 CHARAC
@@ -114,18 +105,19 @@
       REAL(q) RDUM
 
       nions=T_INFO%nions
+      iu0=IO%IU0
       iu6=IO%IU6
 
       REAL(q) :: gdt
 
       ! read in varables used for dynamics
 
-      thermosdat=0
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSDAT','=','#',';','I', &
-     &            thermosdat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      thermostat=0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSTAT','=','#',';','I', &
+     &            thermostat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''THERMOSDAT'' from file INCAR.'
+              WRITE(iu6,*)'Error reading item ''THERMOSTAT'' from file INCAR.'
          STOP
       ENDIF
 
@@ -165,8 +157,8 @@
          STOP
       ENDIF
 
-      ! set up thermosdat parameters
-      IF (thermosdat .EQ. 0) .OR. (gam .EQ. 0.0_q) THEN
+      ! set up thermostat parameters
+      IF (thermostat .EQ. 0) .OR. (gam .EQ. 0.0_q) THEN
         c0 = 1.0_q
         c1 = 1.0_q
         c2 = 0.5_q
@@ -189,12 +181,18 @@
       ! initialize the variables: vectors and matricies
       ALLOCATE(Fold(3,nions),velocity(3,nions),direction(3,nions))
 
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,I4)') 'OPT:','DYNAMICS, THERMOSDAT',thermostat
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','DYNAMICS, TIMESTEP',dt
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','DYNAMICS, MDTEMP',temp
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','DYNAMICS, MDGAMMA',gam
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','DYNAMICS, MDALPHA',alpha
+      END IF
 
     END SUBROUTINE dynamic_init
+
 !**********************************************************************
-!
 ! Vector Functions
-!
 !**********************************************************************
 
 !======================================================================
@@ -230,7 +228,6 @@
       REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
       vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
-
 
   END MODULE dynamic
 
