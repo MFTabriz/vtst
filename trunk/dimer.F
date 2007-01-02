@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.20 2007-01-02 05:09:10 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.21 2007-01-02 07:40:35 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -45,7 +45,7 @@
       REAL(q),DIMENSION(3,3) :: A,B
       REAL(q) :: U,U0,CN,Cth,dR,MaxFN,MinFN,F0r,FNr
       REAL(q) :: FN1,FN2,GamN,dTh,Th,CN1,FN1r
-      LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag,FdStep
+      LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag,FdStep,NewFlag
 
     CONTAINS
 
@@ -76,7 +76,6 @@
       ALLOCATE(FN(3,Nions),FNold(3,Nions),GN(3,Nions),GNu(3,Nions))
       IF (Seed/=0) CALL RMARIN(Seed,Seed)
       CALL ReadDimerVar()
-      IF (IU6>=0) CALL WriteDimerVar(IU6)
       InitFlag = .true.
     END SUBROUTINE Dimer_Init
 
@@ -99,35 +98,43 @@
       CALL DIRKAR(NIONS,R,A)  ! Convert position to Cartesian
       CALL SetConstraints(F)
 
-      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5)') ' Dimer: Itr',Itr,'Rot',NumRot
       IF (InitFlag) THEN
         CALL InitMode()
         InitFlag = .false.
-        OptFlag = .true.
+        NewFlag = .true.
         CGInitFlag = .true.
       END IF
-      IF (OptFlag) THEN  ! returned from optimizer; new position
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: New Position'
+
+      IF (IU6>=0.AND.NewFlag) WRITE(IU6,*) 'Dimer: -----------------' 
+      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5)') ' Dimer: Itr',Itr,' Rot',NumRot
+
+      IF (NewFlag) THEN  ! returned from optimizer; new position
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Central Point.'
         U0 = U
         R0 = R
         F0 = F
         R = R0+N*dR
         ! Set up for dimer rotation
-        OptFlag = .false.
+        NewFlag = .false.
         FdStep = .true.
-        NumRot = 0
+        NumRot=1
       ELSE
         ! get rotational force
         CALL UpdateDimer()
-        IF (FdStep.AND.IU6>=0) CALL WriteDimerData(IU6)
+        IF (FdStep.AND.IU6>=0) THEN
+          WRITE(IU6,'(A,F14.6)') ' Dimer: CN ',CN
+          WRITE(IU6,'(A,F14.6)') ' Dimer: F0 ',F0r
+          WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN ',FNr
+        END IF
         ! check to see if rotation is converged
         IF (FNr<MinFN) THEN
-          IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged'
+          IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged.'
           OptFlag = .true.
         ELSE
           CALL RotateDimer()
-          IF (NumRot>=MaxRot) OptFlag = .true.
+          IF (NumRot>MaxRot) OptFlag = .true.
         END IF
+        CALL WriteMode() ! Save the current mode
       END IF
 
       IF (OptFlag) THEN  ! going back to the optimizer; set R and F
@@ -138,9 +145,9 @@
         ELSE
           F = N*SUM(F0*N)*(-1._q)
         END IF
+        NewFlag = .true.
         FdStep = .true.
         NumRot = 0
-        CALL WriteMode() ! Save the lowest mode
         Itr = Itr+1
       END IF
 
@@ -160,7 +167,7 @@
 
     SUBROUTINE InitMode()
       REAL(q),EXTERNAL :: RANG
-      IF (IU6>=0) WRITE(IU6,*) 'Dimer: Init Mode'
+      IF (IU6>=0) WRITE(IU6,*) 'Dimer: Init Mode:'
       ! If the MODECAR file exists, read N, otherwise use random N
       INQUIRE(FILE='MODECAR',EXIST=ModecarFlag)
       IF (ModecarFlag) THEN
@@ -203,7 +210,7 @@
       REAL(q) a1,a2
       ! Conjugate gradient and modified Newtons method for rotation
       IF (FdStep) THEN
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Trial Rotation'
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Trial Rotation.'
         ! Finite difference step
         IF (CGInitFlag) THEN
           CGInitFlag=.false.
@@ -232,14 +239,14 @@
         CN1 = CN
         FN1r = FNr
       ELSE
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation'
-        ! Rotation step
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation.'
         NumRot = NumRot+1
+        ! Rotation step
         FN2 = SUM(FN*GNu)
         IF (FN2/=0._q) THEN
           Th = ATAN(FN1/FN2)/(-2._q)
         ELSE
-          Th = PI/(-2._q)-PI/4._q
+          Th = PI/(-2._q)
         END IF
         IF (FN2>0._q) Th = Th+PI/2._q
         CALL Rotate(N,GNu,Th-PI/4._q)
@@ -317,27 +324,6 @@
 ! IO routines
 !**********************************************************************
 
-! Write initial dimer variables
-
-    SUBROUTINE WriteDimerVar(IU)
-      INTEGER IU
-      WRITE(IU,'(/,A,/)') ' Dimer: Input Parameters'
-      WRITE(IU,'(A,I4)') ' Dimer:   Seed',Seed
-      WRITE(IU,'(A,I4)') ' Dimer: MaxRot',MaxRot
-      WRITE(IU,'(A,F14.6)') ' Dimer:     dR',dR
-      WRITE(IU,'(A,F14.6)') ' Dimer:  MaxFN',MaxFN
-      WRITE(IU,'(A,F14.6)') ' Dimer:  MinFN',MinFN
-    END SUBROUTINE WriteDimerVar
-
-! Write dimer parameters
-
-    SUBROUTINE WriteDimerData(IU)
-      INTEGER IU
-      WRITE(IU,'(A,F14.6)') ' Dimer: CN ',CN
-      WRITE(IU,'(A,F14.6)') ' Dimer: F0 ',F0r
-      WRITE(IU,'(A,F14.6,/)') ' Dimer: FN ',FNr
-    END SUBROUTINE WriteDimerData
-
 ! Write lowest mode
 
     SUBROUTINE WriteMode()
@@ -372,6 +358,18 @@
       MinFN=0.01_q
       CALL RDATAB(.true.,'INCAR',DIO%IU5,'DMinFN','=','#',';','I', &
      &            IDUM,MinFN,CDUM,LDUM,CHARAC,INint,1,IERR)
+
+      IF (IU6>=0) THEN
+        WRITE(IU6,'(A)')       ' Dimer: -----------------'
+        WRITE(IU6,'(/,A,/)')   ' Dimer: Input Parameters'
+        WRITE(IU6,'(A,I7)')    ' Dimer:   Seed',Seed
+        WRITE(IU6,'(A,I7)')    ' Dimer: MaxRot',MaxRot
+        WRITE(IU6,'(A,F14.6)') ' Dimer:     dR',dR
+        WRITE(IU6,'(A,F14.6)') ' Dimer:  MaxFN',MaxFN
+        WRITE(IU6,'(A,F14.6)') ' Dimer:  MinFN',MinFN
+        WRITE(IU6,'(A)')       ' Dimer: -----------------'
+      END IF
+
     END SUBROUTINE ReadDimerVar
 
     END MODULE dimer
