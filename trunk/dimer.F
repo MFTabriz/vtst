@@ -1,7 +1,7 @@
 #include "symbol.inc"
 #define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.21 2007-01-02 07:40:35 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.22 2007-01-02 07:52:32 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -95,6 +95,10 @@
       R = POSION
       A = LATT_A
       B = LATT_B
+
+      ! If optimizer has control, return immediately
+      IF (OptFlag) RETURN
+
       CALL DIRKAR(NIONS,R,A)  ! Convert position to Cartesian
       CALL SetConstraints(F)
 
