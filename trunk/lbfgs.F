@@ -3,7 +3,7 @@
 !
 ! Module for limited-memory bfgs
 !
-! Version 1.01, June 2006
+! Version 2.00, Jan 2007
 !
 ! TO DO
 !   - PBC

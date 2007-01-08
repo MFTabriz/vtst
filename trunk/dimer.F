@@ -1,7 +1,6 @@
 #include "symbol.inc"
-#define DIMER
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.22 2007-01-02 07:52:32 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.23 2007-01-08 03:14:14 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -13,7 +12,7 @@
 !
 ! Version Notes:
 ! 
-! v2.00, Dec 2006
+! v2.00, Jan 2007
 ! - single image version of the dimer method
 ! - changed output file name to DIMCAR
 ! - added a minimum rotational force variable
@@ -22,6 +21,7 @@
 !
 ! Graeme Henkelman
 ! henkelman@mail.utexas.edu
+!
 !**********************************************************************
 
     MODULE dimer
@@ -36,10 +36,10 @@
       PRIVATE
       PUBLIC :: Dimer_Step,Dimer_Init
 
-      TYPE(in_struct) :: DIO
       TYPE(type_info) :: DINFO
-      INTEGER :: Nions,IU0,IU6,IUout,IUdim
+      INTEGER :: Nions,IU0,IU5,IU6
       INTEGER :: i,j,MaxRot,NumRot,Seed,Itr
+      INTEGER,PARAMETER :: IUdim=44
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
@@ -58,12 +58,11 @@
       TYPE(type_info) :: T_INFO
       EXTERNAL RMARIN
 
-      DIO = IO
       DINFO = T_INFO
-      IU6 = DIO%IU6
-      IU0 = DIO%IU0
+      IU0 = IO%IU0
+      IU5 = IO%IU5
+      IU6 = IO%IU6
       Nions = T_info%nions
-      IUout = 44
      #if defined(MPI_CHAIN)
         IF (IU6>=0) WRITE(IU0,*) 'The IMAGES tag should not be set for this implementation of the dimer method.'
         STOP
@@ -176,9 +175,6 @@
       INQUIRE(FILE='MODECAR',EXIST=ModecarFlag)
       IF (ModecarFlag) THEN
         IF (IU6>=0) WRITE(IU6,*) 'Dimer: MODECAR found ... reading it'
-        OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
-        READ(210,*) (N(1:3,i), i=1,Nions)
-        CLOSE(210)
       ELSE
         IF (IU6>=0) WRITE(IU6,*) 'Dimer: No MODECAR found ... generating random mode'
         DO i = 1,Nions
@@ -192,6 +188,9 @@
           CLOSE(210)
         END IF
       END IF
+      OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
+      READ(210,*) (N(1:3,i), i=1,Nions)
+      CLOSE(210)
       CALL SetConstraints(N)
       CALL SetUnit(N)
       CALL WriteMode()
@@ -348,19 +347,19 @@
       REAL(q) :: RDUM
 
       Seed=0
-      CALL RDATAB(.true.,'INCAR',DIO%IU5,'DSeed','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DSeed','=','#',';','I', &
      &            Seed,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
       MaxRot=1
-      CALL RDATAB(.true.,'INCAR',DIO%IU5,'DMaxRot','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DMaxRot','=','#',';','I', &
      &            MaxRot,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
       dR=5E-3_q
-      CALL RDATAB(.true.,'INCAR',DIO%IU5,'DdR','=','#',';','F', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,INint,1,IERR)
       MaxFN=1._q
-      CALL RDATAB(.true.,'INCAR',DIO%IU5,'DMaxFN','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DMaxFN','=','#',';','I', &
      &            IDUM,MaxFN,CDUM,LDUM,CHARAC,INint,1,IERR)
       MinFN=0.01_q
-      CALL RDATAB(.true.,'INCAR',DIO%IU5,'DMinFN','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DMinFN','=','#',';','I', &
      &            IDUM,MinFN,CDUM,LDUM,CHARAC,INint,1,IERR)
 
       IF (IU6>=0) THEN

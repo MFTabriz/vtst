@@ -4,7 +4,7 @@
 ! Module for Fast Inertial Relaxation Engine (FIRE)
 ! from Erik Bitzek, Phys. Rev. Lett. 97, 170201 (2006)
 !
-! Version 1.01, Nov 2006
+! Version 2.00, Jan 2007
 !
 !**********************************************************************
 

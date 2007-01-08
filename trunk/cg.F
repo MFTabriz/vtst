@@ -3,7 +3,7 @@
 !
 ! Module which implementes a force-based Conjugate Gradient optimizer
 !
-! Version 1.01, June 2006
+! Version 2.00, Jan 2007
 !
 !**********************************************************************
 

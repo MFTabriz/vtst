@@ -3,7 +3,7 @@
 !
 ! Module which implements our full bfgs method
 !
-! Version 1.01, June 2006
+! Version 2.00, Jan 2007
 !
 ! To do 
 !   - maxtix opperaations

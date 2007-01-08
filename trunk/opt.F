@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.16 2007-01-02 05:09:10 graeme Exp $
+! RCS:  $Id: opt.F,v 1.17 2007-01-08 03:14:14 graeme Exp $
 !
 ! Module which implements forced based optimizers
 !
@@ -23,7 +23,6 @@
     PUBLIC :: opt_step, opt_init  ! call opt_init from chain_init
 
     INTEGER :: nions,iopt,iu6
-    REAL(q) :: dir2car(3,3),car2dir(3,3)
 
 !**********************************************************************
 ! Wrapper function to call the appropriate optimizer
@@ -34,10 +33,6 @@
       REAL(q) :: posion(3,nions),toten,force(3,nions)
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
-
-      ! local variables
-      dir2car=latt_a
-      car2dir=latt_b
 
       ! if optflag is false, do nothing
       IF (iu6>=0) WRITE(iu6,*) ''
@@ -66,9 +61,6 @@
         IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE_step'
         CALL fire_step(optflag,posion,toten,force,latt_a,latt_b)
       ENDIF
-
-      ! call periodic boundary conditions
-      CALL set_pbc(posion)
 
     END SUBROUTINE opt_step
 
@@ -130,7 +122,7 @@
         IF (iu6>=0) WRITE(iu6,*) 'OPT: Using VASP Quick-Min optimizer'
         RETURN
       ELSEIF (iopt.EQ.0) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: Using VASP OPTIMIZERS'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: Using VASP Dynamics algorithm'
         RETURN
       ELSEIF (iopt.EQ.1) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: Using LBFGS optimizer'
@@ -180,21 +172,5 @@
       IF (iu6>=0) WRITE(iu6,*) ''
 
     END SUBROUTINE opt_init
-
-!**********************************************************************
-! Vector Functions
-!**********************************************************************
-
-!======================================================================
-! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions.
-!======================================================================
-
-      SUBROUTINE set_pbc(v1)
-      REAL(q) :: v1(3,nions)
-      CALL kardir(nions,v1,car2dir)
-      v1=MOD(v1+100.5_q,1._q)-0.5_q
-      CALL dirkar(nions,v1,dir2car)
-      END SUBROUTINE set_pbc
 
   END MODULE opt

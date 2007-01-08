@@ -3,7 +3,7 @@
 !
 ! Module for running dynamics on system
 !
-! Version 1.01, July 2006
+! Version 2.00, Jan 2007
 !
 !**********************************************************************
 
@@ -75,7 +75,7 @@
 
       REAL(q) :: sig1,sig2,c12,g1,g2
 
-1      v1=2.0_q*rand()-1.0_q   ! pick coords in square (-1,1)x(-1,1)
+      v1=2.0_q*rand()-1.0_q   ! pick coords in square (-1,1)x(-1,1)
       v2=2.0_q*rand()-1.0_q
       v=v1*v1+v2*v2
       IF(v.GE.1.0_q) GOTO 1     ! discard pairs that are not in unit circle
@@ -116,8 +116,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSTAT','=','#',';','I', &
      &            thermostat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''THERMOSTAT'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''THERMOSTAT'' from file INCAR.'
          STOP
       ENDIF
 
@@ -125,8 +124,7 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'TIMESTEP','=','#',';','F', &
      &            IDUM,dt,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu6,*)'Error reading item ''TIMESTEP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -134,8 +132,7 @@
       CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDTEMP','=','#',';','F', &
      &            IDUM,temp,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MDTEMP'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu6,*)'Error reading item ''MDTEMP'' from file INCAR.'
          STOP
       ENDIF
 
@@ -143,8 +140,7 @@
       CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDGAMMA','=','#',';','F', &
      &            IDUm,gam,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MDGAMMA'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''MDGAMMA'' from file INCAR.'
          STOP
       ENDIF
 
@@ -152,8 +148,7 @@
       CALL RDATAB(.TRUE.,0'INCAR',IO%IU5,'MDALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (IO%IU0>=0) &
-              WRITE(iu6,*)'Error reading item ''MDALPHA'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''MDALPHA'' from file INCAR.'
          STOP
       ENDIF
 
@@ -197,36 +192,35 @@
 
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
-! boundary conditions. This should really be changed to use the
-! Wigner-Sitz cell
+! boundary conditions.
 !======================================================================
       SUBROUTINE set_pbc(v1)
-      REAL(q) :: v1(3,nions)
-      CALL kardir(nions,v1,car2dir)
-      v1=MOD(v1+100.5_q,1._q)-0.5_q
-      CALL dirkar(nions,v1,dir2car)
+        REAL(q) :: v1(3,nions)
+        CALL kardir(nions,v1,car2dir)
+        v1=MOD(v1+100.5_q,1._q)-0.5_q
+        CALL dirkar(nions,v1,dir2car)
       END SUBROUTINE set_pbc
 !======================================================================
 ! Returns a unit vector along v1
 !======================================================================
       FUNCTION return_unit(V1)
-      real(q) :: v1(3,nions)
-      real(q),dimension(3,nions) :: return_unit
-      return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
+        real(q) :: v1(3,nions)
+        real(q),dimension(3,nions) :: return_unit
+        return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
       END FUNCTION return_unit
 !======================================================================
 ! Sets V1 to be a unit vector
 !======================================================================
       SUBROUTINE set_unit(V1)
-      REAL(q) :: v1(3,nions)
-      v1=return_unit(v1)
+        REAL(q) :: v1(3,nions)
+        v1=return_unit(v1)
       END SUBROUTINE set_unit
 !======================================================================
 ! Vector projection of v1 on v2
 !======================================================================
       FUNCTION vproj(v1,v2)
-      REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+        REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
+        vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
       END FUNCTION vproj
 
   END MODULE dynamic

@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.14 2007-01-02 05:09:10 graeme Exp $
+! RCS:  $Id: chain.F,v 1.15 2007-01-08 03:14:14 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -18,6 +18,8 @@
 ! makes it easier to separate a large calculation into serveral jobs,
 ! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
+!
+! Version 2.00, Jan 2007
 !
 !**********************************************************************
 
@@ -165,6 +167,9 @@
       IU0=IO%IU0
       IU6=IO%IU6
 
+      ! write the version number
+      IF(IU6>=0) WRITE(IU6,*) 'VTST: version 2.0'
+
       ! initialize optimizer
       CALL opt_init(T_INFO, IO)
       optflag=.FALSE.
@@ -174,16 +179,16 @@
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
      &            ICHAIN,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
-         STOP
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
+        STOP
       ENDIF
 
       IOPT=0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''IOPT'' from file INCAR.'
-         STOP
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''IOPT'' from file INCAR.'
+        STOP
       ENDIF
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN

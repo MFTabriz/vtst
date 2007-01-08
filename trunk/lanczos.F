@@ -13,6 +13,8 @@
 ! Use now the LAPACK routine DSTERF from lapack_double.f in vasp.4.lib 
 ! to find the eigenvalues for the tridiagonal Lanczos matrix. 
 !
+! Version 2.00, Jan 2007
+!
 ! Andri Arnaldsson
 ! andri@u.washington.edu
 !
@@ -29,9 +31,8 @@
     PRIVATE
     PUBLIC :: lanczos_step,lanczos_init
 
-    TYPE(in_struct) :: lio
     TYPE(type_info) :: linfo
-    INTEGER :: nions,iu0,iu6,nl
+    INTEGER :: nions,iu0,iu5,iu6,nl
     INTEGER,PARAMETER :: lanout=831
     REAL(q),ALLOCATABLE,DIMENSION(:) :: d,e,aa,bb
     REAL(q),ALLOCATABLE,DIMENSION(:,:) :: F,R,w,qq,qqold,F0,R0,z,Fpar,Feff
@@ -81,6 +82,7 @@
         IF (iu6 > 0) INQUIRE(FILE='MODECAR',EXIST=ertil)
         IF (ertil) THEN
           IF (iu6 > 0) THEN
+! GH: should all processors read the MODCAR file?
             WRITE(lanout,'(A)') 'MODECAR found ... reading it'
             OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
 !            READ(210,'(3ES20.10)') (w(:,i) , i=1,nions)
@@ -192,13 +194,13 @@
       TYPE(in_struct) :: io
       TYPE(type_info) :: t_info
 
-      lio=io
       linfo=t_info
-      iu6=lio%iu6
       iu0=lio%iu0
+      iu5=lio%iu5
+      iu6=lio%iu6
       nions=t_info%nions
 
-      CALL read_variables(lio)
+      CALL read_variables(iu5)
 
       ALLOCATE(F(3,nions),R(3,nions),w(3,nions),qq(3,nions),qqold(3,nions),F0(3,nions),&
   &               R0(3,nions),z(3,nions),Feff(3,nions))
@@ -240,22 +242,21 @@
 
 !--------------------------------------------------------------------------------------!
 
-    SUBROUTINE read_variables(io)
-      TYPE(in_struct) :: io
-      INTEGER :: IDUM,IERR,Nint
+    SUBROUTINE read_variables()
+      INTEGER :: IDUM,IERR,INint
       CHARACTER*1 :: CHARAC
       COMPLEX(q) :: CDUM
       LOGICAL :: LDUM
       REAL(q) :: RDUM
       
       ltol=1.0e-2_q
-      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Sltol','=','#',';','F', &
+      call RDATAB(.TRUE.,'INCAR',IU5,'Sltol','=','#',';','F', &
      &            IDUM,ltol,CDUM,LDUM,CHARAC,Nint,1,IERR)
       dR=1.0e-3_q
-      call RDATAB(.TRUE.,'INCAR',IO%IU5,'SdR','=','#',';','F', &
+      call RDATAB(.TRUE.,'INCAR',IU5,'SdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,Nint,1,IERR)
       nl=20
-      call RDATAB(.TRUE.,'INCAR',IO%IU5,'Snl','=','#',';','I', &
+      call RDATAB(.TRUE.,'INCAR',IU5,'Snl','=','#',';','I', &
      &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
 
     RETURN        

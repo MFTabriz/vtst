@@ -1,15 +1,12 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.15 2007-01-02 05:09:10 graeme Exp $
+! RCS:  $Id: neb.F,v 1.16 2007-01-08 03:14:14 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
 ! module becomes active if IMAGES tag is read from the INCAR files
 !
-! Version 1.01, Dec 2005
-! Version 1.02, Jan 2006, added double nudging (LDNUDGE)
-! Version 1.03, June 2006
-! - Removed variable springs
+! Version 2.00, Jan 2007
 !
 ! TODO
 !   - movable endpoints
