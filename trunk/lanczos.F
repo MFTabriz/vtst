@@ -72,7 +72,7 @@
         first=.false.
         new=.true.
 ! Open the ouput file for the run
-        OPEN(lanout,FILE=DIR_APP(1:DIR_LEN)//'lanczos.out',STATUS='unknown')
+        OPEN(lanout,FILE=DIR_APP(1:DIR_LEN)//'LANCAR',STATUS='unknown')
 
         IF (iu6 > 0) CALL output(0)
         IF (iu6 > 0) CALL output(50)
@@ -81,15 +81,7 @@
 ! otherwise make a random guess.
         IF (iu6 > 0) INQUIRE(FILE='MODECAR',EXIST=ertil)
         IF (ertil) THEN
-          IF (iu6 > 0) THEN
-! GH: should all processors read the MODCAR file?
-            WRITE(lanout,'(A)') 'MODECAR found ... reading it'
-            OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
-!            READ(210,'(3ES20.10)') (w(:,i) , i=1,nions)
-! It is better to read this is using free format
-            READ(210,*) (w(1:3,i) , i=1,nions) 
-            CLOSE(210)
-          END IF
+          WRITE(lanout,'(A)') 'MODECAR found ... reading it'
         ELSE
           DO i=1,3
             DO j=1,nions
@@ -98,7 +90,15 @@
               END IF
             END DO
           END DO
-        END IF
+          IF (iu6>=0) THEN
+            OPEN(210,FILE='MODECAR',ACTION='write',STATUS='new')
+            WRITE(210,'(3ES20.10)') (w(:,i), i=1,nions)
+            CLOSE(210)
+          END IF
+        ENDIF
+        OPEN(210,FILE='MODECAR',ACTION='read',STATUS='old')
+        READ(210,*) (w(1:3,i) , i=1,nions) 
+        CLOSE(210)
       END IF
       IF (new) THEN
         new=.false.
@@ -195,12 +195,12 @@
       TYPE(type_info) :: t_info
 
       linfo=t_info
-      iu0=lio%iu0
-      iu5=lio%iu5
-      iu6=lio%iu6
+      iu0=io%iu0
+      iu5=io%iu5
+      iu6=io%iu6
       nions=t_info%nions
 
-      CALL read_variables(iu5)
+      CALL read_variables()
 
       ALLOCATE(F(3,nions),R(3,nions),w(3,nions),qq(3,nions),qqold(3,nions),F0(3,nions),&
   &               R0(3,nions),z(3,nions),Feff(3,nions))
@@ -251,13 +251,13 @@
       
       ltol=1.0e-2_q
       call RDATAB(.TRUE.,'INCAR',IU5,'Sltol','=','#',';','F', &
-     &            IDUM,ltol,CDUM,LDUM,CHARAC,Nint,1,IERR)
+     &            IDUM,ltol,CDUM,LDUM,CHARAC,INint,1,IERR)
       dR=1.0e-3_q
       call RDATAB(.TRUE.,'INCAR',IU5,'SdR','=','#',';','F', &
-     &            IDUM,dR,CDUM,LDUM,CHARAC,Nint,1,IERR)
+     &            IDUM,dR,CDUM,LDUM,CHARAC,INint,1,IERR)
       nl=20
       call RDATAB(.TRUE.,'INCAR',IU5,'Snl','=','#',';','I', &
-     &            nl,RDUM,CDUM,LDUM,CHARAC,Nint,1,IERR)
+     &            nl,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
 
     RETURN        
     END SUBROUTINE read_variables

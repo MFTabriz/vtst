@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.24 2007-01-08 03:17:56 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.25 2007-01-08 21:47:07 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -38,7 +38,7 @@
 
       TYPE(type_info) :: DINFO
       INTEGER :: Nions,IU0,IU5,IU6
-      INTEGER :: i,j,MaxRot,NumRot,Seed,Itr
+      INTEGER :: i,j,RotMax,RotNum,Seed,Itr
       INTEGER,PARAMETER :: IUdim=44
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
@@ -67,8 +67,8 @@
         IF (IU6>=0) WRITE(IU0,*) 'The IMAGES tag should not be set for this implementation of the dimer method.'
         STOP
      #endif
-      IF (IU6>=0) OPEN(UNIT=IUout, FILE='DIMCAR')
-      IF (IU6>=0) WRITE(IUout,'(A5,5A16)') 'Itr','F','FN','U','CN','Th'
+      IF (IU6>=0) OPEN(UNIT=IUdim, FILE='DIMCAR')
+      IF (IU6>=0) WRITE(IUdim,'(A5,5A16)') 'Itr','F','FN','U','CN','Th'
       Itr = 1
       ALLOCATE(N(3,Nions),R(3,Nions),R0(3,Nions))
       ALLOCATE(F(3,Nions),F0(3,Nions),F1(3,Nions),F2(3,Nions))
@@ -132,7 +132,7 @@
         ! check to see if rotation is converged
         IF (FNr<FNMin) THEN
           IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged.'
-          IF (IU6>=0) WRITE(IUout,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN,0._q
+          IF (IU6>=0) WRITE(IUdim,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN,0._q
           OptFlag = .true.
         ELSE
           CALL RotateDimer()
@@ -164,7 +164,7 @@
       POSION = R
       TIFOR = F
       CALL KARDIR(NIONS,POSION,B)
-      IF (IU6>=0) CALL WFORCE(IUout)  ! Empty the file buffer
+      IF (IU6>=0) CALL WFORCE(IUdim)  ! Empty the file buffer
 
     END SUBROUTINE Dimer_Step
 
@@ -265,7 +265,7 @@
         IF (IU6>=0) THEN
           WRITE(IU6,'(A,F14.6)') ' Dimer: FN2',FN2
           WRITE(IU6,'(A,F14.6,/)') ' Dimer: Th ',Th*180._q/PI
-          WRITE(IUout,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN1,Th*180._q/PI
+          WRITE(IUdim,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN1,Th*180._q/PI
         END IF
       END IF
     END SUBROUTINE RotateDimer
@@ -355,22 +355,22 @@
       Seed=0
       CALL RDATAB(.true.,'INCAR',IU5,'DSeed','=','#',';','I', &
      &            Seed,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
-      MaxRot=4
-      CALL RDATAB(.true.,'INCAR',IU5,'DMaxRot','=','#',';','I', &
-     &            MaxRot,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
+      RotMax=4
+      CALL RDATAB(.true.,'INCAR',IU5,'DRotMax','=','#',';','I', &
+     &            RotMax,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
       dR=5E-3_q
       CALL RDATAB(.true.,'INCAR',IU5,'DdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,INint,1,IERR)
-      MaxFN=1._q
-      CALL RDATAB(.true.,'INCAR',IU5,'DMaxFN','=','#',';','I', &
-     &            IDUM,MaxFN,CDUM,LDUM,CHARAC,INint,1,IERR)
-      MinFN=0.01_q
-      CALL RDATAB(.true.,'INCAR',IU5,'DMinFN','=','#',';','I', &
-     &            IDUM,MinFN,CDUM,LDUM,CHARAC,INint,1,IERR)
+      FNMax=1._q
+      CALL RDATAB(.true.,'INCAR',IU5,'DFNMax','=','#',';','I', &
+     &            IDUM,FNMax,CDUM,LDUM,CHARAC,INint,1,IERR)
+      FNMin=0.01_q
+      CALL RDATAB(.true.,'INCAR',IU5,'DFNMin','=','#',';','I', &
+     &            IDUM,FNMin,CDUM,LDUM,CHARAC,INint,1,IERR)
 
       IF (IU6>=0) THEN
-        WRITE(IU6,'(A)')       ' Dimer: -----------------'
-        WRITE(IU6,'(/,A,/)')   ' Dimer: Input Parameters'
+        WRITE(IU6,'(/,A)')       ' Dimer: -----------------'
+        WRITE(IU6,'(A)')   ' Dimer: Input Parameters'
         WRITE(IU6,'(A,I7)')    ' Dimer:   Seed',Seed
         WRITE(IU6,'(A,I7)')    ' Dimer: RotMax',RotMax
         WRITE(IU6,'(A,F14.6)') ' Dimer:     dR',dR

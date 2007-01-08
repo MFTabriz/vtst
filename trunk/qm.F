@@ -104,8 +104,8 @@
       velocity=0._q
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','QM, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','QM, TIMESTEP',dt
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' QM, MAXMOVE ',maxmove
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' QM, TIMESTEP',dt
       END IF
 
     END SUBROUTINE qm_init
