@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.23 2007-01-08 03:14:14 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.24 2007-01-08 03:17:56 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -43,7 +43,7 @@
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
-      REAL(q) :: U,U0,CN,Cth,dR,MaxFN,MinFN,F0r,FNr
+      REAL(q) :: U,U0,CN,Cth,dR,FNMax,FNMin,F0r,FNr
       REAL(q) :: FN1,FN2,GamN,dTh,Th,CN1,FN1r
       LOGICAL :: InitFlag,FdFlag,ModecarFlag,CGInitFlag,FdStep,NewFlag
 
@@ -109,7 +109,7 @@
       END IF
 
       IF (IU6>=0.AND.NewFlag) WRITE(IU6,*) 'Dimer: -----------------' 
-      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5)') ' Dimer: Itr',Itr,' Rot',NumRot
+      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5)') ' Dimer: Itr',Itr,' Rot',RotNum
 
       IF (NewFlag) THEN  ! returned from optimizer; new position
         IF (IU6>=0) WRITE(IU6,*) 'Dimer: Central Point.'
@@ -120,7 +120,7 @@
         ! Set up for dimer rotation
         NewFlag = .false.
         FdStep = .true.
-        NumRot=1
+        RotNum=1
       ELSE
         ! get rotational force
         CALL UpdateDimer()
@@ -130,18 +130,24 @@
           WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN ',FNr
         END IF
         ! check to see if rotation is converged
-        IF (FNr<MinFN) THEN
+        IF (FNr<FNMin) THEN
           IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged.'
+          IF (IU6>=0) WRITE(IUout,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN,0._q
           OptFlag = .true.
         ELSE
           CALL RotateDimer()
-          IF (NumRot>MaxRot) OptFlag = .true.
+          IF (RotNum>RotMax) THEN
+            IF(IU6>=0) WRITE(IU6,*) 'Dimer: Rotation done; RotNum > RotMax'
+            OptFlag = .true.
+          ELSE IF (FdStep.AND.FN1r<FNMax) THEN
+            IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation done; FN < FNMax'
+            OptFlag = .true.
+          END IF
         END IF
         CALL WriteMode() ! Save the current mode
       END IF
 
       IF (OptFlag) THEN  ! going back to the optimizer; set R and F
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: To Opt'
         R=R0
         IF (CN<0) THEN
           F = F0-N*SUM(F0*N)*2._q
@@ -150,7 +156,7 @@
         END IF
         NewFlag = .true.
         FdStep = .true.
-        NumRot = 0
+        RotNum = 0
         Itr = Itr+1
       END IF
 
@@ -243,7 +249,7 @@
         FN1r = FNr
       ELSE
         IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation.'
-        NumRot = NumRot+1
+        RotNum = RotNum+1
         ! Rotation step
         FN2 = SUM(FN*GNu)
         IF (FN2/=0._q) THEN
@@ -258,8 +264,8 @@
         FdStep = .true.
         IF (IU6>=0) THEN
           WRITE(IU6,'(A,F14.6)') ' Dimer: FN2',FN2
-          WRITE(IU6,'(A,F14.6,/)') ' Dimer: Th ',Th
-          WRITE(IUout,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN1,Th
+          WRITE(IU6,'(A,F14.6,/)') ' Dimer: Th ',Th*180._q/PI
+          WRITE(IUout,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN1,Th*180._q/PI
         END IF
       END IF
     END SUBROUTINE RotateDimer
@@ -349,7 +355,7 @@
       Seed=0
       CALL RDATAB(.true.,'INCAR',IU5,'DSeed','=','#',';','I', &
      &            Seed,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
-      MaxRot=1
+      MaxRot=4
       CALL RDATAB(.true.,'INCAR',IU5,'DMaxRot','=','#',';','I', &
      &            MaxRot,RDUM,CDUM,LDUM,CHARAC,INint,1,IERR)
       dR=5E-3_q
@@ -366,10 +372,10 @@
         WRITE(IU6,'(A)')       ' Dimer: -----------------'
         WRITE(IU6,'(/,A,/)')   ' Dimer: Input Parameters'
         WRITE(IU6,'(A,I7)')    ' Dimer:   Seed',Seed
-        WRITE(IU6,'(A,I7)')    ' Dimer: MaxRot',MaxRot
+        WRITE(IU6,'(A,I7)')    ' Dimer: RotMax',RotMax
         WRITE(IU6,'(A,F14.6)') ' Dimer:     dR',dR
-        WRITE(IU6,'(A,F14.6)') ' Dimer:  MaxFN',MaxFN
-        WRITE(IU6,'(A,F14.6)') ' Dimer:  MinFN',MinFN
+        WRITE(IU6,'(A,F14.6)') ' Dimer:  FNMax',FNMax
+        WRITE(IU6,'(A,F14.6)') ' Dimer:  FNMin',FNMin
         WRITE(IU6,'(A)')       ' Dimer: -----------------'
       END IF
 
