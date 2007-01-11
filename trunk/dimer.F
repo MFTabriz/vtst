@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.25 2007-01-08 21:47:07 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.26 2007-01-11 18:52:28 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -41,7 +41,7 @@
       INTEGER :: i,j,RotMax,RotNum,Seed,Itr
       INTEGER,PARAMETER :: IUdim=44
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
-      REAL(q),ALLOCATABLE,DIMENSION(:,:) :: FN,FNold,GN,GNu
+      REAL(q),ALLOCATABLE,DIMENSION(:,:) :: Feff,FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
       REAL(q) :: U,U0,CN,Cth,dR,FNMax,FNMin,F0r,FNr
       REAL(q) :: FN1,FN2,GamN,dTh,Th,CN1,FN1r
@@ -56,6 +56,13 @@
     SUBROUTINE Dimer_Init(T_INFO,IO)
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
+
+      ! needed only temporarily for reading
+!      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
+!      TYPE (latt):: LATT_CUR
+!      TYPE (type_info) :: T_I
+!      TYPE (dynamics) :: DYN
+
       EXTERNAL RMARIN
 
       DINFO = T_INFO
@@ -68,14 +75,18 @@
         STOP
      #endif
       IF (IU6>=0) OPEN(UNIT=IUdim, FILE='DIMCAR')
-      IF (IU6>=0) WRITE(IUdim,'(A5,5A16)') 'Itr','F','FN','U','CN','Th'
+      IF (IU6>=0) WRITE(IUdim,'(A5,5A14)') 'Step','Force','Torque','Energy','Curvature','Angle'
       Itr = 1
-      ALLOCATE(N(3,Nions),R(3,Nions),R0(3,Nions))
+      ALLOCATE(N(3,Nions),R(3,Nions),R0(3,Nions),Feff(3,Nions))
       ALLOCATE(F(3,Nions),F0(3,Nions),F1(3,Nions),F2(3,Nions))
       ALLOCATE(FN(3,Nions),FNold(3,Nions),GN(3,Nions),GNu(3,Nions))
       IF (Seed/=0) CALL RMARIN(Seed,Seed)
       CALL ReadDimerVar()
       InitFlag = .true.
+
+!      CALL RD_POSCAR_HEAD(LATT_CUR,T_INFO,NIOND,NIONPD,NTYPD,NTYPPD,IO%IU0,IO%IU6)
+!      CALL RD_POSCAR(LATT_CUR,T_INFO,DYN,NIOND,NIONPD,NTYPD,NTYPPD,IO%IU0,IO%IU6)
+
     END SUBROUTINE Dimer_Init
 
 !**********************************************************************
@@ -89,71 +100,94 @@
       REAL(q),DIMENSION(3,3) :: LATT_A,LATT_B
       REAL(q) :: TOTEN
 
+      ! Optimizer has control; find effective force and quit
+      IF (OptFlag) THEN
+        F0=TIFOR
+        CALL ProjectDimer()
+        TIFOR = Feff
+        RETURN
+      END IF
+
+      ! Dimer method has control
       U = TOTEN
       F = TIFOR
       R = POSION
       A = LATT_A
       B = LATT_B
 
-      ! If optimizer has control, return immediately
-      IF (OptFlag) RETURN
-
-      CALL DIRKAR(NIONS,R,A)  ! Convert position to Cartesian
+      CALL DIRKAR(Nions,R,A)  ! Convert position to Cartesian
       CALL SetConstraints(F)
 
       IF (InitFlag) THEN
         CALL InitMode()
         InitFlag = .false.
         NewFlag = .true.
+        FdStep = .true.
         CGInitFlag = .true.
+        CN = 0._q
       END IF
 
       IF (IU6>=0.AND.NewFlag) WRITE(IU6,*) 'Dimer: -----------------' 
-      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5)') ' Dimer: Itr',Itr,' Rot',RotNum
+      IF (IU6>=0) WRITE(IU6,'(A,I5,A,I5,/)') ' Dimer: Itr',Itr,' Rot',RotNum
 
-      IF (NewFlag) THEN  ! returned from optimizer; new position
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Central Point.'
+      ! Find effective force except after a finite difference step
+
+      ! returned from optimizer; new position
+      IF (NewFlag) THEN
         U0 = U
         R0 = R
         F0 = F
+        F0r = SQRT(SUM(F0**2))
+        IF (IU6>=0) WRITE(IU6,'(A)') ' Dimer: Central Point'
+        IF (IU6>=0) WRITE(IU6,'(A,F14.6,/)') ' Dimer: F0',F0r
+        CALL ProjectDimer()
         R = R0+N*dR
         ! Set up for dimer rotation
         NewFlag = .false.
         FdStep = .true.
         RotNum=1
+        ! Write CENTCAR
+        POSION = R
+        CALL KARDIR(NIONS,POSION,B)
+        IF (IU6>=0) THEN
+          OPEN(UNIT=45,FILE='CENTCAR',STATUS='UNKNOWN')
+          CALL OUTPOS(45,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+                    & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
+          CLOSE(45)
+        END IF
       ELSE
         ! get rotational force
         CALL UpdateDimer()
-        IF (FdStep.AND.IU6>=0) THEN
-          WRITE(IU6,'(A,F14.6)') ' Dimer: CN ',CN
-          WRITE(IU6,'(A,F14.6)') ' Dimer: F0 ',F0r
-          WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN ',FNr
+        IF (FdStep) THEN
+          CN = (SUM(F2*N)-SUM(F1*N))/(2._q*dR)
+          CALL ProjectDimer()
+          IF (IU6>=0) THEN
+            WRITE(IU6,'(A,F14.6)') ' Dimer: CN ',CN
+            WRITE(IU6,'(A,F14.6)') ' Dimer: F0 ',F0r
+            WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN ',FNr
+          END IF
         END IF
         ! check to see if rotation is converged
         IF (FNr<FNMin) THEN
-          IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged.'
-          IF (IU6>=0) WRITE(IUdim,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN,0._q
+          IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged'
+          IF (IU6>=0) WRITE(IUdim,'(I5,5F14.5)') Itr,F0r,FN1r,U0,CN,0._q
           OptFlag = .true.
         ELSE
           CALL RotateDimer()
+          IF (FdStep) CALL ProjectDimer()
           IF (RotNum>RotMax) THEN
-            IF(IU6>=0) WRITE(IU6,*) 'Dimer: Rotation done; RotNum > RotMax'
+            IF(IU6>=0) WRITE(IU6,'(A,/)') ' Dimer: RotNum > RotMax'
             OptFlag = .true.
           ELSE IF (FdStep.AND.FN1r<FNMax) THEN
-            IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation done; FN < FNMax'
+            IF (IU6>=0) WRITE(IU6,'(A,/)') ' Dimer: FN < FNMax'
             OptFlag = .true.
           END IF
         END IF
         CALL WriteMode() ! Save the current mode
       END IF
 
-      IF (OptFlag) THEN  ! going back to the optimizer; set R and F
+      IF (OptFlag) THEN  ! going back to the optimizer; set R and Feff
         R=R0
-        IF (CN<0) THEN
-          F = F0-N*SUM(F0*N)*2._q
-        ELSE
-          F = N*SUM(F0*N)*(-1._q)
-        END IF
         NewFlag = .true.
         FdStep = .true.
         RotNum = 0
@@ -162,7 +196,7 @@
 
       ! Send the current position and force back to vasp
       POSION = R
-      TIFOR = F
+      TIFOR = Feff
       CALL KARDIR(NIONS,POSION,B)
       IF (IU6>=0) CALL WFORCE(IUdim)  ! Empty the file buffer
 
@@ -180,9 +214,9 @@
       ! If the MODECAR file exists, read N, otherwise use random N
       INQUIRE(FILE='MODECAR',EXIST=ModecarFlag)
       IF (ModecarFlag) THEN
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: MODECAR found ... reading it'
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: MODECAR found'
       ELSE
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: No MODECAR found ... generating random mode'
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: No MODECAR found'
         DO i = 1,Nions
           DO j = 1,3
             N(j,i) = RANG(0._q,1._q)
@@ -209,9 +243,33 @@
       F2 = 2._q*F0-F1
       FN = ((F1-N*SUM(F1*N))-(F2-N*SUM(F2*N)))/(2._q*dR)
       FNr = SQRT(SUM(FN**2))
-      F0r = SQRT(SUM(F0**2))
-      CN = (SUM(F2*N)-SUM(F1*N))/(2._q*dR)
     END SUBROUTINE UpdateDimer
+
+! Force projection to find the effective force
+
+    SUBROUTINE ProjectDimer()
+      IF (iu6>=0) THEN
+        WRITE(iu6,*) "Dimer: Projection"
+!        WRITE(iu6,*) "Dimer: F0"
+!        WRITE(iu6,'(3ES20.10)') (F0(:,i), i=1,Nions)
+!        WRITE(iu6,*) "Dimer: N"
+!        WRITE(iu6,'(3ES20.10)') (N(:,i), i=1,Nions)
+        WRITE(iu6,*) "Dimer: N*F0",SUM(N*F0)
+        WRITE(iu6,*) "Dimer: F0sq",SUM(F0*F0)
+      END IF
+      ! Project force
+      IF (CN<0) THEN
+        Feff = F0-N*SUM(F0*N)*2._q
+      ELSE
+        Feff = N*SUM(F0*N)*(-1._q)
+      END IF
+      IF (iu6>=0) THEN
+        WRITE(iu6,*) "Dimer: Feffsq ",SUM(Feff*Feff)
+!        WRITE(iu6,*) "Dimer: Feff"
+!        WRITE(iu6,'(3ES20.10)') (Feff(:,i), i=1,Nions)
+        WRITE(iu6,*) ''
+      END IF
+    END SUBROUTINE ProjectDimer
 
 ! Dimer rotation
 
@@ -219,7 +277,7 @@
       REAL(q) a1,a2
       ! Conjugate gradient and modified Newtons method for rotation
       IF (FdStep) THEN
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Trial Rotation.'
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Trial Rotation'
         ! Finite difference step
         IF (CGInitFlag) THEN
           CGInitFlag=.false.
@@ -242,13 +300,13 @@
         R = R0+N*dR
         FdStep = .false.
         IF (IU6>=0) THEN
-          WRITE(IU6,'(A,F14.6)') ' Dimer: FN1',FN1
+          WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN1',FN1
         END IF
         ! Save variables for printing
         CN1 = CN
         FN1r = FNr
       ELSE
-        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation.'
+        IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation'
         RotNum = RotNum+1
         ! Rotation step
         FN2 = SUM(FN*GNu)
@@ -265,7 +323,7 @@
         IF (IU6>=0) THEN
           WRITE(IU6,'(A,F14.6)') ' Dimer: FN2',FN2
           WRITE(IU6,'(A,F14.6,/)') ' Dimer: Th ',Th*180._q/PI
-          WRITE(IUdim,'(I5,5F16.7)') Itr,F0r,FN1r,U0,CN1,Th*180._q/PI
+          WRITE(IUdim,'(I5,5F14.5)') Itr,F0r,FN1r,U0,CN1,Th*180._q/PI
         END IF
       END IF
     END SUBROUTINE RotateDimer
@@ -325,7 +383,7 @@
         DO i = 1,Nions
           V(1:3,i) = V(1:3,i)-Vtmp(1:3)
         END DO
-        IF (IU6>=0) WRITE(IUdim,'(A7,A10,3F14.6)') 'Dimer:','Drift',Vtmp(1:3)
+        IF (IU6>=0) WRITE(IU6,'(A7,A10,3F14.6)') 'Dimer:','Drift',Vtmp(1:3)
       END IF
     END SUBROUTINE SetConstraints
 
@@ -369,8 +427,8 @@
      &            IDUM,FNMin,CDUM,LDUM,CHARAC,INint,1,IERR)
 
       IF (IU6>=0) THEN
-        WRITE(IU6,'(/,A)')       ' Dimer: -----------------'
-        WRITE(IU6,'(A)')   ' Dimer: Input Parameters'
+        WRITE(IU6,'(/,A)')     ' Dimer: -----------------'
+        WRITE(IU6,'(A)')       ' Dimer: Input Parameters'
         WRITE(IU6,'(A,I7)')    ' Dimer:   Seed',Seed
         WRITE(IU6,'(A,I7)')    ' Dimer: RotMax',RotMax
         WRITE(IU6,'(A,F14.6)') ' Dimer:     dR',dR

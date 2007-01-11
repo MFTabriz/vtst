@@ -164,14 +164,14 @@
       Nsteps = 0
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, TIMESTEP',dt
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEMAX',dtmax
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEINC',finc
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FTIMEDEC',fdec
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FALPHADEC',fa
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','FIRE, FALPHA',alpha_start
-        WRITE(iu6,'(A5,A,I4)') 'OPT:','FIRE, FNMIN',Nmin
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, MAXMOVE  ',maxmove
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, TIMESTEP ',dt
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEMAX ',dtmax
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEINC ',finc
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEDEC ',fdec
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FALPHADEC',fa
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FALPHA   ',alpha_start
+        WRITE(iu6,'(A5,A,I6)')    'OPT:',' FIRE, FNMIN    ',Nmin
       END IF
 
     END SUBROUTINE fire_init

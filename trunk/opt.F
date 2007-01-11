@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.17 2007-01-08 03:14:14 graeme Exp $
+! RCS:  $Id: opt.F,v 1.18 2007-01-11 18:52:28 graeme Exp $
 !
 ! Module which implements forced based optimizers
 !
@@ -40,27 +40,30 @@
       IF (.NOT. optflag) RETURN
 
       IF (iopt==1) THEN
-        IF(iu6>=0) WRITE(iu6,*) 'OPT: LBFGS_step'
+        IF(iu6>=0) WRITE(iu6,*) 'OPT: LBFGS Step'
         CALL lbfgs_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==2) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: CG_step'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: CG Step'
         CALL cg_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==3) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: QM_step'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: QM Step'
         CALL qm_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==4) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: SD_step'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: SD Step'
         CALL sd_step(optflag,posion,toten,force,latt_a,latt_b)
 !      ELSEIF (iopt==5) THEN
-!        IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS_step'
+!        IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS Step'
 !        CALL bfgs_step(optflag,posion,toten,force,latt_a,latt_b)
 !      ELSEIF (iopt==6) THEN
-!        IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamic_step'
+!        IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamic Step'
 !        CALL dynamic_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==7) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE_step'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE Step'
         CALL fire_step(optflag,posion,toten,force,latt_a,latt_b)
       ENDIF
+
+! Put atoms back inside box
+      posion(:,:)=MOD(posion(:,:)+100._q,1._q)
 
     END SUBROUTINE opt_step
 
@@ -148,25 +151,25 @@
       ! optimizer specific initialization
       
       IF (iopt==1) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: LBFGS_init'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: LBFGS, Init'
         CALL lbfgs_init(T_INFO,IO)
       ELSEIF (iopt==2) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: CG_init'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: CG, Init'
         CALL cg_init(T_INFO,IO)
       ELSEIF (iopt==3) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: QM_init'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: QM, Init'
         CALL qm_init(T_INFO,IO)
       ELSEIF (iopt==4) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: SD_init'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: SD, Init'
         CALL sd_init(T_INFO,IO)
 !      ELSEIF (iopt==5) THEN
-!         IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS_init'
+!         IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS, Init'
 !        CALL bfgs_init(T_INFO,IO)
 !      ELSEIF (iopt==6) THEN
-!         IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamics_init'
+!         IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamic, Init'
 !        CALL dynamics_init(T_INFO,IO)
       ELSEIF (iopt==7) THEN
-        IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE_init'
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE, Init'
         CALL fire_init(T_INFO,IO)
       ENDIF
       IF (iu6>=0) WRITE(iu6,*) ''
