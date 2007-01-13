@@ -40,7 +40,8 @@
       call dirkar(nions,R,latt_a)
 
       ! remove antiparallel components of the velocity along the force
-      WHERE (velocity*force<0) velocity=0._q
+!      WHERE (velocity*force<0) velocity=0._q
+      ! decided to take this out cause it is redundent
 
       IF ((SUM(force*velocity)) .GE. 0.0_q) THEN
         velocity = SUM(velocity*force)*force/SUM(force*force)

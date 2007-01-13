@@ -49,8 +49,8 @@
       INTEGER :: bound,im,jm
 
       R = posion
-      dir2car=LATT_A
-      car2dir=LATT_B
+      dir2car=latt_a
+      car2dir=latt_b
 
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)

@@ -20,12 +20,15 @@
     PRIVATE
     PUBLIC :: bfgs_step, bfgs_init  ! CALL bfgs_init from opt_init
 
-    INTEGER :: nions,iu0,iu6
-    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: direction,Rold,Fold,invH
+    INTEGER :: nions,iu6,itr
+    REAL(q),ALLOCATABLE :: R(:,:),F(:,:),Rold(:,:),Fold(:,:)
+    REAL(q),ALLOCATABLE :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
+    REAL(q),ALLOCATABLE :: step(:,:),direction(:)
+
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
-    REAL(q) :: finite_step,maxmove
-    LOGICAL :: fdstep,dfp
+    REAL(q) :: finite_step,maxmove,init_curvature
+    LOGICAL :: fdstep,dfp,line,reset_flag
 
 !**********************************************************************
 !
@@ -41,13 +44,17 @@
 
       REAL(q) :: a1,a2,curvature
       REAL(q) :: fp1,fp2,Favg,step_size
+      INTEGER :: im
 
       R = posion
+      F = force
+      dir2car=latt_a
+      car2dir=latt_b
 
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
-      IF (fdstep) THEN
+      IF (fdstep) THEN ! Finite difference step
 
         fdstep = .FALSE.
         optflag = .TRUE. ! keeps contol so it can do finite step
@@ -60,24 +67,58 @@
            reset_flag=.TRUE.
         ENDIF
 
-           ! find new direct
-           !updateing the hessian
-        CALL invH_update() 
+        ! reset the Hessian
+        IF(reset_flag) THEN
+          itr=0
+          reset_flag=.FALSE.
+          ! set invH idenity matrix
+          invH = 0.0_q
+          DO im=1,SIZE(invH)
+            invH(im,im)=1.0_q
+          ENDDO
+          invH=invH*init_curvature
+
+        ELSE
+          change_in_R = R-Rold
+          ! apply periodic boundary conditions to these vector differences
+          CALL set_pbc(change_in_R)
+          change_in_G = F-Fold
+          
+
+          ! updateing the hessian
+          CALL invH_update(change_in_R,change_in_G,invH) 
+        ENDIF
+
+        direction = RESHAPE(F,SHAPE=(/ 3*nions /))
+        ! compute -Ho*g
+        direction = MATMUL(invH,F)
+        step = RESHAPE(direction,SHAPE=(/3,nions/))
+
+        IF(line) THEN
+          ! line minimizer
+          step = return_unit(step)
+          ! finite step down force
+          R = R + step*finite_step
+        ELSE
+          ! step_size based on Hessian
+          IF(SQRT(ABS(SUM(step*step))) .GT. maxmove) THEN
+            step = return_unit(step)*maxmove
+          ENDIF
+          R = R + step
+          fdstep = .TRUE.
+          optflag = .false. ! gives control back to method
+        ENDIF
 
         Rold = R
         Fold = force
-        ! compute Ho*g
 
-        ! direction = Ho*direction !Ho is idenity matrix
-        direction = return_unit(direction)
-        ! finite step down force
-        R = R + direction*finite_step
+
       ELSE
         fdstep = .TRUE.
         optflag = .false. ! gives control back to method
         ! calculate curvature down direction
-        fp1 = SUM(Fold*direction)
-        fp2 = SUM(force*direction)
+        fp1 = SUM(Fold*step)
+        fp2 = SUM(F*step)
         curvature = (fp1-fp2)/finite_step
         IF (curvature .LT. 0.0_q) THEN
           step_size=maxmove
@@ -85,13 +126,13 @@
           Favg = 0.5_q*(fp1+fp2)
           step_size = Favg/curvature
           IF(ABS(step_size) .GT. maxmove) THEN
-            step_size=sign(maxmove,step_size)
+            step_size=SIGN(maxmove,step_size)
           ELSE
             step_size = step_size-0.5_q*finite_step  !(*)
           ENDIF
         ENDIF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
-        R = R+(direction*step_size)
+        R = R+(step*step_size)
       ENDIF
 
       ! convert position back to direct cord
@@ -106,24 +147,26 @@
 ! TODO: need to get function and check on reshaping
 !**********************************************************************
 
-    SUBROUTINE invH_update()
+    SUBROUTINE invH_update(change_in_R,change_in_G,invH)
+      REAL(q) :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
+      REAL(q) :: s(:),y(:),Hy(:)
+      REAL(q) :: SY(:,:),HyHy(:,:),UU(:,:)
       REAL(q) :: a,b
       INTEGER :: im,jm,km
-          a = SUM(change_in_R*change_in_F)
-          W = outter_product(change_in_R,change_in_R) !matrix
-!          DO im = 1,nions
-!            DO jm = 1,3
-!              W = change_in_R(jm,im)*change_in_R(jm,im)
-          A = matrixmultiply(invH,change_in_F) !vector
-          AA = outerproduct(A,A)  !matrix
-          b = vdot(change_in_F,A)  !scaler
-          ! DFP method
-          invH = invH+W/a-AA/b
-          IF(.NOT. DFP) THEN
-            u = change_in_R/a-A/b  !vector
-            uu = outerproduct(u,u) !matrix
-            invH = invH+W/a-AA/b+b*uu
-          ENDIF
+        s = RESHAPE(change_in_R,SHAPE=(/ 3*nions /))
+        y = RESHAPE(change_in_G,SHAPE=(/ 3*nions /))
+        a = SUM(s*y)           !scaler
+        SY = outerproduct(s,s)  !matrix
+        Hy = MATMUL(invH,y)     !vector
+        HyHy = outerproduct(Hy,Hy) !matrix
+        b = SUM(y*Hy)           !scaler
+        ! DFP method
+        invH = invH+SY/a-HyHy/b
+        IF(.NOT. DFP) THEN
+          u = s/a-Hy/b  !vector
+          UU = outerproduct(u,u) !matrix
+          invH = invH+SY/a-HyHy/b+b*UU
+        ENDIF
     END SUBROUTINE invH_update
 
 !**********************************************************************
@@ -172,12 +215,47 @@
          STOP
       ENDIF
 
-     ! intitilize vectors and matrix
-      ALLOCATE(Fold(3,nions),Rold(3,nions),direction(3,nions))
+      init_curvature = 0.0001_q
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'BFGSINVCURV','=','#',';','F', &
+     &            IDUM,init_curvature,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''BFGSINVCURV'' from file INCAR.'
+         STOP
+      ENDIF
+
+      line = .TRUE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LINEMIN','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,line,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''LINEMIN'' from file INCAR.'
+         STOP
+      ENDIF
+
+      ! intitilize vectors and matrix
+      ALLOCATE(R(3,nions),F(3,nions))
+      ALLOCATE(Fold(3,nions),Rold(3,nions))
+      ALLOCATE(change_in_R(3,nions),change_in_G(3,nions))
+      ALLOCATE(step(3,nions),direction(3*nions))
       ALLOCATE(invH(3*nions,3*nions))
 
-     ! set invH as indenty
+      R = 0.0_q
+      F = 0.0_q
+      Rold = 0.0_q
+      Fold = 0.0_q
+      change_in_R = 0.0_q
+      change_in_G = 0.0_q
+      step = 0.0_q
+      direction = 0.0_q
+
+      ! set invH idenity matrix
+      invH = 0.0_q
+      DO im=1,SIZE(invH)
+        invH(im,im)=1.0_q
+      ENDDO
+      invH=invH*init_curvature
+
       fdstep = .TRUE.
+      reset_flag = .TRUE.
 
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, FDSTEP',finite_step
@@ -191,6 +269,19 @@
 ! Vector Functions
 !**********************************************************************
 
+
+!======================================================================
+! Preforms and outer product of two vectors
+!======================================================================
+      FUNCTION outerproduct(v1,v2)
+      REAL(q) :: v1(3*nions),v2(3*nions)
+      REAL(q),dimension(3*nions,3*nions) :: outerproduct
+      DO im = 1,3*nions
+        DO ik = 1,3*nions
+          outerproduct(im,ik)=v1(im)*v2(ik)
+        ENDDO
+      ENDDO
+      END FUNCTION outerproduct
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
 ! boundary conditions.
