@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.26 2007-01-11 18:52:28 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.27 2007-01-16 19:24:49 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -150,10 +150,10 @@
         POSION = R
         CALL KARDIR(NIONS,POSION,B)
         IF (IU6>=0) THEN
-          OPEN(UNIT=45,FILE='CENTCAR',STATUS='UNKNOWN')
-          CALL OUTPOS(45,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+          OPEN(UNIT=13,FILE='CENTCAR',STATUS='UNKNOWN')
+          CALL OUTPOS(13,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
                     & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
-          CLOSE(45)
+          CLOSE(13)
         END IF
       ELSE
         ! get rotational force
