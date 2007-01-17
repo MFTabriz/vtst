@@ -20,7 +20,7 @@
     PRIVATE
     PUBLIC :: bfgs_step, bfgs_init  ! CALL bfgs_init from opt_init
 
-    INTEGER :: nions,iu6,itr
+    INTEGER :: nions,iu6,itr,im,ij,ik
     REAL(q),ALLOCATABLE :: R(:,:),F(:,:),Rold(:,:),Fold(:,:)
     REAL(q),ALLOCATABLE :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
     REAL(q),ALLOCATABLE :: step(:,:),direction(:)
@@ -91,7 +91,7 @@
 
         direction = RESHAPE(F,SHAPE=(/ 3*nions /))
         ! compute -Ho*g
-        direction = MATMUL(invH,F)
+        direction = MATMUL(invH,direction)
         step = RESHAPE(direction,SHAPE=(/3,nions/))
 
         IF(line) THEN
@@ -149,7 +149,7 @@
 
     SUBROUTINE invH_update(change_in_R,change_in_G,invH)
       REAL(q) :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
-      REAL(q) :: s(:),y(:),Hy(:)
+      REAL(q) :: s(:),y(:),u(:),Hy(:)
       REAL(q) :: SY(:,:),HyHy(:,:),UU(:,:)
       REAL(q) :: a,b
       INTEGER :: im,jm,km
@@ -179,7 +179,7 @@
       TYPE(in_struct) :: IO
       TYPE(type_info) :: T_INFO
 
-      INTEGER IDUM,IERR,N
+      INTEGER IDUM,IERR,N,iu0
       CHARACTER*1 CHARAC
       COMPLEX(q) CDUM
       LOGICAL LDUM

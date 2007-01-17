@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.7 2007-01-08 03:14:14 graeme Exp $
+! RCS:  $Id: dynmat.F,v 1.8 2007-01-17 23:44:53 dano Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
@@ -47,6 +47,9 @@
       INTEGER, SAVE :: ni,nj,total_dof,my_first_dof,my_last_dof,dof_per_node
       REAL(q) :: displacement(3,nions),displacevector(3,1),VTMP(3)
       LOGICAL, SAVE :: first=.TRUE.
+
+      ! set optflag to give control to method
+      optflag=.FALSE.
 
       node=1
       iimages=images
