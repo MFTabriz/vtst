@@ -231,8 +231,8 @@
       alpha=0._q
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MEMORY',memory
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP',finite_step
+        WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, MEMORY ',memory
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP ',finite_step
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MAXMOVE',maxmove
       END IF
 

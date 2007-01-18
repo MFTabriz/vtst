@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.18 2007-01-11 18:52:28 graeme Exp $
+! RCS:  $Id: opt.F,v 1.19 2007-01-18 15:04:44 dano Exp $
 !
 ! Module which implements forced based optimizers
 !
@@ -13,7 +13,7 @@
     USE lbfgs
     USE cg
     USE qm
-!    USE bfgs
+    USE bfgs
     USE sd
     USE fire
 !    USE dynamic
@@ -51,9 +51,9 @@
       ELSEIF (iopt==4) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: SD Step'
         CALL sd_step(optflag,posion,toten,force,latt_a,latt_b)
-!      ELSEIF (iopt==5) THEN
-!        IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS Step'
-!        CALL bfgs_step(optflag,posion,toten,force,latt_a,latt_b)
+      ELSEIF (iopt==5) THEN
+        IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS Step'
+        CALL bfgs_step(optflag,posion,toten,force,latt_a,latt_b)
 !      ELSEIF (iopt==6) THEN
 !        IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamic Step'
 !        CALL dynamic_step(optflag,posion,toten,force,latt_a,latt_b)
@@ -162,9 +162,9 @@
       ELSEIF (iopt==4) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: SD, Init'
         CALL sd_init(T_INFO,IO)
-!      ELSEIF (iopt==5) THEN
-!         IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS, Init'
-!        CALL bfgs_init(T_INFO,IO)
+      ELSEIF (iopt==5) THEN
+         IF (iu6>=0) WRITE(iu6,*) 'OPT: BFGS, Init'
+        CALL bfgs_init(T_INFO,IO)
 !      ELSEIF (iopt==6) THEN
 !         IF (iu6>=0) WRITE(iu6,*) 'OPT: Dynamic, Init'
 !        CALL dynamics_init(T_INFO,IO)

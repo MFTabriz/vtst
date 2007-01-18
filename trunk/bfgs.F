@@ -191,6 +191,11 @@
 
       ! read in the varables for bfgs
 
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','INSIDE BFGS'
+      ENDIF
+
+
       finite_step = 0.005_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &
      &            IDUM,finite_step,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -207,7 +212,7 @@
          STOP
       ENDIF
 
-      dfp = .TRUE.
+      dfp = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'BFGSDFP','=','#',';','L', &
      &            IDUM,RDUM,CDUM,dfp,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -260,7 +265,7 @@
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, FDSTEP',finite_step
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, BFGSDFP',dfp
+        WRITE(iu6,'(A5,A,L14)') 'OPT:','BFGS, BFGSDFP',dfp
       END IF
 
     END SUBROUTINE bfgs_init
