@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.17 2007-01-18 15:04:44 dano Exp $
+! RCS:  $Id: chain.F,v 1.18 2007-01-22 17:13:50 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -62,12 +62,15 @@
 
   CONTAINS
     SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
-      INTEGER :: nions,ni,nj
-      INTEGER :: iu6
-      REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim
-      REAL(q) :: posion(3,nions)
-      REAL(q) :: force(3,nions),toten
-      REAL(q) :: a(3,3),b(3,3)
+      INTEGER :: nions,ni,nj,iu6
+      REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
+      REAL(q),DIMENSION(3,nions) :: posion,force,force_save
+      REAL(q),DIMENSION(3,3) :: a,b
+
+      ! for dimer/lanczos, save the force for the vasp stop criteria
+      IF (ICHAIN==2 .OR. ICHAIN==3) THEN
+        force_save=force
+      ENDIF
 
 #ifdef EAM
       IF (.NOT.eaminit) THEN
@@ -137,6 +140,11 @@
       force=Fvasp
       toten=Uvasp
 #endif
+
+    ! for dimer/lanczos, return the true force to vasp
+    IF (ICHAIN==2 .OR. ICHAIN==3) THEN
+      force=force_save
+    ENDIF
 
     END SUBROUTINE chain_force
 

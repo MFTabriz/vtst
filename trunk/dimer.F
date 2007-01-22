@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.27 2007-01-16 19:24:49 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.28 2007-01-22 17:13:50 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -146,7 +146,8 @@
         NewFlag = .false.
         FdStep = .true.
         RotNum=1
-        ! Write CENTCAR
+        ! Write CENTCAR (borrow unit 13)
+        CLOSE(13)
         POSION = R
         CALL KARDIR(NIONS,POSION,B)
         IF (IU6>=0) THEN
@@ -155,6 +156,8 @@
                     & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
           CLOSE(13)
         END IF
+        ! Reopen CONTCAR for continued use
+        OPEN(UNIT=13,FILE='CONTCAR',STATUS='UNKNOWN')
       ELSE
         ! get rotational force
         CALL UpdateDimer()
