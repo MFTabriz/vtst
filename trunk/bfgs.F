@@ -192,7 +192,7 @@
       ! read in the varables for bfgs
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','INSIDE BFGS'
+        WRITE(iu6,'(A5,A)') 'OPT:','INSIDE BFGS'
       ENDIF
 
 
@@ -254,7 +254,11 @@
 
       ! set invH idenity matrix
       invH = 0.0_q
-      DO im=1,SIZE(invH)
+
+!      DO im=1,SIZE(invH)
+!        invH(im,im)=1.0_q
+!      ENDDO
+      DO im=1,3*nions
         invH(im,im)=1.0_q
       ENDDO
       invH=invH*init_curvature
@@ -265,8 +269,10 @@
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, FDSTEP',finite_step
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','BFGS, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,L14)') 'OPT:','BFGS, BFGSDFP',dfp
+!        WRITE(iu6,'(A5,A,L14)') 'OPT:','BFGS, BFGSDFP',dfp
       END IF
+
+      IF(iu6>=0)  WRITE(iu6,*) 'OPT:','done bfgs_init'
 
     END SUBROUTINE bfgs_init
 
