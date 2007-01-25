@@ -21,12 +21,15 @@
     PUBLIC :: bfgs_step, bfgs_init  ! CALL bfgs_init from opt_init
 
     INTEGER :: nions,iu6,itr,im,ij,ik
-    REAL(q),ALLOCATABLE :: R(:,:),F(:,:),Rold(:,:),Fold(:,:)
-    REAL(q),ALLOCATABLE :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
-    REAL(q),ALLOCATABLE :: step(:,:),direction(:)
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: R,F,Rold,Fold,step
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: change_in_R,change_in_G,invH
+    REAL(q),ALLOCATABLE,DIMENSION(:) :: direction
 
+    ! temporary variables
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: SY,HyHy,UU
+    REAL(q),ALLOCATABLE,DIMENSION(:) :: s,y,u,Hy
 
-    REAL(q) :: dir2car(3,3),car2dir(3,3)
+    REAL(q),DIMENSION(3,3) :: dir2car,car2dir
     REAL(q) :: finite_step,maxmove,init_curvature
     LOGICAL :: fdstep,dfp,line,reset_flag
 
@@ -38,8 +41,9 @@
   CONTAINS
     SUBROUTINE bfgs_step(optflag,posion,toten,force,latt_a,latt_b)
 
-      REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      REAL(q),DIMENSION(3,nions) :: posion,force
+      REAL(q),DIMENSION(3,3) :: latt_a,latt_b
+      REAL(q) :: toten
       LOGICAL optflag
 
       REAL(q) :: a1,a2,curvature
@@ -148,9 +152,10 @@
 !**********************************************************************
 
     SUBROUTINE invH_update(change_in_R,change_in_G,invH)
-      REAL(q) :: change_in_R(:,:),change_in_G(:,:),invH(:,:)
-      REAL(q) :: s(:),y(:),u(:),Hy(:)
-      REAL(q) :: SY(:,:),HyHy(:,:),UU(:,:)
+      REAL(q),DIMENSION(:,:) :: change_in_R,change_in_G,invH
+!      REAL(q) :: s(:),y(:),u(:),Hy(:)
+!      REAL(q) :: SY(:,:),HyHy(:,:),UU(:,:)
+
       REAL(q) :: a,b
       INTEGER :: im,jm,km
         s = RESHAPE(change_in_R,SHAPE=(/ 3*nions /))
@@ -242,6 +247,11 @@
       ALLOCATE(change_in_R(3,nions),change_in_G(3,nions))
       ALLOCATE(step(3,nions),direction(3*nions))
       ALLOCATE(invH(3*nions,3*nions))
+
+      ! intitilize temporary variables
+      ALLOCATE(SY(3*nions,3*nions),HyHy(3*nions,3*nions))
+      ALLOCATE(UU(3*nions,3*nions),s(3*nions),y(3*nions))
+      ALLOCATE(u(3*nions),Hy(3*nions))
 
       R = 0.0_q
       F = 0.0_q
