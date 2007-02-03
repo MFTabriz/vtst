@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.28 2007-01-22 17:13:50 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.29 2007-02-03 07:05:30 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -423,10 +423,10 @@
       CALL RDATAB(.true.,'INCAR',IU5,'DdR','=','#',';','F', &
      &            IDUM,dR,CDUM,LDUM,CHARAC,INint,1,IERR)
       FNMax=1._q
-      CALL RDATAB(.true.,'INCAR',IU5,'DFNMax','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DFNMax','=','#',';','F', &
      &            IDUM,FNMax,CDUM,LDUM,CHARAC,INint,1,IERR)
       FNMin=0.01_q
-      CALL RDATAB(.true.,'INCAR',IU5,'DFNMin','=','#',';','I', &
+      CALL RDATAB(.true.,'INCAR',IU5,'DFNMin','=','#',';','F', &
      &            IDUM,FNMin,CDUM,LDUM,CHARAC,INint,1,IERR)
 
       IF (IU6>=0) THEN
