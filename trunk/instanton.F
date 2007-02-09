@@ -18,6 +18,8 @@
     PRIVATE
     PUBLIC :: instanton_step,instanton_init
 
+    INTEGER nions
+
 #if defined(MPI) || defined(MPI_CHAIN)
     
 ! Physical constants
@@ -27,7 +29,7 @@
 
 ! Variables private to the module
     TYPE (type_info) :: linfo
-    INTEGER :: iu0,iu5,iu6,nions
+    INTEGER :: iu0,iu5,iu6
     INTEGER :: nl,nim,ntot,ndim,ndof,natypes,node,fc=0,itr=0,it=0
     INTEGER,PARAMETER :: iuins=281
     INTEGER,ALLOCATABLE,DIMENSION(:) :: natoms,ifra
@@ -68,7 +70,6 @@
       REAL(q) :: s0
       REAL,SAVE :: fmax
 
-      iu6=tiu6
       latt_a=ina
       latt_b=inb
       optflag=.FALSE.
@@ -207,8 +208,6 @@
       TYPE (type_info) :: t_info
       REAL(q),EXTERNAL :: rane
 
-#if defined(MPI) || defined(MPI_CHAIN)
-
 ! Local variables
       INTEGER :: IDUM,IERR,Nint,k1,k2,i,j,im,k
       CHARACTER*1 :: CHARAC
@@ -216,12 +215,15 @@
       LOGICAL :: LDUM,ertil
       REAL(q) :: RDUM,t
 
+      nions=t_info%nions
+
+#if defined(MPI) || defined(MPI_CHAIN)
+
 ! Short cuts
       linfo=t_info
       iu0=io%iu0
       iu5=io%iu5
       iu6=io%iu6
-      nions=linfo%nions
 
 ! Quick return, if we are not running in image mode (is this necessary ???)
       IF (images == 0) RETURN
@@ -293,9 +295,15 @@
       nim=2*images
       ntot=t_info%nions
       ndim=3*ntot
-      ndof=count(t_info%lsfor == .TRUE.)
+!      ndof=count(t_info%lsfor == .TRUE.)
+      ndof=0
+!GH: fix for pgf90
+      DO i = 1,Nions
+        DO j = 1,3
+          IF (t_info%lsfor(j,i)) ndof=ndof+1
+        END DO
+      END DO
       natypes=t_info%ntyp
-
       node=comm_chain%node_me
 
 ! Echo input (and other variables)
