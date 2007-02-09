@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.19 2007-02-07 05:56:23 graeme Exp $
+! RCS:  $Id: chain.F,v 1.20 2007-02-09 06:35:21 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -108,7 +108,7 @@
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==4) THEN
-          CALL instanton_step(nions,posion,toten,force,a,b,iu6)
+          CALL instanton_step(optflag,posion,toten,force,a,b)
         ENDIF
       ENDIF
 
