@@ -20,7 +20,8 @@
     INTEGER :: nions,iu0,iu6,Nsteps,Nmin
     REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
     REAL(q) :: maxmove,dt,dtmax
-    REAL(q) :: finc,fdec,fa,alpha,alpha_start
+    REAL(q) :: finc,fdec,fadec,alpha,alpha_start
+    LOGICAL :: qmflag
 
 !**********************************************************************
 ! Fast Inertial Relaxation Engine (FIRE) method
@@ -41,21 +42,32 @@
       ! Convert the position into Cartesian coordinates
       call dirkar(nions,R,latt_a)
 
-      Power = SUM(force*velocity)
-      IF (SUM(force*velocity) .GT. 0.0_q) THEN
-        velocity = (1.0_q-alpha)*velocity+ &
-          alpha*SUM(velocity*force)*force/SUM(force*force)
-        IF (Nsteps .GT. Nmin) THEN
-          ! Incease time step and decrease alpha
-          dt = MIN(dt*finc,dtmax)
-          alpha = alpha*fa
+      If (SUM(velocity) .NE. 0.0_q)THEN
+        Power = SUM(force*velocity)
+        IF (Power .GT. 0.0_q) THEN
+
+          IF(qmflag) THEN
+            ! qm step-> keep velocity in direction fo force
+            velocity = SUM(velocity*force)*force/SUM(force*force)
+          ELSE
+            ! fire -> keeps most of the intial velocity
+            velocity = (1.0_q-alpha)*velocity+ &
+              alpha*force/SQRT(SUM(force*force))*SQRT(SUM(velocity*velocity))
+          ENDIF
+
+          IF (Nsteps .GE. Nmin) THEN
+            ! Incease time step and decrease alpha
+            dt = MIN(dt*finc,dtmax)
+            alpha = alpha*fadec
+          ENDIF
+          Nsteps = Nsteps+1
+        ELSE
+          ! reset alpha, velocity and decrease dt
+          velocity = velocity*0.0_q
+          alpha = alpha_start
+          dt = dt*fdec
+          Nsteps = 0
         ENDIF
-        Nsteps = Nsteps+1
-      ELSE
-        ! reset alpha, velocity and decrease dt
-        velocity = velocity*0.0_q
-        alpha = alpha_start
-        dt = dt*fdec
       ENDIF
 
       ! Euler step
@@ -70,6 +82,12 @@
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, TIMESTEP ',dt
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, alpha    ',alpha
+      END IF
+
 
     END SUBROUTINE fire_step
 
@@ -133,9 +151,9 @@
          STOP
       ENDIF
       
-      fa = 0.99_q
+      fadec = 0.99_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FALPHADEC','=','#',';','F', &
-     &            IDUM,fa,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,fadec,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
          IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''FALPHADEC'' from file INCAR.'
          STOP
@@ -157,11 +175,20 @@
          STOP
       ENDIF
 
+      qmflag = .FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'QMFLAG','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,qmflag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''QMFLAG'' from file INCAR.'
+         STOP
+      ENDIF
+
       ! initlize vectors
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
 
       velocity = 0._q
       Nsteps = 0
+      alpha = alpha_start
 
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, MAXMOVE  ',maxmove
@@ -169,7 +196,7 @@
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEMAX ',dtmax
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEINC ',finc
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FTIMEDEC ',fdec
-        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FALPHADEC',fa
+        WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FALPHADEC',fadec
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, FALPHA   ',alpha_start
         WRITE(iu6,'(A5,A,I6)')    'OPT:',' FIRE, FNMIN    ',Nmin
       END IF

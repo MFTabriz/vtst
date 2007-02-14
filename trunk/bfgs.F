@@ -55,10 +55,19 @@
       dir2car=latt_a
       car2dir=latt_b
 
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A)') 'OPT:','INSIDE BFGS step function'
+      ENDIF
+
+
       ! Convert the position into Cartesian coordinates
       CALL dirkar(nions,R,latt_a)
 
       IF (fdstep) THEN ! Finite difference step
+
+        IF (iu6>=0) THEN
+          WRITE(iu6,'(A5,A)') 'OPT:','taking fdstep'
+        ENDIF
 
         fdstep = .FALSE.
         optflag = .TRUE. ! keeps contol so it can do finite step
@@ -69,6 +78,9 @@
 !        IF (a1 .LT. 0.5_q*a2) THEN
         IF ((a1 .GT. 0.5_q*a2) .OR. (a2 .EQ. 0.0_q)) THEN
            reset_flag=.TRUE.
+           IF (iu6>=0) THEN
+             WRITE(iu6,'(A5,A)') 'OPT:','reseting direction'
+           ENDIF
         ENDIF
 
         ! reset the Hessian
@@ -77,7 +89,7 @@
           reset_flag=.FALSE.
           ! set invH idenity matrix
           invH = 0.0_q
-          DO im=1,SIZE(invH)
+          DO im=1,3*nions
             invH(im,im)=1.0_q
           ENDDO
           invH=invH*init_curvature
@@ -92,6 +104,9 @@
           ! updateing the hessian
           CALL invH_update(change_in_R,change_in_G,invH) 
         ENDIF
+
+        Rold = R
+        Fold = force
 
         direction = RESHAPE(F,SHAPE=(/ 3*nions /))
         ! compute -Ho*g
@@ -113,11 +128,11 @@
           optflag = .false. ! gives control back to method
         ENDIF
 
-        Rold = R
-        Fold = force
-
-
+      ! calculate big step based on curvature
       ELSE
+        IF (iu6>=0) THEN
+          WRITE(iu6,'(A5,A)') 'OPT:','taking big step'
+        ENDIF
         fdstep = .TRUE.
         optflag = .false. ! gives control back to method
         ! calculate curvature down direction
@@ -125,6 +140,10 @@
         fp2 = SUM(F*step)
         curvature = (fp1-fp2)/finite_step
         IF (curvature .LT. 0.0_q) THEN
+
+          IF (iu6>=0) THEN
+            WRITE(iu6,'(A5,A)') 'OPT:','neg curv maxmove'
+          ENDIF
           step_size=maxmove
         ELSE
           Favg = 0.5_q*(fp1+fp2)
@@ -137,6 +156,9 @@
         ENDIF
 ! Move now from the configuration after the fd_step, so (*) has a "-" sign
         R = R+(step*step_size)
+        IF (iu6>=0) THEN
+          WRITE(iu6,'(A5,A)') 'OPT:','taking bigstep done'
+        ENDIF
       ENDIF
 
       ! convert position back to direct cord
@@ -158,19 +180,27 @@
 
       REAL(q) :: a,b
       INTEGER :: im,jm,km
+          
+
+        IF (iu6>=0) THEN
+          WRITE(iu6,'(A5,A)') 'OPT: ','IN HESS update'
+        ENDIF
         s = RESHAPE(change_in_R,SHAPE=(/ 3*nions /))
         y = RESHAPE(change_in_G,SHAPE=(/ 3*nions /))
         a = SUM(s*y)           !scaler
-        SY = outerproduct(s,s)  !matrix
-        Hy = MATMUL(invH,y)     !vector
-        HyHy = outerproduct(Hy,Hy) !matrix
-        b = SUM(y*Hy)           !scaler
+        CALL outerproduct(s,s,SY)  !matrix
+!        Hy = MATMUL(invH,y)     !vector
+!        HyHy = outerproduct(Hy,Hy) !matrix
+!        b = SUM(y*Hy)           !scaler
         ! DFP method
-        invH = invH+SY/a-HyHy/b
-        IF(.NOT. DFP) THEN
-          u = s/a-Hy/b  !vector
-          UU = outerproduct(u,u) !matrix
-          invH = invH+SY/a-HyHy/b+b*UU
+!        invH = invH+SY/a-HyHy/b
+!        IF(.NOT. DFP) THEN
+!          u = s/a-Hy/b  !vector
+!          UU = outerproduct(u,u) !matrix
+!          invH = invH+SY/a-HyHy/b+b*UU
+!        ENDIF
+        IF (iu6>=0) THEN
+          WRITE(iu6,'(A5,A)') 'OPT: ','IN HESS update done'
         ENDIF
     END SUBROUTINE invH_update
 
@@ -197,7 +227,14 @@
       ! read in the varables for bfgs
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A)') 'OPT:','INSIDE BFGS'
+        WRITE(iu6,*) 'OPT: ','!!!!!!!!WARNING!!!!!!!!!!!! ' 
+        WRITE(iu6,*) 'OPT: ','!!!!BFGS not complete!!!!!! '
+        WRITE(iu6,*) 'OPT: ','Must change setting for IOPT'
+      ENDIF
+      STOP
+
+      IF (iu6>=0) THEN
+        WRITE(iu6,'(A5,A)') 'OPT:','INSIDE BFGS init function'
       ENDIF
 
 
@@ -265,9 +302,6 @@
       ! set invH idenity matrix
       invH = 0.0_q
 
-!      DO im=1,SIZE(invH)
-!        invH(im,im)=1.0_q
-!      ENDDO
       DO im=1,3*nions
         invH(im,im)=1.0_q
       ENDDO
@@ -294,15 +328,17 @@
 !======================================================================
 ! Preforms and outer product of two vectors
 !======================================================================
-      FUNCTION outerproduct(v1,v2)
+      SUBROUTINE outerproduct(v1,v2,M1)
+      INTEGER im,ik
       REAL(q) :: v1(3*nions),v2(3*nions)
-      REAL(q),dimension(3*nions,3*nions) :: outerproduct
+      REAL(q),dimension(3*nions,3*nions) :: M1
       DO im = 1,3*nions
         DO ik = 1,3*nions
-          outerproduct(im,ik)=v1(im)*v2(ik)
+          M1(im,ik)=v1(im)*v2(ik)
         ENDDO
       ENDDO
-      END FUNCTION outerproduct
+      IF(iu6>=0)  WRITE(iu6,*) 'OPT:','in outterproduct'
+      END SUBROUTINE outerproduct
 !======================================================================
 ! Sets a vector to have the smallest length consistent the the periodic
 ! boundary conditions.

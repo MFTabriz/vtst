@@ -110,6 +110,13 @@
 
       REAL(q) :: gdt
 
+      IF (iu6>=0) THEN
+        WRITE(iu6,*) 'OPT: ','!!!!!!!!WARNING!!!!!!!!!!!!!'
+        WRITE(iu6,*) 'OPT: ','!!dynimics not complete!!!!!'
+        WRITE(iu6,*) 'OPT: ','Must change setting for IOPT'
+      ENDIF
+      STOP
+
       ! read in varables used for dynamics
 
       thermostat=0
