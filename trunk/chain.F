@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.22 2007-03-01 06:18:01 graeme Exp $
+! RCS:  $Id: chain.F,v 1.23 2007-03-01 06:20:24 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -19,7 +19,7 @@
 ! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
-! Version 2.00, Jan 2007
+! Version 2.01, Mar 2007
 !
 !**********************************************************************
 
@@ -187,7 +187,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.0'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.01'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
