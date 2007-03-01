@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.21 2007-03-01 01:24:13 dano Exp $
+! RCS:  $Id: chain.F,v 1.22 2007-03-01 06:18:01 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -300,7 +300,7 @@
       CALLMPI_C(M_sum_d(comm_chain,value,1))
       END SUBROUTINE sum_chain
 
-! LOGICAL sum over elements
+! Logical sum over elements
 
       SUBROUTINE and_chain(value)
       LOGICAL :: value
