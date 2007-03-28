@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.25 2007-03-28 18:25:12 graeme Exp $
+! RCS:  $Id: chain.F,v 1.26 2007-03-28 21:04:26 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -32,7 +32,9 @@
     USE dynmat
     USE dimer
     USE lanczos
+!INS_BEGIN
     USE instanton
+!INS_END
     USE opt
 
     IMPLICIT NONE
@@ -107,8 +109,10 @@
           CALL dimer_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
+!INS_BEGIN
         ELSEIF (ICHAIN==4) THEN
           CALL instanton_step(optflag,posion,toten,force,a,b)
+!INS_END
         ENDIF
       ENDIF
 
@@ -251,9 +255,11 @@
           IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
           STOP
         ENDIF
+!INS_BEGIN
       ELSEIF (ICHAIN==4) THEN
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Instanton method'
         CALL instanton_init(T_INFO,IO)
+!INS_END
       ENDIF
 
 #if defined(EAM)
