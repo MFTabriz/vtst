@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.24 2007-03-28 05:32:24 graeme Exp $
+! RCS:  $Id: chain.F,v 1.25 2007-03-28 18:25:12 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -188,7 +188,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.01'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.01a (28/03/07)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
