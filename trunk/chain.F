@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.23 2007-03-01 06:20:24 graeme Exp $
+! RCS:  $Id: chain.F,v 1.24 2007-03-28 05:32:24 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -44,7 +44,6 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-!    REAL SPRING
     LOGICAL :: optflag,fconverge
     REAL(q) :: EDIFFG
 
@@ -59,7 +58,7 @@
 
 !**********************************************************************
 !  General force routine for any method using the repeated image mode.
-!  The variable ICHAIN determines which method to use (see Chain_Init)
+!  The variable ICHAIN determines which method to use (see chain_init)
 !**********************************************************************
 
   CONTAINS
@@ -113,19 +112,19 @@
         ENDIF
       ENDIF
 
-      ftot=0.
-      fmaxatom=0.
-      fmaxdim=0.
+      ftot=0._q
+      fmaxatom=0._q
+      fmaxdim=0._q
       DO ni=1,nions
-         ftemp=0.
-         DO nj=1,3
-            ftot=ftot+force(nj,ni)**2
-            ftemp=ftemp+force(nj,ni)**2
-            IF(fmaxdim.LT.ABS(force(nj,ni))) THEN
-                fmaxdim=ABS(force(nj,ni))
-            ENDIF
-         ENDDO
-         IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
+        ftemp=0._q
+        DO nj=1,3
+          ftot=ftot+force(nj,ni)**2
+          ftemp=ftemp+force(nj,ni)**2
+          IF(fmaxdim.LT.ABS(force(nj,ni))) THEN
+            fmaxdim=ABS(force(nj,ni))
+          ENDIF
+        ENDDO
+        IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
       ENDDO
       frms=SQRT(ftot/REAL(nions))
       fmaxatom=SQRT(fmaxatom)
@@ -141,6 +140,8 @@
         IF (fconverge .EQ. .false.) THEN
           ! our own optimizers (optflag: do or do not optimize)  
           CALL opt_step(optflag,posion,toten,force,a,b)
+        ELSE
+          IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
         ENDIF
       ENDIF
 
