@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.26 2007-03-28 21:04:26 graeme Exp $
+! RCS:  $Id: chain.F,v 1.27 2007-04-01 16:52:28 graeme Exp $
 !
 ! Module which controlls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -67,16 +67,16 @@
     SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
       INTEGER :: nions,ni,nj,iu6
       REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
-      REAL(q),DIMENSION(3,nions) :: posion,force,force_save
+      REAL(q),DIMENSION(3,nions) :: posion,force,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
 
       ! for dimer/lanczos, save the force for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-        force_save=force
+        force_vasp=force
       ENDIF
 
 #ifdef EAM
-      IF (.NOT.eaminit) THEN
+      IF (.NOT. eaminit) THEN
         eaminit=.TRUE.
         Ream=posion
         Rvasp=posion
@@ -107,13 +107,21 @@
           CALL dynmat_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==2) THEN
           CALL dimer_step(optflag,posion,toten,force,a,b)
+          force_dimlan=force
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
+          force_dimlan=force
 !INS_BEGIN
         ELSEIF (ICHAIN==4) THEN
           CALL instanton_step(optflag,posion,toten,force,a,b)
 !INS_END
         ENDIF
+      ENDIF
+
+      ! for dimer/lanczos, check force criteria using the vasp force
+      IF (ICHAIN==2 .OR. ICHAIN==3) THEN
+        force_dimlan=force
+        force=force_vasp
       ENDIF
 
       ftot=0._q
@@ -128,7 +136,7 @@
             fmaxdim=ABS(force(nj,ni))
           ENDIF
         ENDDO
-        IF (ftemp.gt.fmaxatom) fmaxatom=ftemp
+        IF (ftemp .GT. fmaxatom) fmaxatom=ftemp
       ENDDO
       frms=SQRT(ftot/REAL(nions))
       fmaxatom=SQRT(fmaxatom)
@@ -137,11 +145,15 @@
       IF (iu6>=0) WRITE(iu6,4694) SQRT(ftot),fmaxdim
  4694 format(1x,' FORCE total and by dimension',2f12.6)
 
+      ! for dimer/lanczos, use projected force in optimizer
+      IF (ICHAIN==2 .OR. ICHAIN==3) THEN
+        force=force_dimlan
+      ENDIF
+
       IF (IOPT .NE. 0) THEN
         fconverge = (fmaxatom .LT. ABS(EDIFFG))
         CALLMPI_C(and_chain(fconverge))
-
-        IF (fconverge .EQ. .false.) THEN
+        IF (.NOT. fconverge) THEN
           ! our own optimizers (optflag: do or do not optimize)  
           CALL opt_step(optflag,posion,toten,force,a,b)
         ELSE
@@ -159,7 +171,7 @@
 
     ! for dimer/lanczos, return the true force to vasp
     IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-      force=force_save
+      force=force_vasp
     ENDIF
 
     END SUBROUTINE chain_force
@@ -192,7 +204,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.01a (28/03/07)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.01b (01/04/07)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
