@@ -116,7 +116,7 @@
 !              k=0
 !              DO j=1,ntot                   ! -> Do this in the same order as mass was generated
 !                DO i=1,3
-!                  IF (linfo%lsfor(i,j) == .TRUE.) THEN
+!                  IF (linfo%lsfor(i,j)) THEN
 !                    k=k+1
 !                    fs0(im)=fs0(im)+mass(k)*dx(i,j)**2
 !!                    write(iuins,*) 'check loop ',i,j,k,mass(k)
@@ -295,7 +295,7 @@
       nim=2*images
       ntot=t_info%nions
       ndim=3*ntot
-!      ndof=count(t_info%lsfor == .TRUE.)
+!      ndof=count(t_info%lsfor EQV .TRUE.)
       ndof=0
 !GH: fix for pgf90
       DO i = 1,Nions
@@ -826,7 +826,7 @@
         k=0
         DO j=1,ntot                   ! -> Do this in the same order as mass was generated
           DO i=1,3
-            IF (linfo%lsfor(i,j) == .TRUE.) THEN
+            IF (linfo%lsfor(i,j)) THEN
               k=k+1
               fs0(im)=fs0(im)+mass(k)*dx(i,j)**2
 !              write(iuins,*) 'check loop ',i,j,k,mass(k),dx(i,j)
