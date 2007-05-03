@@ -3,12 +3,10 @@
 !
 ! Module for limited-memory bfgs
 !
-! Version 2.00, Jan 2007
+! Version 2.01, Jan 2007
 !
-! TO DO
-!   - PBC
-!   - figure out loop exactly
-!   - write shifting matrix
+! Included is the global treatment for use in the optimizer (LGLOBAL) 
+! Included is an option to use a line minimzer instead of hessian (LLINEOPT)  
 !
 !**********************************************************************
 
@@ -30,7 +28,7 @@
 
     REAL(q) :: dir2car(3,3),car2dir(3,3)
     REAL(q) :: finite_step,maxmove,invcurv
-    LOGICAL :: fdstep,reset_flag,global
+    LOGICAL :: fdstep,reset_flag,global,lineopt
 
 !**********************************************************************
 !
@@ -86,7 +84,7 @@
            reset_flag=.TRUE.
         ENDIF
 
-        IF (global) reset_flag=.FALSE.
+        IF (lineopt .EQ. .FALSE.) reset_flag=.FALSE.
         IF (a2 .EQ. 0.0_q) reset_flag=.TRUE.
 
         ! Reset the lbfgs memory
@@ -170,7 +168,18 @@
         ! direction down gradent
         direction= -1._q*direction
 
-        IF (global) THEN ! use hessian to make step
+        IF (lineopt) THEN ! line minimizer (using fdstep)
+          direction = direction/SQRT(SUM(direction*direction))
+
+          IF(iu6>0) write(iu6,*) 'OPT: LBFGS, direction:'
+
+          IF (global .AND. (images_local .GT. 1)) THEN
+            IF(iu6>0) write(iu6,'(3f16.8)') direction(:,:,node)
+          ENDIF
+          ! finite step down force
+          R = R + direction*finite_step
+
+        ELSE ! use hessian to make step
           step_size = ABS(SQRT(SUM(direction*direction)))
           IF (step_size .GT. SQRT(maxmove*maxmove*REAL(images_local))) THEN
             step_size=SQRT(maxmove*maxmove*REAL(images_local))
@@ -179,17 +188,8 @@
           R = R + direction
           fdstep = .TRUE.
           optflag = .FALSE. ! gives control back to method
-
-        ELSE ! line minimizer (using fdstep)
-          direction = direction/SQRT(SUM(direction*direction))
-
-          IF(iu6>0) write(iu6,*) 'OPT: LBFGS, direction:'
-          IF(iu6>0) write(iu6,'(3f16.8)') direction(:,:,1)
-
-
-          ! finite step down force
-          R = R + direction*finite_step
         ENDIF
+
 
 !        IF(iu6>0) write(iu6,*) "OPT: LBFGS fdstep end"
 
@@ -276,11 +276,19 @@
          STOP
       ENDIF
  
-      global = .FALSE.
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'OPTGLOBAL','=','#',';','L', &
+      global = .TRUE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LGLOBAL','=','#',';','L', &
      &            IDUM,RDUM,CDUM,global,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''OPTGLABAL'' from file INCAR.'
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''LGLOBAL'' from file INCAR.'
+         STOP
+      ENDIF
+
+      lineopt = .FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LLINEOPT','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,lineopt,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''LLINEOPT'' from file INCAR.'
          STOP
       ENDIF
 
@@ -330,10 +338,11 @@
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, MEMORY ',memory
         WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, IMAGES ',images_local
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP ',finite_step
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,L)') 'OPT:','LBFGS, OPTGLOBAL',global
+        WRITE(iu6,'(A5,A,L)') 'OPT:','LBFGS, LGLOBAL',global
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, INVCURV',invcurv
+        WRITE(iu6,'(A5,A,L)') 'OPT:','LBFGS, LLINEOPT',lineopt
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP ',finite_step
       END IF
 
       reset_flag = .TRUE.
