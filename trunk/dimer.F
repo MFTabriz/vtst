@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.31 2007-05-03 03:36:26 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.32 2007-05-03 04:31:47 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -446,21 +446,27 @@
 
     END SUBROUTINE ReadDimerVar
 
-! Write the CENTCAR.  This routine is taken from poscar.F with one small change:
-! the 'selective dynamics' line is writen to the file.
+! Write the CENTCAR.  This routine is taken from poscar.F with a small change:
+! the selective dynamics line is writen to the file.
 
-    SUBROUTINE OUTCENT(IU,LLONG,SZNAM,SCALE,A,NTYP,NITYP,LSDYN, &
-     &                  NIONS,POSION,LSFOR )
-      USE prec
-      IMPLICIT REAL(q) (A-H,O-Z)
+    SUBROUTINE OUTCENT(IU,LLONG,SZNAM,SCALE,Atmp,NTYP,NITYP,LSDYN,NIONS,POSION,LSFOR)
+!      USE prec
+!      IMPLICIT REAL(q) (A-H,O-Z)
 
-      LOGICAL LLONG,LSDYN,LSFOR
-      DIMENSION A(3,3)
-      DIMENSION POSION(3,NIONS)
-      DIMENSION LSFOR (3,NIONS)
-      DIMENSION NITYP(NTYP)
+      INTEGER IU,NIONS,NTYP
+      LOGICAL LLONG,LSDYN
+      REAL(q),DIMENSION(3,3) :: Atmp
+      REAL(q),DIMENSION(3,NIONS) :: POSION
+      LOGICAL,DIMENSION(3,NIONS) :: LSFOR
+      INTEGER,DIMENSION(NTYP) :: NITYP
+      REAL(q) :: SCALE
+!      DIMENSION A(3,3)
+!      DIMENSION POSION(3,NIONS)
+!      DIMENSION LSFOR (3,NIONS)
+!      DIMENSION NITYP(NTYP)
       CHARACTER*40 FORM
       CHARACTER*40 SZNAM
+      INTEGER NT,NI
 
 !-----direct lattice
       WRITE(IU,'(A40)') SZNAM
@@ -471,7 +477,7 @@
       ELSE
         FORM='(1X,3F12.6)'
       ENDIF
-      WRITE(IU,FORM) (A(1,I)/SCALE,A(2,I)/SCALE,A(3,I)/SCALE,I=1,3)
+      WRITE(IU,FORM) (Atmp(1,I)/SCALE,Atmp(2,I)/SCALE,Atmp(3,I)/SCALE,I=1,3)
 
       WRITE(IU,'(20I4)') (NITYP(NT),NT=1,NTYP)
       IF (LSDYN) WRITE(IU,'(A18)') 'Selective dynamics'
