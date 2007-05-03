@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.30 2007-02-03 09:10:33 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.31 2007-05-03 03:36:26 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -39,7 +39,7 @@
       TYPE(type_info) :: DINFO
       INTEGER :: Nions,IU0,IU5,IU6
       INTEGER :: i,j,RotMax,RotNum,Seed,Itr
-      INTEGER,PARAMETER :: IUdim=44
+      INTEGER,PARAMETER :: IUdim=44, IUcent=45
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: N,R,R0,F,F0,F1,F2
       REAL(q),ALLOCATABLE,DIMENSION(:,:) :: Feff,FN,FNold,GN,GNu
       REAL(q),DIMENSION(3,3) :: A,B
@@ -150,13 +150,17 @@
         POSION = R
         CALL KARDIR(NIONS,POSION,B)
         IF (IU6>=0) THEN
-          CLOSE(13)
-          OPEN(UNIT=13,FILE='CENTCAR',STATUS='UNKNOWN')
-          CALL OUTPOS(13,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+!          CLOSE(13)
+!          OPEN(UNIT=13,FILE='CENTCAR',STATUS='UNKNOWN')
+!          CALL OUTPOS(13,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+!                    & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
+!          CLOSE(13)
+!          ! Reopen CONTCAR for continued use - check this
+!          OPEN(UNIT=13,FILE='CONTCAR',STATUS='UNKNOWN')
+          OPEN(UNIT=IUcent,FILE='CENTCAR',STATUS='UNKNOWN')
+          CALL OUTCENT(IUcent,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
                     & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
-          CLOSE(13)
-          ! Reopen CONTCAR for continued use - check this
-          OPEN(UNIT=13,FILE='CONTCAR',STATUS='UNKNOWN')
+          CLOSE(IUcent)
         END IF
       ELSE
         ! get rotational force
@@ -441,6 +445,63 @@
       END IF
 
     END SUBROUTINE ReadDimerVar
+
+! Write the CENTCAR.  This routine is taken from poscar.F with one small change:
+! the 'selective dynamics' line is writen to the file.
+
+    SUBROUTINE OUTCENT(IU,LLONG,SZNAM,SCALE,A,NTYP,NITYP,LSDYN, &
+     &                  NIONS,POSION,LSFOR )
+      USE prec
+      IMPLICIT REAL(q) (A-H,O-Z)
+
+      LOGICAL LLONG,LSDYN,LSFOR
+      DIMENSION A(3,3)
+      DIMENSION POSION(3,NIONS)
+      DIMENSION LSFOR (3,NIONS)
+      DIMENSION NITYP(NTYP)
+      CHARACTER*40 FORM
+      CHARACTER*40 SZNAM
+
+!-----direct lattice
+      WRITE(IU,'(A40)') SZNAM
+
+      WRITE(IU,*)  SCALE
+      IF (LLONG) THEN
+        FORM='(1X,3F22.16)'
+      ELSE
+        FORM='(1X,3F12.6)'
+      ENDIF
+      WRITE(IU,FORM) (A(1,I)/SCALE,A(2,I)/SCALE,A(3,I)/SCALE,I=1,3)
+
+      WRITE(IU,'(20I4)') (NITYP(NT),NT=1,NTYP)
+      IF (LSDYN) WRITE(IU,'(A18)') 'Selective dynamics'
+      WRITE(IU,'(A6)')'Direct'
+
+      IF (LSDYN) THEN
+      IF (LLONG) THEN
+        FORM='(3F20.16,3L4)'
+      ELSE
+        FORM='(3F10.6,3L2)'
+      ENDIF
+      ELSE
+      IF (LLONG) THEN
+        FORM='(3F20.16)'
+      ELSE
+        FORM='(3F10.6)'
+      ENDIF
+      ENDIF
+
+      IF (LSDYN) THEN
+          WRITE(IU,FORM) &
+     &      (POSION(1,NI),POSION(2,NI),POSION(3,NI), &
+     &       LSFOR(1,NI),LSFOR(2,NI),LSFOR(3,NI),NI=1,NIONS)
+         ELSE
+          WRITE(IU,FORM) &
+     &      (POSION(1,NI),POSION(2,NI),POSION(3,NI),NI=1,NIONS)
+      ENDIF
+      IF (.NOT.LLONG) WRITE(IU,*)
+      RETURN
+    END SUBROUTINE
 
     END MODULE dimer
 
