@@ -84,7 +84,7 @@
            reset_flag=.TRUE.
         ENDIF
 
-        IF (lineopt .EQ. .FALSE.) reset_flag=.FALSE.
+        IF (lineopt .EQV. .FALSE.) reset_flag=.FALSE.
         IF (a2 .EQ. 0.0_q) reset_flag=.TRUE.
 
         ! Reset the lbfgs memory
@@ -339,9 +339,9 @@
         WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, MEMORY ',memory
         WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, IMAGES ',images_local
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,L)') 'OPT:','LBFGS, LGLOBAL',global
+        WRITE(iu6,'(A5,A,L7)') 'OPT:','LBFGS, LGLOBAL',global
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, INVCURV',invcurv
-        WRITE(iu6,'(A5,A,L)') 'OPT:','LBFGS, LLINEOPT',lineopt
+        WRITE(iu6,'(A5,A,L7)') 'OPT:','LBFGS, LLINEOPT',lineopt
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP ',finite_step
       END IF
 
