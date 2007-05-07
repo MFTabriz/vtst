@@ -1,13 +1,11 @@
 #include "symbol.inc"
 !**********************************************************************
 !
-! Module which implements our full bfgs method
-!
-! Version 2.00, Jan 2007
+! Module which implements the BFGS method
 !
 ! To do 
-!   - maxtix opperaations
-!   - pbc
+!   - matrix operations
+!   - boundary conditions
 !
 !**********************************************************************
 
@@ -35,7 +33,7 @@
 
 !**********************************************************************
 !
-! full bfgs method
+! BFGS method
 !
 !**********************************************************************
   CONTAINS
@@ -70,7 +68,7 @@
         ENDIF
 
         fdstep = .FALSE.
-        optflag = .TRUE. ! keeps contol so it can do finite step
+        optflag = .TRUE. ! keep control to do finite difference step
 
         ! check for reset of direction
         a1 = ABS(SUM(F*Fold))
@@ -87,7 +85,7 @@
         IF(reset_flag) THEN
           itr=0
           reset_flag=.FALSE.
-          ! set invH idenity matrix
+          ! set invH identity matrix
           invH = 0.0_q
           DO im=1,3*nions
             invH(im,im)=1.0_q
@@ -101,7 +99,7 @@
           change_in_G = F-Fold
           
 
-          ! updateing the hessian
+          ! update the (inverse) Hessian
           CALL invH_update(change_in_R,change_in_G,invH) 
         ENDIF
 
@@ -125,16 +123,16 @@
           ENDIF
           R = R + step
           fdstep = .TRUE.
-          optflag = .false. ! gives control back to method
+          optflag = .false. ! give control back to method
         ENDIF
 
-      ! calculate big step based on curvature
+      ! calculate Newton step based on curvature
       ELSE
         IF (iu6>=0) THEN
           WRITE(iu6,'(A5,A)') 'OPT:','taking big step'
         ENDIF
         fdstep = .TRUE.
-        optflag = .false. ! gives control back to method
+        optflag = .false. ! give control back to method
         ! calculate curvature down direction
         fp1 = SUM(Fold*step)
         fp2 = SUM(F*step)
@@ -161,7 +159,7 @@
         ENDIF
       ENDIF
 
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
@@ -205,7 +203,7 @@
     END SUBROUTINE invH_update
 
 !**********************************************************************
-! full bfgs init
+! BFGS init
 !**********************************************************************
 
     SUBROUTINE bfgs_init(T_INFO,IO)
@@ -224,7 +222,7 @@
       iu0 = IO%IU0
       iu6 = IO%IU6
 
-      ! read in the varables for bfgs
+      ! read the variables for BFGS
 
       IF (iu6>=0) THEN
         WRITE(iu6,*) 'OPT: ','!!!!!!!!WARNING!!!!!!!!!!!! ' 
@@ -299,7 +297,7 @@
       step = 0.0_q
       direction = 0.0_q
 
-      ! set invH idenity matrix
+      ! set invH identity matrix
       invH = 0.0_q
 
       DO im=1,3*nions
@@ -326,7 +324,7 @@
 
 
 !======================================================================
-! Preforms and outer product of two vectors
+! Preforms outer product of two vectors
 !======================================================================
       SUBROUTINE outerproduct(v1,v2,M1)
       INTEGER im,ik
@@ -340,7 +338,7 @@
       IF(iu6>=0)  WRITE(iu6,*) 'OPT:','in outterproduct'
       END SUBROUTINE outerproduct
 !======================================================================
-! Sets a vector to have the smallest length consistent the the periodic
+! Sets a vector to have the smallest length consistent with the periodic
 ! boundary conditions.
 !======================================================================
       SUBROUTINE set_pbc(v1)

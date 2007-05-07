@@ -1,10 +1,9 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: opt.F,v 1.19 2007-01-18 15:04:44 dano Exp $
+! RCS:  $Id: opt.F,v 1.20 2007-05-07 06:44:14 graeme Exp $
 !
 ! Module which implements forced based optimizers
 !
-! Version 1.01, June 2006
 !**********************************************************************
 
   MODULE opt
@@ -68,7 +67,7 @@
     END SUBROUTINE opt_step
 
 !**********************************************************************
-! optimizer initilizer
+! optimizer initializer
 !**********************************************************************
 
     SUBROUTINE opt_init(T_INFO,IO)

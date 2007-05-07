@@ -1,13 +1,11 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dynmat.F,v 1.8 2007-01-17 23:44:53 dano Exp $
+! RCS:  $Id: dynmat.F,v 1.9 2007-05-07 06:44:14 graeme Exp $
 !
 ! This module, based on Vasps original chain.F, has been rewritten
 ! to do dynamical matrix calculations.  It reads in the original
 ! POSCAR file, as well as DISPLACECAR, which has the displacements
 ! in the various degrees of freedom needed.
-!
-! Version 2.00, Jan 2007
 !
 !**********************************************************************
 

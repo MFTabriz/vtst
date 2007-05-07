@@ -3,10 +3,8 @@
 !
 ! Module for limited-memory bfgs
 !
-! Version 2.01, Jan 2007
-!
-! Included is the global treatment for use in the optimizer (LGLOBAL) 
-! Included is an option to use a line minimzer instead of hessian (LLINEOPT)  
+! - Included is the global treatment for use with the NEB (LGLOBAL) 
+! - Included is an option to use a line minimzer (LLINEOPT)  
 !
 !**********************************************************************
 
@@ -74,7 +72,7 @@
 !        IF(iu6>0) write(iu6,*) "OPT: LBFGS in fdstep"
 
         fdstep = .FALSE.
-        optflag = .TRUE. ! keeps contol so it can do finite step
+        optflag = .TRUE. ! keep control to do finite difference step
 
         ! check for reset of direction
         a1 = ABS(SUM(F*Fold))
@@ -165,7 +163,7 @@
           ENDDO
         ENDIF
 
-        ! direction down gradent
+        ! direction down gradient
         direction= -1._q*direction
 
         IF (lineopt) THEN ! line minimizer (using fdstep)
@@ -250,7 +248,7 @@
       iu0 = IO%IU0
       iu6 = IO%IU6
 
-      ! read in varables used for lbfgs
+      ! read variables used for the LBFGS optimizer
 
       memory = 20
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ILBFGSMEM','=','#',';','I', &
@@ -336,13 +334,13 @@
       itr=0
 
       IF (iu6>=0) THEN
-        WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, MEMORY ',memory
-        WRITE(iu6,'(A5,A,I14.1)') 'OPT:','LBFGS, IMAGES ',images_local
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, MAXMOVE',maxmove
-        WRITE(iu6,'(A5,A,L7)') 'OPT:','LBFGS, LGLOBAL',global
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, INVCURV',invcurv
-        WRITE(iu6,'(A5,A,L7)') 'OPT:','LBFGS, LLINEOPT',lineopt
-        WRITE(iu6,'(A5,A,F14.6)') 'OPT:','LBFGS, FDSTEP ',finite_step
+        WRITE(iu6,'(A5,A,I14.1)') 'OPT:',' LBFGS, MEMORY ',memory
+        WRITE(iu6,'(A5,A,I14.1)') 'OPT:',' LBFGS, IMAGES ',images_local
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, MAXMOVE',maxmove
+        WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LGLOBAL',global
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, INVCURV',invcurv
+        WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LLINEOPT',lineopt
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, FDSTEP ',finite_step
       END IF
 
       reset_flag = .TRUE.

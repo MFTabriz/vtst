@@ -13,8 +13,6 @@
 ! Use now the LAPACK routine DSTERF from lapack_double.f in vasp.4.lib 
 ! to find the eigenvalues for the tridiagonal Lanczos matrix. 
 !
-! Version 2.00, Jan 2007
-!
 ! Andri Arnaldsson
 ! andri@u.washington.edu
 !

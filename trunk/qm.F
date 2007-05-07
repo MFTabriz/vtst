@@ -1,9 +1,7 @@
 #include "symbol.inc"
 !**********************************************************************
 !
-! Module for Quick-min 
-!
-! Version 2.00, Jan 2007
+! Module for Quick-Min 
 !
 !**********************************************************************
 
@@ -41,7 +39,7 @@
 
       ! remove antiparallel components of the velocity along the force
 !      WHERE (velocity*force<0) velocity=0._q
-      ! decided to take this out cause it puts bias on grid
+      ! decided to take this out because it is based upon the coordinate system
 
       IF ((SUM(force*velocity)) .GE. 0.0_q) THEN
         velocity = SUM(velocity*force)*force/SUM(force*force)
@@ -57,7 +55,7 @@
       ENDIF
 
       R = R+step
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R

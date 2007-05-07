@@ -1,16 +1,16 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.28 2007-05-04 04:24:09 graeme Exp $
+! RCS:  $Id: chain.F,v 1.29 2007-05-07 06:44:14 graeme Exp $
 !
-! Module which controlls the running of four methods, the nudged
+! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
 ! the dynamical matrix method (dynmat.F).  The purpose of this module
 ! is to determine which of these methods should be run, and to do so at
 ! each ionic step.
 !
-! TODO: add a module to separate optimizers from the transition
-! state methods.  The conjugate gradient and quick-min algorithms
-! will also work with normal minimization runs.
+! A set of force-based optimers are also included for use with normal
+! optimizations, or transition state calculations.  The optimizers are
+! steepest-descent, quick-min, conjugate-gradients, and LBFGS.
 !
 ! NOTE: the vasp folks have now added their own dynamical matrix
 ! code.  The only advantage of this dynamical matrix implementation
@@ -19,7 +19,19 @@
 ! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
-! Version 2.01, Mar 2007
+! For more information see: http://theory.cm.utexas.edu/vtsttools/
+!
+! Contributers:
+!   Andri Arnaldsson
+!   Graeme Henkelman
+!   Hannes Jonsson
+!   Daniel Sheppard
+!   Blas Uberuaga
+!   Lijun Xu
+!
+! Email: henkelman@mail.utexas.edu
+!
+! Version 2.02a, May 2007
 !
 !**********************************************************************
 
@@ -204,7 +216,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.02 (05/03/07)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.02a (05/07/07)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 

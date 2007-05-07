@@ -3,8 +3,6 @@
 !
 ! Module which implementes a force-based Conjugate Gradient optimizer
 !
-! Version 2.00, Jan 2007
-!
 !**********************************************************************
 
   MODULE cg
@@ -83,7 +81,7 @@
         R = R+g_unit*step_size
       END IF
 
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
@@ -110,7 +108,7 @@
       iu0=IO%IU0
       iu6=IO%IU6
 
-      ! read in varables used for cg
+      ! read in variables used for conjugate gradients
 
       finite_step=0.005_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FDSTEP','=','#',';','F', &

@@ -1,12 +1,10 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.16 2007-01-08 03:14:14 graeme Exp $
+! RCS:  $Id: neb.F,v 1.17 2007-05-07 06:44:14 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
 ! module becomes active if IMAGES tag is read from the INCAR files
-!
-! Version 2.00, Jan 2007
 !
 ! TODO
 !   - movable endpoints
@@ -124,7 +122,7 @@
       IF (node.EQ.images.AND.energy_last.NE.0) THEN
          energy_next_greater = energy_last.GT.toten_all(node)
       ELSE IF (node.EQ.images.AND.energy_last.EQ.0) THEN
-         ! IF the final energy is unknown, asSUMe final energy is lower
+         ! if the final energy is unknown, assume final energy is lower
          energy_next_greater = .FALSE.
       ENDIF
          
@@ -227,11 +225,11 @@
 !   for details, see: Trygubenko and Wales, JCP 120, 2082 (2005)
 !   turn on by setting LDNEB = .TRUE.
 !
-!   The idea here is to add a portion of the perpENDicular spring force
+!   The idea here is to add a portion of the perpendicular spring force
 !   to stabilize and possibly accelerate convergence of the NEB,
 !   particularly with second order optimizers such as BFGS (IBRION 1).
-!   This has not been well tested, and USErs should be warned that this
-!   extra force will caUSE some corner cutting, so that images will not
+!   This has not been well tested, and users should be warned that this
+!   extra force will cause some corner cutting, so that images will not
 !   rigorously converge to the minimum energy path.  Convergence of the
 !   climbing image, however, will not be affected by double nudging.
 !
@@ -319,7 +317,7 @@
       iu0 = IO%IU0
       nions = T_INFO%NIONS
 
-      ! quick RETURN, IF we are not running in image mode
+      ! quick return, if we are not running in image mode
       IF (images==0) RETURN
 #if defined(MPI) || defined(MPI_CHAIN)
 
@@ -368,7 +366,7 @@
 
       energy_first=0.0
       energy_last=0.0
-      ! read energies of END points
+      ! read energies of end points
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'EFIRST','=','#',';','F', &
      &            IDUM,energy_first,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
@@ -392,7 +390,7 @@
         WRITE(iu6,'(A5,A16,F14.6)') 'NEB:','ELAST',energy_last
       ENDIF
 
-      ! ALLOCATE the positions
+      ! allocate the positions
       ALLOCATE(posion_all(3,t_info%nions,0:images+1))
 
       ! read 00/POSCAR file, a little bit of fiddling is required
@@ -427,7 +425,7 @@
 
       node=COMM_CHAIN%NODE_ME
       CALL MAKE_DIR_APP(node)
-! for moving ENDpoints
+! for moving endpoints
 !      CALL MAKE_DIR_APP(node-1)
 #endif
 

@@ -1,9 +1,7 @@
 #include "symbol.inc"
 !**********************************************************************
 !
-! Module for running dynamics on system
-!
-! Version 2.00, Jan 2007
+! Module for running classical dynamics
 !
 !**********************************************************************
 
@@ -51,7 +49,7 @@
         Fold = force
       ELSE
 
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
@@ -112,12 +110,12 @@
 
       IF (iu6>=0) THEN
         WRITE(iu6,*) 'OPT: ','!!!!!!!!WARNING!!!!!!!!!!!!!'
-        WRITE(iu6,*) 'OPT: ','!!dynimics not complete!!!!!'
+        WRITE(iu6,*) 'OPT: ','!!dynamics not complete!!!!!'
         WRITE(iu6,*) 'OPT: ','Must change setting for IOPT'
       ENDIF
       STOP
 
-      ! read in varables used for dynamics
+      ! read in variables used for dynamics
 
       thermostat=0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSTAT','=','#',';','I', &
@@ -165,7 +163,7 @@
         c1 = 1.0_q
         c2 = 0.5_q
       ELSE 
-        !coeficients for Brownian integration (Allen and Tildesley, p. 261)
+        ! coefficients for Brownian integration (Allen and Tildesley, p. 261)
         gdt = mdgamma*dt
         c0 = EXP(-gdt)
         c1 = (1.0_q-c0)/(gdt)
@@ -178,7 +176,7 @@
         sigv=SQRT(sig2v)
         crv=sigrsigvcrv/(sigr*sigv)
       ENDIF
-      !variances and correlation coef. for x and v displacements (A&T, p. 262)
+      ! variances and correlation coef. for x and v displacements (A&T, p. 262)
 
       ! initialize the variables: vectors and matricies
       ALLOCATE(Fold(3,nions),velocity(3,nions),direction(3,nions))
@@ -198,7 +196,7 @@
 !**********************************************************************
 
 !======================================================================
-! Sets a vector to have the smallest length consistent the the periodic
+! Sets a vector to have the smallest length consistent with the periodic
 ! boundary conditions.
 !======================================================================
       SUBROUTINE set_pbc(v1)

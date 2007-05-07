@@ -1,9 +1,7 @@
 #include "symbol.inc"
 !**********************************************************************
 !
-! Module for Steepest dencent
-!
-! Version 2.00, Jan 2007
+! Module for Steepest Descents
 !
 !**********************************************************************
 
@@ -13,7 +11,7 @@
 
     IMPLICIT NONE
     PRIVATE 
-    PUBLIC :: sd_step, sd_init  !call sd_init from opt_init
+    PUBLIC :: sd_step, sd_init  ! call sd_init from opt_init
 
     INTEGER :: nions,iu6
 
@@ -21,7 +19,7 @@
     REAL(q) :: alpha,maxmove
 
 !**********************************************************************
-! Steepest-Decent method
+! Steepest-Descent method
 !**********************************************************************
 
   CONTAINS
@@ -31,7 +29,7 @@
       REAL(q) :: latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
       
-      optflag = .false. ! gives control back to the method
+      optflag = .false. ! give control back to the method
 
       R = posion
 
@@ -48,7 +46,7 @@
         WRITE(iu6,'(A4,A,F14.6)') 'OPT:','SD, step size',SQRT(SUM(step*step))
       END IF
 
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
 
       ! update posion
@@ -57,7 +55,7 @@
     END SUBROUTINE sd_step
 
 !**********************************************************************
-! Steepest-Decent init
+! Steepest-Descent init
 !**********************************************************************
 
     SUBROUTINE sd_init(T_INFO,IO)
@@ -99,7 +97,7 @@
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:','SD, MAXMOVE',maxmove
       END IF
 
-      ! initilize the vectors
+      ! initialize the vectors
       ALLOCATE(step(3,nions),R(3,nions))
 
     END SUBROUTINE sd_init

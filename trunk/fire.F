@@ -4,8 +4,6 @@
 ! Module for Fast Inertial Relaxation Engine (FIRE)
 ! from Erik Bitzek, Phys. Rev. Lett. 97, 170201 (2006)
 !
-! Version 2.00, Jan 2007
-!
 !**********************************************************************
 
   MODULE fire
@@ -37,7 +35,7 @@
 
       R = posion
       
-      optflag = .false. ! gives control back to the method
+      optflag = .false. ! give control back to the method
 
       ! Convert the position into Cartesian coordinates
       call dirkar(nions,R,latt_a)
@@ -47,7 +45,7 @@
         IF (Power .GT. 0.0_q) THEN
 
           IF(qmflag) THEN
-            ! qm step-> keep velocity in direction fo force
+            ! qm step -> keep velocity in direction of force
             velocity = SUM(velocity*force)*force/SUM(force*force)
           ELSE
             ! fire -> keeps most of the intial velocity
@@ -56,7 +54,7 @@
           ENDIF
 
           IF (Nsteps .GE. Nmin) THEN
-            ! Incease time step and decrease alpha
+            ! Increase time step and decrease alpha
             dt = MIN(dt*finc,dtmax)
             alpha = alpha*fadec
           ENDIF
@@ -78,7 +76,7 @@
       ENDIF
 
       R = R+step
-      ! convert position back to direct cord
+      ! convert position back to direct coordinates
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
