@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.29 2007-05-07 06:44:14 graeme Exp $
+! RCS:  $Id: chain.F,v 1.30 2007-05-14 19:13:22 dano Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -59,7 +59,7 @@
 #endif
     INTEGER :: ICHAIN,IOPT
     LOGICAL :: optflag,fconverge
-    REAL(q) :: EDIFFG
+    REAL(q) :: EDIFFG_local
 
 #ifdef EAM
     ! Variables used for calling the EAM potential (testing)
@@ -163,7 +163,7 @@
       ENDIF
 
       IF (IOPT .NE. 0) THEN
-        fconverge = (fmaxatom .LT. ABS(EDIFFG))
+        fconverge = (fmaxatom .LT. ABS(EDIFFG_local))
         CALLMPI_C(and_chain(fconverge))
         IF (.NOT. fconverge) THEN
           ! our own optimizers (optflag: do or do not optimize)  
@@ -241,16 +241,16 @@
         STOP
       ENDIF
 
-      EDIFFG=0.1_q
+      EDIFFG_local=0.1_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'EDIFFG','=','#',';','F', &
-     &            IDUM,EDIFFG,CDUM,LDUM,CHARAC,N,1,IERR)
+     &            IDUM,EDIFFG_local,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''EDIFFG'' from file INCAR.'
         STOP
       ENDIF
 
       ! make sure that convergence is force based when using IOPT
-      IF((IOPT .NE. 0) .AND. (EDIFFG .GT. 0.0_q)) THEN
+      IF((IOPT .NE. 0) .AND. (EDIFFG_local .GT. 0.0_q)) THEN
         IF(IU6>=0) WRITE(IU6,*) 'Must set  EDIFFG < 0 when using IOPT > 0'
         STOP
       ENDIF
