@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.32 2007-05-03 04:31:47 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.33 2007-06-06 16:03:09 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -10,9 +10,10 @@
 !   Olsen, Kroes, Henkelman, Arnaldsson, and Jonsson, JCP 121, 9776 (2004).
 !   Heyden, Bell, and Keil, JCP 123, 224101 (2005).
 !
-! Version Notes:
-! 
-! v2.00, Jan 2007
+! Changed in v2.03:
+! - removed a finite difference step before printing CENTCAR
+!
+! Changed since v2.00: 
 ! - single image version of the dimer method
 ! - changed output file name to DIMCAR
 ! - added a minimum rotational force variable
@@ -140,28 +141,21 @@
         F0r = SQRT(SUM(F0**2))
         IF (IU6>=0) WRITE(IU6,'(A)') ' Dimer: Central Point'
         IF (IU6>=0) WRITE(IU6,'(A,F14.6,/)') ' Dimer: F0',F0r
+        ! Write CENTCAR
+        POSION = R0
+        CALL KARDIR(NIONS,POSION,B)
+        IF (IU6>=0) THEN
+          OPEN(UNIT=IUcent,FILE='CENTCAR',STATUS='UNKNOWN')
+          CALL OUTCENT(IUcent,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+                    & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
+          CLOSE(IUcent)
+        END IF
         CALL ProjectDimer()
         R = R0+N*dR
         ! Set up for dimer rotation
         NewFlag = .false.
         FdStep = .true.
         RotNum=1
-        ! Write CENTCAR (borrow unit 13)
-        POSION = R
-        CALL KARDIR(NIONS,POSION,B)
-        IF (IU6>=0) THEN
-!          CLOSE(13)
-!          OPEN(UNIT=13,FILE='CENTCAR',STATUS='UNKNOWN')
-!          CALL OUTPOS(13,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
-!                    & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
-!          CLOSE(13)
-!          ! Reopen CONTCAR for continued use - check this
-!          OPEN(UNIT=13,FILE='CONTCAR',STATUS='UNKNOWN')
-          OPEN(UNIT=IUcent,FILE='CENTCAR',STATUS='UNKNOWN')
-          CALL OUTCENT(IUcent,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
-                    & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
-          CLOSE(IUcent)
-        END IF
       ELSE
         ! get rotational force
         CALL UpdateDimer()

@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.30 2007-05-14 19:13:22 dano Exp $
+! RCS:  $Id: chain.F,v 1.31 2007-06-06 16:03:09 graeme Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -79,12 +79,14 @@
     SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
       INTEGER :: nions,ni,nj,iu6
       REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
-      REAL(q),DIMENSION(3,nions) :: posion,force,force_vasp,force_dimlan
+      REAL(q),DIMENSION(3,nions) :: posion,force
+      REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
 
-      ! for dimer/lanczos, save the force for the vasp stop criteria
+      ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
         force_vasp=force
+        posion_vasp=posion
       ENDIF
 
 #ifdef EAM
@@ -170,6 +172,8 @@
           CALL opt_step(optflag,posion,toten,force,a,b)
         ELSE
           IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
+          ! GH: remove any finite difference steps taken
+          posion=posion_vasp
         ENDIF
       ENDIF
 
@@ -216,7 +220,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.02a (05/07/07)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.03 (06/06/07)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
