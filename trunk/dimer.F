@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.33 2007-06-06 16:03:09 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.34 2007-07-14 05:33:28 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -10,15 +10,16 @@
 !   Olsen, Kroes, Henkelman, Arnaldsson, and Jonsson, JCP 121, 9776 (2004).
 !   Heyden, Bell, and Keil, JCP 123, 224101 (2005).
 !
-! Changed in v2.03:
-! - removed a finite difference step before printing CENTCAR
-!
 ! Changed since v2.00: 
 ! - single image version of the dimer method
 ! - changed output file name to DIMCAR
 ! - added a minimum rotational force variable
 ! - use a 45 deg rotation (Heyden et al, JCP 123, 224101, 2005)
 ! - incorporate the new optimizers
+!
+! Changed in v2.03:
+! - removed a finite difference step before printing CENTCAR
+! - added Dimer_Fin which prints a final line after convergence
 !
 ! Graeme Henkelman
 ! henkelman@mail.utexas.edu
@@ -35,7 +36,7 @@
       IMPLICIT NONE
       SAVE 
       PRIVATE
-      PUBLIC :: Dimer_Step,Dimer_Init
+      PUBLIC :: Dimer_Step,Dimer_Init,Dimer_Fin
 
       TYPE(type_info) :: DINFO
       INTEGER :: Nions,IU0,IU5,IU6
@@ -202,6 +203,18 @@
       IF (IU6>=0) CALL WFORCE(IUdim)  ! Empty the file buffer
 
     END SUBROUTINE Dimer_Step
+
+!**********************************************************************
+! Dimer cleanup
+!**********************************************************************
+
+! Dimer cleanup routine
+
+    SUBROUTINE Dimer_Fin()
+!      IF (IU6>=0) WRITE(IUdim,'(I5,5F14.5)') Itr,F0r,FN1r,U0,CN,0._q
+      IF (IU6>=0) WRITE(IUdim,'(I5,F14.5,7x,A3,4x,F14.5,7x,A3,11x,A3,4x)') &
+      &  Itr,F0r,'---',U0,'---','---'
+    END SUBROUTINE Dimer_Fin
 
 !**********************************************************************
 ! Dimer Functions

@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.17 2007-05-07 06:44:14 graeme Exp $
+! RCS:  $Id: neb.F,v 1.18 2007-07-14 05:33:28 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -207,7 +207,7 @@
             climbing_image = max_energy_image
          ELSE
             lclimb_local = .FALSE.
-            IF (iu6>=0) WRITE(iu6) 'NEB: no climbing image found'
+            IF (iu6>=0) WRITE(iu6,*) 'NEB: no climbing image found'
          ENDIF
       ENDIF
 

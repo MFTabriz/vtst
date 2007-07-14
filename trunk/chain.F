@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.31 2007-06-06 16:03:09 graeme Exp $
+! RCS:  $Id: chain.F,v 1.32 2007-07-14 05:33:28 graeme Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -31,7 +31,7 @@
 !
 ! Email: henkelman@mail.utexas.edu
 !
-! Version 2.02a, May 2007
+! Version 2.03a, July 10, 2007
 !
 !**********************************************************************
 
@@ -174,6 +174,9 @@
           IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
           ! GH: remove any finite difference steps taken
           posion=posion_vasp
+          IF (ICHAIN==2) THEN
+            CALL dimer_fin()
+          ENDIF
         ENDIF
       ENDIF
 
@@ -220,7 +223,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.03 (06/06/07)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.03a (07/10/07)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
