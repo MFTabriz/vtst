@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.32 2007-07-14 05:33:28 graeme Exp $
+! RCS:  $Id: chain.F,v 1.33 2007-07-26 20:20:38 dano Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -58,8 +58,8 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge
-    REAL(q) :: EDIFFG_local
+    LOGICAL :: optflag,fconverge,ftot_flag
+    REAL(q) :: EDIFFG_local,ftot_val
 
 #ifdef EAM
     ! Variables used for calling the EAM potential (testing)
@@ -164,6 +164,16 @@
         force=force_dimlan
       ENDIF
 
+      ! stops based on the Magnitude of the Force
+      IF(ftot_flag) THEN
+        fconverge = (SQRT(ftot) .LT. ftot_val)
+        CALLMPI_C(and_chain(fconverge))
+        IF (fconverge) THEN
+          IF (iu6>=0) WRITE(iu6,*) 'CONVERGED based on Magnitude of Force'
+          STOP
+        ENDIF
+      ENDIF
+
       IF (IOPT .NE. 0) THEN
         fconverge = (fmaxatom .LT. ABS(EDIFFG_local))
         CALLMPI_C(and_chain(fconverge))
@@ -253,6 +263,23 @@
      &            IDUM,EDIFFG_local,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''EDIFFG'' from file INCAR.'
+        STOP
+      ENDIF
+
+!     USED to converge based on Magnitude of the force
+      ftot_flag=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FMAGFLAG','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,ftot_flag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''FMAGFLAG'' from file INCAR.'
+        STOP
+      ENDIF
+
+      ftot_val=0.01_q
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FMAGVAL','=','#',';','F', &
+     &            IDUM,ftot_val,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''FMAGVAL'' from file INCAR.'
         STOP
       ENDIF
 

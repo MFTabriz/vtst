@@ -57,11 +57,11 @@
 
         R(:,:,:)=0
         R(:,:,node)=posion
-        CALLMPI_C( M_SUM_d( comm_chain, R(1,1,1), nions*3*images))
+        CALLMPI_C( M_SUM_d( comm_chain, R(1,1,1), nions*3*images_local))
 
         F(:,:,:)=0
         F(:,:,node)=force
-        CALLMPI_C( M_SUM_d( comm_chain, F(1,1,1), nions*3*images))
+        CALLMPI_C( M_SUM_d( comm_chain, F(1,1,1), nions*3*images_local))
       ELSE
         R(:,:,1)=posion
         F(:,:,1)=force
@@ -298,19 +298,15 @@
          STOP
       ENDIF
  
-!      images = 1
-!      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IMAGES','=','#',';','I', &
-!     &            images,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
-!      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
-!         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''IMAGES'' from file INCAR.'
-!         STOP
-!      ENDIF
-
-      IF (images .EQ. 0) THEN 
-        images_local=1
-      ELSE
-        images_local=images
+      images_local = 0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IMAGES','=','#',';','I', &
+     &            images_local,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''IMAGES'' from file INCAR.'
+         STOP
       ENDIF
+
+      IF (images_local .EQ. 0) images_local=1
 
       ! initialize the variables: vectors and matricies
       ALLOCATE(rho(memory),alpha(memory))
