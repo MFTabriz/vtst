@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.33 2007-07-26 20:20:38 dano Exp $
+! RCS:  $Id: chain.F,v 1.34 2007-08-01 17:16:23 dano Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -182,8 +182,8 @@
           CALL opt_step(optflag,posion,toten,force,a,b)
         ELSE
           IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
-          ! GH: remove any finite difference steps taken
-          posion=posion_vasp
+          ! GH: remove any finite difference steps taken by dimer or lan
+          IF (ICHAIN==2 .OR. ICHAIN==3)  posion=posion_vasp
           IF (ICHAIN==2) THEN
             CALL dimer_fin()
           ENDIF
