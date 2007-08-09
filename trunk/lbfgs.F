@@ -48,9 +48,9 @@
 !      IF(iu6>0) write(iu6,*) "OPT: LBFGS start"
 #if defined(MPI) || defined (MPI_CHAIN)
       ! Convert the position into Cartesian coordinates
-      CALL dirkar(nions,posion,latt_a)
       dir2car=latt_a
       car2dir=latt_b
+      CALL dirkar(nions,posion,latt_a)
       IF (global .AND. (images_local .GT. 1)) THEN
      ! communicate all positions to all nodes (brute force, but simple)
         node=comm_chain%node_me
@@ -220,6 +220,11 @@
         posion = R(:,:,node)
       ELSE
         posion = R(:,:,1)
+      ENDIF
+
+      IF(iu6>0) THEN
+        WRITE(iu6,*)'OPT: LBFGS: POSION in car cord' 
+        WRITE(iu6,*) posion
       ENDIF
       ! convert position back to direct cord
       CALL kardir(nions,posion,latt_b)

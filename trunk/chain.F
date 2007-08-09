@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: chain.F,v 1.35 2007-08-01 22:25:20 graeme Exp $
+! RCS:  $Id: chain.F,v 1.36 2007-08-09 14:28:06 dano Exp $
 !
 ! Module which controls the running of four methods, the nudged
 ! elastic band (neb.F), the dimer (dimer.F), lanczos (lanczos.F), and
@@ -60,13 +60,14 @@
     INTEGER :: ICHAIN,IOPT
     LOGICAL :: optflag,fconverge,ftot_flag
     REAL(q) :: EDIFFG_local,ftot_val
+    REAL(q),ALLOCATABLE :: Free(:,:)
 
 #ifdef EAM
     ! Variables used for calling the EAM potential (testing)
     LOGICAL :: eaminit
     REAL(q),ALLOCATABLE :: Ream(:,:),Feam(:,:)
     REAL(q),ALLOCATABLE :: Rvasp(:,:),Fvasp(:,:)
-    REAL(q),ALLOCATABLE :: Free(:,:)
+!    REAL(q),ALLOCATABLE :: Free(:,:)
     REAL(q) :: Uvasp,Ueam
 #endif
 
@@ -131,6 +132,9 @@
 !INS_END
         ENDIF
       ENDIF
+
+      ! zero out any added forces on frozen atoms
+      force = force*Free
 
       ! for dimer/lanczos, check force criteria using the vasp force
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
@@ -320,13 +324,8 @@
 !INS_END
       ENDIF
 
-#if defined(EAM)
-      CALL EAM_POTINIT()
-      eaminit=.FALSE.
-      ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
-      ALLOCATE(Fvasp(3,T_INFO%nions),Rvasp(3,T_INFO%nions))
+      ! Make vector to zero out force on frozen atoms 
       ALLOCATE(Free(3,T_INFO%nions))
-
       Free(:,:)=1._q
       IF(T_INFO%LSDYN) THEN
         DO NI=1,T_INFO%nions
@@ -335,6 +334,22 @@
           ENDDO
         ENDDO
       ENDIF
+
+#if defined(EAM)
+      CALL EAM_POTINIT()
+      eaminit=.FALSE.
+      ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
+      ALLOCATE(Fvasp(3,T_INFO%nions),Rvasp(3,T_INFO%nions))
+!      ALLOCATE(Free(3,T_INFO%nions))
+!
+!      Free(:,:)=1._q
+!      IF(T_INFO%LSDYN) THEN
+!        DO NI=1,T_INFO%nions
+!          DO NJ=1,3
+!            IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI)=0._q
+!          ENDDO
+!        ENDDO
+!      ENDIF
 #endif
 
     END SUBROUTINE chain_init
