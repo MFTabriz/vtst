@@ -167,7 +167,7 @@
 
 !**********************************************************************
 ! Update the inverse Hessian
-! William Press's Numerical Recipes in C p 427
+! William Press Numerical Recipes in C p 427
 ! TODO: need to get function and check on reshaping
 !**********************************************************************
 
