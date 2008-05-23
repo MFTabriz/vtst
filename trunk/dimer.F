@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.34 2007-07-14 05:33:28 graeme Exp $
+! RCS:  $Id: dimer.F,v 1.35 2008-05-23 06:14:54 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -9,6 +9,7 @@
 !   Henkelman and Jonsson, JCP 111, 7010 (1999)
 !   Olsen, Kroes, Henkelman, Arnaldsson, and Jonsson, JCP 121, 9776 (2004).
 !   Heyden, Bell, and Keil, JCP 123, 224101 (2005).
+!   Kastner and Sherwood, JCP 128, 014106 (2008).
 !
 ! Changed since v2.00: 
 ! - single image version of the dimer method
