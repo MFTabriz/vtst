@@ -45,14 +45,15 @@
       REAL(q) :: fp1,fp2,Favg,step_size
       INTEGER :: node,bound,im,jm
 
-!      IF(iu6>0) write(iu6,*) "OPT: LBFGS start"
-#if defined(MPI) || defined (MPI_CHAIN)
+      IF(iu6>0) write(iu6,*) "OPT: LBFGS start"
+!#if defined(MPI) || defined (MPI_CHAIN)
       ! Convert the position into Cartesian coordinates
       dir2car=latt_a
       car2dir=latt_b
       CALL dirkar(nions,posion,latt_a)
       IF (global .AND. (images_local .GT. 1)) THEN
      ! communicate all positions to all nodes (brute force, but simple)
+#if defined(MPI) || defined (MPI_CHAIN)
         node=comm_chain%node_me
 
         R(:,:,:)=0
@@ -62,14 +63,15 @@
         F(:,:,:)=0
         F(:,:,node)=force
         CALLMPI_C( M_SUM_d( comm_chain, F(1,1,1), nions*3*images_local))
+#endif
       ELSE
         R(:,:,1)=posion
         F(:,:,1)=force
-!        IF(iu6>0) write(iu6,*) "OPT: LBFGS force assigned"
+        IF(iu6>0) write(iu6,*) "OPT: LBFGS force assigned"
       ENDIF
  
       IF (fdstep) THEN  ! Finite difference step
-!        IF(iu6>0) write(iu6,*) "OPT: LBFGS in fdstep"
+        IF(iu6>0) write(iu6,*) "OPT: LBFGS in fdstep"
 
         fdstep = .FALSE.
         optflag = .TRUE. ! keep control to do finite difference step
@@ -146,7 +148,7 @@
         ELSE
           bound = memory
         ENDIF
-!        IF(iu6>0) write(iu6,*) 'OPT: LBFGS, bound: ',bound
+        IF(iu6>0) write(iu6,*) 'OPT: LBFGS, bound: ',bound
         direction = -1._q*F
         
         ! calculate Ho*g
@@ -189,7 +191,7 @@
         ENDIF
 
 
-!        IF(iu6>0) write(iu6,*) "OPT: LBFGS fdstep end"
+        IF(iu6>0) write(iu6,*) "OPT: LBFGS fdstep end"
 
       ELSE  ! Translation step for line-minimizer
 
@@ -228,9 +230,9 @@
       ENDIF
       ! convert position back to direct cord
       CALL kardir(nions,posion,latt_b)
-#endif
+!#endif
 
-!      IF(iu6>0) write(iu6,*) "OPT: LBFGS END subroutine"
+      IF(iu6>0) write(iu6,*) "OPT: LBFGS END subroutine"
     END SUBROUTINE lbfgs_step
 
 !**********************************************************************
