@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.18 2007-07-14 05:33:28 graeme Exp $
+! RCS:  $Id: neb.F,v 1.19 2009-02-09 23:47:30 dano Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -465,7 +465,7 @@
 !======================================================================
       FUNCTION vproj(v1,v2)
       REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      vproj=v2*SUM(v1*v2)/SUM(v2*v2)
       END FUNCTION vproj
 
 END MODULE neb

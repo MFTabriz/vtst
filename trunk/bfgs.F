@@ -367,7 +367,7 @@
 !======================================================================
       FUNCTION vproj(v1,v2)
       REAL(q) :: v1(3,nions),v2(3,nions),vproj(3,nions)
-      vproj=v2*SUM(v1*v2)/SQRT(SUM(v2*v2))
+      vproj=v2*SUM(v1*v2)/SUM(v2*v2)
       END FUNCTION vproj
 
   END MODULE bfgs
