@@ -1,6 +1,6 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: neb.F,v 1.19 2009-02-09 23:47:30 dano Exp $
+! RCS:  $Id: neb.F,v 1.20 2009-02-19 03:44:26 graeme Exp $
 !
 ! Module which implements the elastic band and the nudged
 ! elastic band method (for references see below)
@@ -236,6 +236,8 @@
 !   We are using an algorithm which smoothly turns off the double
 !   nudging as the NEB converges.  To use the original method,
 !   set LDNEBORG=.TRUE.
+!
+!   Thanks to Craig Plaisance for fixing a bug in vproj
 !======================================================================
 
       IF (ldneb) THEN
