@@ -58,7 +58,7 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag
+    LOGICAL :: optflag,fconverge,ftot_flag, IPAUSE
     REAL(q) :: EDIFFG_local,ftot_val
     REAL(q),ALLOCATABLE :: Free(:,:)
 
@@ -83,6 +83,18 @@
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
+      LOGICAL :: lockfile_exists
+
+      IF (IPAUSE) THEN
+        OPEN(UNIT = 1, FILE = "IPAUSE")
+        CLOSE(1)
+        DO
+          INQUIRE(FILE="IPAUSE", EXIST=lockfile_exists)   ! file_exists will be TRUE if the file
+          IF (.NOT. lockfile_exists) exit
+          WRITE(*,*) 'One second pause for IPAUSE.'
+          CALL Sleep(1)
+        ENDDO
+      ENDIF
 
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
@@ -253,6 +265,15 @@
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ICHAIN'' from file INCAR.'
         STOP
       ENDIF
+
+      IPAUSE=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IPAUSE','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,IPAUSE,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''IPAUSE'' from file INCAR.'
+        STOP
+      ENDIF
+
 
       IOPT=0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
