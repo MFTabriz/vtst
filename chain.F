@@ -83,7 +83,7 @@
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
-      LOGICAL :: file_exists
+      LOGICAL :: stopcar_exists, newcar_exists
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
@@ -99,18 +99,21 @@
           WRITE(1, *) force(1, ni), force(2, ni), force(3, ni)
         ENDDO
         CLOSE(1)
-        ! Wait for the NEWCAR.
+        ! Wait for the NEWCAR or STOPCAR.
+        WRITE(*,*) 'Waiting for NEWCAR.'
         DO
-          INQUIRE(FILE = "NEWCAR", EXIST = file_exists)
-          IF (file_exists) exit
-          WRITE(*,*) 'Waiting for NEWCAR.'
+          INQUIRE(FILE = "STOPCAR", EXIST = stopcar_exists)
+          INQUIRE(FILE = "NEWCAR", EXIST = newcar_exists)
+          IF (stopcar_exists .OR. newcar_exists) exit
           CALL Sleep(1)
         ENDDO
         ! Read the NEWCAR in.
-        CALL RD_POSCAR_HEAD(LATT_CUR, T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
-        CALL RD_POSCAR(LATT_CUR, T_I, DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
-        posion = DYN%POSION
-        CALL System('rm NEWCAR')
+        IF (newcar_exists) THEN
+          CALL RD_POSCAR_HEAD(LATT_CUR, T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+          CALL RD_POSCAR(LATT_CUR, T_I, DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+          posion = DYN%POSION
+          CALL System('rm NEWCAR')
+        ENDIF
       ENDIF
       ! /Interactive Mode
 
