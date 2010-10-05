@@ -89,8 +89,6 @@
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
       TYPE (in_struct) :: IO
-!      iu6 = IO%IU6
-!      iu0 = IO%IU0
 
       ! Interactive Mode:
       IF (LINTERACT) THEN
