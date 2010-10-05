@@ -58,7 +58,7 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag, IPAUSE
+    LOGICAL :: optflag,fconverge,ftot_flag, LINTERACT
     REAL(q) :: EDIFFG_local,ftot_val
     REAL(q),ALLOCATABLE :: Free(:,:)
 
@@ -83,18 +83,38 @@
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
-      LOGICAL :: lockfile_exists
+      LOGICAL :: file_exists
+      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
+      TYPE (latt):: LATT_CUR
+      TYPE (TYPE_info) :: T_I
+      TYPE (dynamics) :: DYN
+      TYPE (in_struct) :: IO
+!      iu6 = IO%IU6
+!      iu0 = IO%IU0
 
-      IF (IPAUSE) THEN
-        OPEN(UNIT = 1, FILE = "IPAUSE")
+      ! Interactive Mode:
+      IF (LINTERACT) THEN
+        ! Write the force-energy file.
+        OPEN(UNIT = 1, FILE = "FU")
+        WRITE(1, *) toten
+        DO ni=1,nions
+          WRITE(1, *) force(1, ni), force(2, ni), force(3, ni)
+        ENDDO
         CLOSE(1)
+        ! Wait for the NEWCAR.
         DO
-          INQUIRE(FILE="IPAUSE", EXIST=lockfile_exists)   ! file_exists will be TRUE if the file
-          IF (.NOT. lockfile_exists) exit
-          WRITE(*,*) 'One second pause for IPAUSE.'
+          INQUIRE(FILE = "NEWCAR", EXIST = file_exists)
+          IF (file_exists) exit
+          WRITE(*,*) 'Waiting for NEWCAR.'
           CALL Sleep(1)
         ENDDO
+        ! Read the NEWCAR in.
+        CALL RD_POSCAR_HEAD(LATT_CUR, T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+        CALL RD_POSCAR(LATT_CUR, T_I, DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+        posion = DYN%POSION
+        CALL System('rm NEWCAR')
       ENDIF
+      ! /Interactive Mode
 
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
@@ -266,11 +286,11 @@
         STOP
       ENDIF
 
-      IPAUSE=.FALSE.
-      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IPAUSE','=','#',';','L', &
-     &            IDUM,RDUM,CDUM,IPAUSE,CHARAC,N,1,IERR)
+      LINTERACT=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LINTERACT','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,LINTERACT,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
-        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''IPAUSE'' from file INCAR.'
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LINTERACT'' from file INCAR.'
         STOP
       ENDIF
 
