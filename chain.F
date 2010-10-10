@@ -93,6 +93,7 @@
       ! Interactive Mode:
       IF (LINTERACT) THEN
         ! Write the force-energy file.
+        WRITE(*,*) 'LINTERACT: Writing FU file.'
         OPEN(UNIT = 1, FILE = "FU")
         WRITE(1, *) toten
         DO ni=1,nions
@@ -100,7 +101,7 @@
         ENDDO
         CLOSE(1)
         ! Wait for the NEWCAR or STOPCAR.
-        WRITE(*,*) 'Waiting for NEWCAR.'
+        WRITE(*,*) 'LINTERACT: Waiting for NEWCAR.'
         DO
           INQUIRE(FILE = "STOPCAR", EXIST = stopcar_exists)
           INQUIRE(FILE = "NEWCAR", EXIST = newcar_exists)
