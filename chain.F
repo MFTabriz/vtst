@@ -113,7 +113,7 @@
           CALL RD_POSCAR_HEAD(LATT_CUR, T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
           CALL RD_POSCAR(LATT_CUR, T_I, DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
           posion = DYN%POSION
-          CALL System('rm NEWCAR')
+          CALL unlink("NEWCAR")
         ENDIF
       ENDIF
       ! /Interactive Mode
