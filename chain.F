@@ -84,14 +84,20 @@
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
       LOGICAL :: stopcar_exists, newcar_exists
-      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
+      INTEGER NIOND,NIONPD,NTYPPD,NTYPD,node,ierr
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
       TYPE (in_struct) :: IO
 
+      #if defined(MPI) || defined (MPI_CHAIN)
+        node=comm_chain%node_me
+      #else
+        node=1
+      #endif
+
       ! Interactive Mode:
-      IF (LINTERACT) THEN
+      IF (LINTERACT .AND. node==1) THEN
         ! Write the force-energy file.
         WRITE(*,*) 'LINTERACT: Writing FU file.'
         OPEN(UNIT = 1, FILE = "FU")
@@ -116,6 +122,11 @@
           CALL unlink("NEWCAR")
         ENDIF
       ENDIF
+
+      #if defined(MPI) || defined (MPI_CHAIN)
+          CALLMPI(MPI_Barrier(comm_chain%mpi_comm, ierr))
+      #endif
+
       ! /Interactive Mode
 
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
