@@ -7,7 +7,7 @@
 
 @args=@ARGV;
 @args<2 || die "usage: mkbdrpro.pl <bdrfile>\n";
-$dbrfile="bdr_changes";
+$bdrfile="bdr_changes";
 if(@args==1){
   $bdrfile=$args[0];
 }
