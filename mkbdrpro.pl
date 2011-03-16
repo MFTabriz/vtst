@@ -6,8 +6,11 @@
 # variables needed by the script
 
 @args=@ARGV;
-@args==1 || die "usage: mkbdrpro.pl <bdrfile>\n";
-$bdrfile=$args[0];
+@args<2 || die "usage: mkbdrpro.pl <bdrfile>\n";
+$dbrfile="bdr_changes";
+if(@args==1){
+  $bdrfile=$args[0];
+}
 $sphfile="sphpro.F";
 $outfile="bdrpro.F";
 
