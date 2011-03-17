@@ -90,7 +90,7 @@
       TYPE (dynamics) :: DYN
       TYPE (in_struct) :: IO
 
-      ! Interactive Mode:
+      ! Interactive Mode only have rank 0 process write data
       IF (LINTERACT .AND. IU6>0) THEN
         ! Write the force-energy file.
         WRITE(*,*) 'LINTERACT: Writing FU file.'
