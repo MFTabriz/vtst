@@ -28,9 +28,9 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE opt_step(optflag,posion,toten,force,latt_a,latt_b)
+    SUBROUTINE opt_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      REAL(q) :: hstress(3,3)latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
 
       ! if optflag is false, do nothing
@@ -46,7 +46,7 @@
         CALL cg_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==3) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: QM Step'
-        CALL qm_step(optflag,posion,toten,force,latt_a,latt_b)
+        CALL qm_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
       ELSEIF (iopt==4) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: SD Step'
         CALL sd_step(optflag,posion,toten,force,latt_a,latt_b)

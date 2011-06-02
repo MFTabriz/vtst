@@ -58,7 +58,7 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag, LINTERACT
+    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,cell_flag,twodim_flag
     REAL(q) :: EDIFFG_local,ftot_val
     REAL(q),ALLOCATABLE :: Free(:,:)
 
@@ -77,12 +77,16 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
+    SUBROUTINE chain_force(nions,posion,toten,force,stress,a,b,iu6)
+    !SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
       INTEGER :: nions,ni,nj,iu6
       REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
       REAL(q),DIMENSION(3,3) :: a,b
+      REAL(q),DIMENSION(3,3) :: stress,hstress,stress_vasp
+      REAL(q),DIMENSION(3,3) :: sdA,sdB,sdA2
+      REAL(q) :: stot,smaxdim
       LOGICAL :: stopcar_exists, newcar_exists
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD,ierr
       TYPE (latt):: LATT_CUR
@@ -122,7 +126,9 @@
       #endif
 
       ! /Interactive Mode
-
+ 
+      ! save the original stress tensor
+      stress_vasp = stress
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
         force_vasp=force
@@ -156,7 +162,8 @@
         optflag=.TRUE.
       ELSE
         IF (ICHAIN==0) THEN
-          CALL neb_step(optflag,posion,toten,force,a,b)
+          CALL neb_step(optflag,posion,toten,force,stress,a,b)
+          !CALL neb_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==1) THEN
           CALL dynmat_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==2) THEN
@@ -170,6 +177,18 @@
           CALL instanton_step(optflag,posion,toten,force,a,b)
 !INS_END
         ENDIF
+      ENDIF
+
+      IF (iu6>0) THEN
+        WRITE(iu6,*) "stress matrix after NEB project (eV)"
+        WRITE(iu6,'(3F13.5)') stress
+      ENDIF
+
+      ! 2D calculations (only in x,y)
+      IF (twodim_flag) THEN
+        stress(1,3)=0._q
+        stress(2,3)=0._q
+        stress(3,3)=0._q
       ENDIF
 
       ! zero out any added forces on frozen atoms
@@ -202,6 +221,20 @@
       IF (iu6>=0) WRITE(iu6,4694) SQRT(ftot),fmaxdim
  4694 format(1x,' FORCE total and by dimension',2f12.6)
 
+      ! added to monitor the stress vector 
+      stot=0._q
+      smaxdim=0._q
+      DO ni=1,3
+        DO nj=1,3
+          stot=stot+stress(nj,ni)**2
+          IF(smaxdim.LT.ABS(stress(nj,ni))) THEN
+            smaxdim=ABS(stress(nj,ni))
+          ENDIF
+        ENDDO
+      ENDDO
+ 4695 format(1x,' Stress total and by dimension',2f12.6)
+      IF (iu6>=0) WRITE(iu6,4695) SQRT(stot),smaxdim
+
       ! for dimer/lanczos, use projected force in optimizer
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
         force=force_dimlan
@@ -218,11 +251,18 @@
       ENDIF
 
       IF (IOPT .NE. 0) THEN
+        hstress = stress
+        CALL sdotA(hstress,a)
+        ! freeze out rotation
+        hstress(2,1)=0._q
+        hstress(3,1)=0._q
+        hstress(3,2)=0._q
         fconverge = (fmaxatom .LT. ABS(EDIFFG_local))
         CALLMPI_C(and_chain(fconverge))
         IF (.NOT. fconverge) THEN
           ! our own optimizers (optflag: do or do not optimize)  
-          CALL opt_step(optflag,posion,toten,force,a,b)
+          !CALL opt_step(optflag,posion,toten,force,a,b)
+          CALL opt_step(optflag,posion,toten,force,stress,a,b)
         ELSE
           IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
           ! GH: remove any finite difference steps taken by dimer or lan
@@ -318,6 +358,24 @@
         STOP
       ENDIF
 
+!     determines of cell should change in NEB
+      cell_flag=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LNEBCELL'' from file INCAR.'
+        STOP
+      ENDIF
+
+!     sets stress tensor to two dimentions 
+      twodim_flag=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LTWODIM','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,twodim_flag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LTWODIM'' from file INCAR.'
+        STOP
+      ENDIF
+
 !     USED to converge based on Magnitude of the force
       ftot_flag=.FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FMAGFLAG','=','#',';','L', &
@@ -338,6 +396,12 @@
       ! make sure that convergence is force based when using IOPT
       IF((IOPT .NE. 0) .AND. (EDIFFG_local .GT. 0.0_q)) THEN
         IF(IU6>=0) WRITE(IU6,*) 'Must set  EDIFFG < 0 when using IOPT > 0'
+        STOP
+      ENDIF
+      
+      ! check that solid state NEB uses our Optimizers 
+      IF(IOPT .NE. 3) .AND. (cell_flag .EQ. .TRUE.)THEN
+        IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 when using NEBCELL=.TRUE.'
         STOP
       ENDIF
 
@@ -440,6 +504,105 @@
       value=.TRUE.
       IF (sum_all>=1) value=.FALSE.
       END SUBROUTINE and_chain
+
+!**************** SUBROUTINE s2ts ************************************
+! transform stress tensor to force on vectors
+! true_stress = (stress dot B)^T
+! ) reciprocal lattice  (BASIS must be equal to A direct lattice)
+!***********************************************************************
+
+      SUBROUTINE s2ts(V,BASIS)
+      USE prec
+      IMPLICIT REAL(q) (A-H,O-Z)
+      INTEGER N
+      DIMENSION V(3,3),BASIS(3,3)
+
+      DO N=1,3
+        V1=V(N,1)*BASIS(1,1)+V(N,2)*BASIS(2,1)+V(N,3)*BASIS(3,1)
+        V2=V(N,1)*BASIS(1,2)+V(N,2)*BASIS(2,2)+V(N,3)*BASIS(3,2)
+        V3=V(N,1)*BASIS(1,3)+V(N,2)*BASIS(2,3)+V(N,3)*BASIS(3,3)
+        V(N,1)=V1
+        V(N,2)=V2
+        V(N,3)=V3
+      ENDDO
+
+      RETURN
+      END SUBROUTINE
+!**************** SUBROUTINE ts2s ************************************
+! transforms force on vectors to stress tensor
+!  stress=true_stress^T dot A
+! ) direct lattice      (BASIS must be equal to A direct lattice)
+! to cartesian coordinates
+!***********************************************************************
+
+      SUBROUTINE ts2s(V,BASIS)
+      USE prec
+      IMPLICIT REAL(q) (A-H,O-Z)
+      INTEGER N
+      DIMENSION V(3,3),BASIS(3,3)
+
+      DO N=1,3
+        V1=V(N,1)*BASIS(1,1)+V(N,2)*BASIS(1,2)+V(N,3)*BASIS(1,3)
+        V2=V(N,1)*BASIS(2,1)+V(N,2)*BASIS(2,2)+V(N,3)*BASIS(2,3)
+        V3=V(N,1)*BASIS(3,1)+V(N,2)*BASIS(3,2)+V(N,3)*BASIS(3,3)
+        V(N,1)=V1
+        V(N,2)=V2
+        V(N,3)=V3
+      ENDDO
+
+      RETURN
+      END SUBROUTINE
+
+      SUBROUTINE sdotA(V,BASIS)
+      USE prec
+      IMPLICIT REAL(q) (A-H,O-Z)
+      INTEGER I,J,K
+      DIMENSION V(3,3),BASIS(3,3),AC(3,3)
+      AC=0
+      DO J=1,3
+      DO I=1,3
+         !A(I,J)=AC(I,J)
+         DO K=1,3
+            AC(I,J)=AC(I,J) + V(I,K)*BASIS(K,J)
+         ENDDO
+      ENDDO
+      ENDDO
+      V=AC
+
+      RETURN
+      END SUBROUTINE
+
+      SUBROUTINE sdotB(V,BASIS)
+      USE prec
+      IMPLICIT REAL(q) (A-H,O-Z)
+      INTEGER I,J,K
+      DIMENSION V(3,3),BASIS(3,3),AC(3,3)
+      AC=0
+      DO J=1,3
+      DO I=1,3
+         !A(I,J)=AC(I,J)
+         DO K=1,3
+            AC(I,J)=AC(I,J) + V(I,K)*BASIS(J,K)
+         ENDDO
+      ENDDO
+      ENDDO
+      V=AC
+
+      RETURN
+      END SUBROUTINE
+!======================================================================
+! Returns a unit vector along v1
+!======================================================================
+      FUNCTION return_unit(v1,nmax)
+      INTEGER :: nmax
+      REAL(q) :: v1(3,nmax)
+      REAL(q),dimension(3,nmax) :: return_unit
+      IF (SUM(v1*v1) .NE. 0._q) THEN
+        return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
+      ELSE
+        return_unit=v1*0._q
+      ENDIF
+      END FUNCTION return_unit
 
 #if defined(EAM)
 

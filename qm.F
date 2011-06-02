@@ -16,7 +16,9 @@
 
     INTEGER :: nions,iu0,iu6
     REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
+    REAL(q) :: cvelocity(3,3),cstep(3,3)
     REAL(q) :: maxmove,dt
+    LOGICAL :: cell_flag
 
   CONTAINS
 
@@ -24,10 +26,10 @@
 ! Quick-Min method
 !**********************************************************************
 
-    SUBROUTINE qm_step(optflag,posion,toten,force,latt_a,latt_b)
+    SUBROUTINE qm_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
 
       REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      REAL(q) :: hstress(3,3),latt_a(3,3),latt_b(3,3)
       LOGICAL :: optflag
 
       R = posion
@@ -59,6 +61,23 @@
       CALL kardir(nions,R,latt_b)
       ! update posion
       posion = R
+
+      IF (cell_flag) THEN
+        IF ((SUM(hstress*cvelocity)) .GE. 0.0_q) THEN
+          cvelocity = SUM(cvelocity*hstress)*hstress/SUM(hstress*hstress)
+        ELSE
+          cvelocity = cvelocity*0.0_q
+        ENDIF
+
+        ! Euler step
+        cvelocity = cvelocity+(dt*hstress)
+        cstep = dt*cvelocity
+        IF (SQRT(SUM(cstep*cstep)) .GE. maxmove) THEN
+          cstep = maxmove*cstep/SQRT(SUM(cstep*cstep))
+        ENDIF
+
+        latt_a = latt_a + cstep
+      ENDIF
 
     END SUBROUTINE qm_step
 
@@ -101,11 +120,21 @@
       ! initialize vectors
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
       velocity=0._q
+      cvelocity=0._q
 
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' QM, MAXMOVE ',maxmove
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' QM, TIMESTEP',dt
       END IF
+
+      ! determines of cell should change in NEB
+      cell_flag=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LNEBCELL'' from file INCAR.'
+        STOP
+      ENDIF
 
     END SUBROUTINE qm_init
 
