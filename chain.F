@@ -398,9 +398,9 @@
         IF(IU6>=0) WRITE(IU6,*) 'Must set  EDIFFG < 0 when using IOPT > 0'
         STOP
       ENDIF
-      
+
       ! check that solid state NEB uses our Optimizers 
-      IF(IOPT .NE. 3) .AND. (cell_flag .EQ. .TRUE.)THEN
+      IF((IOPT .NE. 3) .AND. (cell_flag .EQ. .TRUE.)) THEN
         IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 when using NEBCELL=.TRUE.'
         STOP
       ENDIF
@@ -531,7 +531,7 @@
 !**************** SUBROUTINE ts2s ************************************
 ! transforms force on vectors to stress tensor
 !  stress=true_stress^T dot A
-! ) direct lattice      (BASIS must be equal to A direct lattice)
+!  direct lattice      (BASIS must be equal to A direct lattice)
 ! to cartesian coordinates
 !***********************************************************************
 

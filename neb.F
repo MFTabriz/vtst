@@ -89,8 +89,8 @@
 ! communicate all positions to all nodes (brute force, but simple)
 !
       node=comm_chain%node_me
-      dir2car=latt_a
-      car2dir=latt_b
+      !dir2car=latt_a
+      !car2dir=latt_b
 
       posion_all(:,:,1:images)=0
       posion_all(:,:,node)=posion
@@ -251,6 +251,15 @@
         ENDDO
       ENDIF
 
+      IF (cell_flag) THEN
+        IF(iu6>0) THEN
+          WRITE(iu6,*) "NEBCELL: distance previous image"
+          WRITE(iu6,'(3F13.5)') dtot_prev
+          WRITE(iu6,*) "NEBCELL: distance next image"
+          WRITE(iu6,'(3F13.5)') dtot_next
+        ENDIF
+      ENDIF
+
       IF (energy_prev_greater.NEQV.energy_next_greater) THEN
          ! not at an extrema
          IF (energy_prev_greater) THEN
@@ -304,6 +313,8 @@
         IF (iu6>=0) THEN
           !WRITE(iu6,*) "Regular tangent"
           !WRITE(iu6,'(3F13.5)') tangent
+          WRITE(iu6,*) "NEBCELL: Jacobian"
+          WRITE(iu6,'(3F13.5)') jacobian
           WRITE(iu6,*) "NEBCELL: tangent"
           WRITE(iu6,'(3F13.5)') tot_tan
         ENDIF
@@ -648,7 +659,7 @@
       omega_last = LATT_CUR%OMEGA
 
       ! default jacobian is avg legnth/atom 
-      jacobian=(0.5_q*(omega_first+omega_last)/DBLE(nions))**(1._q/3._q)
+      jacobian=(0.5_q*(omega_first+omega_last)/DBLE(nions))**(1._q/3._q)*sqrt(DBLE(nions))
       ! read the jacobian 
       CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'JACOBIAN','=','#',';','F', &
      &            IDUM,spring,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -656,6 +667,7 @@
          IF (IU0>=0) WRITE(IU0,*) 'Error reading item ''JACOBIAN'' from file INCAR.'
          STOP
       ENDIF
+      IF (IU0>=0) WRITE(IU0,*) 'Jacobian: ',jacobian
 
       node=COMM_CHAIN%NODE_ME
       CALL MAKE_DIR_APP(node)

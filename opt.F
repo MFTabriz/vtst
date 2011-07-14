@@ -30,7 +30,7 @@
   CONTAINS
     SUBROUTINE opt_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
       REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: hstress(3,3)latt_a(3,3),latt_b(3,3)
+      REAL(q) :: hstress(3,3),latt_a(3,3),latt_b(3,3)
       LOGICAL optflag
 
       ! if optflag is false, do nothing
