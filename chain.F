@@ -262,7 +262,7 @@
         IF (.NOT. fconverge) THEN
           ! our own optimizers (optflag: do or do not optimize)  
           !CALL opt_step(optflag,posion,toten,force,a,b)
-          CALL opt_step(optflag,posion,toten,force,stress,a,b)
+          CALL opt_step(optflag,posion,toten,force,hstress,a,b)
         ELSE
           IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
           ! GH: remove any finite difference steps taken by dimer or lan
