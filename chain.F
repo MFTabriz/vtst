@@ -510,24 +510,17 @@
 
       CALLMPI(MPI_Comm_rank(comm_chain%mpi_comm, irank, ierr))
 
-      CALLMPI(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &
-                        stat, ierr))
+      CALLMPI(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, stat, ierr))
       mpmd_client_rank = stat(MPI_SOURCE)
 
       WRITE(*,'(A,I4)') 'mpmd_client_rank: ', mpmd_client_rank
 
-      CALLMPI(MPI_Recv(N, 1, MPI_INTEGER8, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
-      CALLMPI(MPI_Recv(atomicNrs, nions, MPI_INTEGER, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
-      CALLMPI(MPI_Recv(R, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
-      CALLMPI(MPI_Recv(box, 9, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
-      CALLMPI(MPI_Recv(pbc, 1, MPI_INTEGER, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
-      CALLMPI(MPI_Recv(icwd, 1024, MPI_INTEGER, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(N, 1, MPI_INTEGER8, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(atomicNrs, nions, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(R, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(box, 9, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(pbc, 1, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(icwd, 1024, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
 
       DO i=1,nions
         posion(1,i) = R(3*(i-1)+1)
@@ -549,10 +542,8 @@
 
       failed = 0
 
-      CALLMPI(MPI_Send(failed, 1, MPI_INTEGER, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, ierr))
-      CALLMPI(MPI_Send(toten, 1, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, ierr))
+      CALLMPI(MPI_Send(failed, 1, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, ierr))
+      CALLMPI(MPI_Send(toten, 1, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, ierr))
 
 
 
@@ -562,8 +553,7 @@
         flat_force((3*(i-1))+3) = force(3,i)
       ENDDO
 
-      CALLMPI(MPI_Send(flat_force, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
-                       MPI_COMM_WORLD, ierr))
+      CALLMPI(MPI_Send(flat_force, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, ierr))
 
 
     END SUBROUTINE mpmd_send
