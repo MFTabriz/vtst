@@ -54,11 +54,15 @@
     PRIVATE
     PUBLIC :: chain_force, chain_init
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
+    INTEGER mpmd_client_rank
+    TYPE (latt):: my_LATT_CUR
+    TYPE (TYPE_info) :: my_T_I
+    TYPE (dynamics) :: my_DYN
 #ifdef EAM
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,cell_flag,twodim_flag
+    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,LMPMD,cell_flag,twodim_flag
     REAL(q) :: EDIFFG_local,ftot_val
     REAL(q),ALLOCATABLE :: Free(:,:)
 
@@ -126,7 +130,17 @@
       #endif
 
       ! /Interactive Mode
- 
+
+      ! MPMD mode
+      IF (LMPMD .AND. (mpmd_client_rank .EQ. -1) .AND. IU6>0) THEN
+        CALL mpmd_recv(nions, posion)
+      ELSE IF (LMPMD .AND. IU6>0) THEN
+        CALL mpmd_send(nions, toten, force)
+        CALL mpmd_recv(nions, posion)
+      ENDIF
+      CALLMPI(MPI_Barrier(comm_chain%mpi_comm, ierr))
+      ! End MPMD mode
+
       ! save the original stress tensor
       stress_vasp = stress
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
@@ -308,6 +322,7 @@
       COMPLEX(q) :: CDUM 
       LOGICAL :: LDUM
       REAL(q) :: RDUM
+      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
 
 #if defined(EAM)
       external EAM_POTINIT
@@ -341,6 +356,13 @@
         STOP
       ENDIF
 
+      LMPMD =.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LMPMD','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,LMPMD,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LMPMD'' from file INCAR.'
+        STOP
+      ENDIF
 
       IOPT=0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
@@ -447,6 +469,13 @@
         ENDDO
       ENDIF
 
+      IF (LMPMD .EQV. .TRUE.) THEN
+        IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: MPMD Mode'
+        mpmd_client_rank = -1
+        CALL RD_POSCAR_HEAD(my_LATT_CUR, my_T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+        CALL RD_POSCAR(my_LATT_CUR, my_T_I, my_DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
+      ENDIF
+
 #if defined(EAM)
       CALL EAM_POTINIT()
       eaminit=.FALSE.
@@ -465,6 +494,79 @@
 #endif
 
     END SUBROUTINE chain_init
+        
+    SUBROUTINE mpmd_recv(nions, posion)
+      INTEGER :: nions, NI
+      REAL(q),DIMENSION(3,nions) :: posion
+
+      INTEGER*8,DIMENSION(nions) :: N
+      INTEGER :: pbc, i, ierr, irank
+      INTEGER,DIMENSION(nions) :: atomicNrs
+      INTEGER,DIMENSION(1024) :: icwd
+      REAL(q),DIMENSION(3*nions) :: R
+      REAL(q),DIMENSION(9) :: box
+
+      INTEGER stat(MPI_STATUS_SIZE)
+
+      CALLMPI(MPI_Comm_rank(comm_chain%mpi_comm, irank, ierr))
+
+      CALLMPI(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &
+                        stat, ierr))
+      mpmd_client_rank = stat(MPI_SOURCE)
+
+      WRITE(*,'(A,I4)') 'mpmd_client_rank: ', mpmd_client_rank
+
+      CALLMPI(MPI_Recv(N, 1, MPI_INTEGER8, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(atomicNrs, nions, MPI_INTEGER, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(R, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(box, 9, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(pbc, 1, MPI_INTEGER, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(icwd, 1024, MPI_INTEGER, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+
+      DO i=1,nions
+        posion(1,i) = R(3*(i-1)+1)
+        posion(2,i) = R(3*(i-1)+2)
+        posion(3,i) = R(3*(i-1)+3)
+      ENDDO
+
+      DO NI=1,nions
+        CALL KARDIR(1,POSION(1:3,NI),my_LATT_CUR%B)
+      ENDDO
+
+    END SUBROUTINE
+
+    SUBROUTINE mpmd_send(nions, toten, force)
+      REAL(q) :: toten
+      INTEGER :: nions, ierr, failed, i 
+      REAL(q),DIMENSION(3,nions) :: force
+      REAL(q),DIMENSION(3*nions) :: flat_force
+
+      failed = 0
+
+      CALLMPI(MPI_Send(failed, 1, MPI_INTEGER, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, ierr))
+      CALLMPI(MPI_Send(toten, 1, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, ierr))
+
+
+
+      DO i=1,nions
+        flat_force((3*(i-1))+1) = force(1,i)
+        flat_force((3*(i-1))+2) = force(2,i)
+        flat_force((3*(i-1))+3) = force(3,i)
+      ENDDO
+
+      CALLMPI(MPI_Send(flat_force, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, &
+                       MPI_COMM_WORLD, ierr))
+
+
+    END SUBROUTINE mpmd_send
 
 !**********************************************************************
 ! Returns true if hyper nudged elastic band method is used
