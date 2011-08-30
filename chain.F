@@ -55,9 +55,6 @@
     PUBLIC :: chain_force, chain_init
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
     INTEGER mpmd_client_rank
-    TYPE (latt):: my_LATT_CUR
-    TYPE (TYPE_info) :: my_T_I
-    TYPE (dynamics) :: my_DYN
 #ifdef EAM
     PRIVATE :: EAMForce
 #endif
@@ -133,10 +130,10 @@
 
       ! MPMD mode
       IF (LMPMD .AND. (mpmd_client_rank .EQ. -1) .AND. IU6>0) THEN
-        CALL mpmd_recv(nions, posion)
+        CALL mpmd_recv(nions, posion, b)
       ELSE IF (LMPMD .AND. IU6>0) THEN
         CALL mpmd_send(nions, toten, force)
-        CALL mpmd_recv(nions, posion)
+        CALL mpmd_recv(nions, posion, b)
       ENDIF
       CALLMPI(MPI_Barrier(comm_chain%mpi_comm, ierr))
       ! End MPMD mode
@@ -471,9 +468,8 @@
 
       IF (LMPMD .EQV. .TRUE.) THEN
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: MPMD Mode'
+        IF (IO%IU0>=0) WRITE(IU0,*) 'CHAIN: MPMD Mode'
         mpmd_client_rank = -1
-        CALL RD_POSCAR_HEAD(my_LATT_CUR, my_T_I, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
-        CALL RD_POSCAR(my_LATT_CUR, my_T_I, my_DYN, NIOND, NIONPD, NTYPD, NTYPPD, IO%IU0, IO%IU6)
       ENDIF
 
 #if defined(EAM)
@@ -495,7 +491,7 @@
 
     END SUBROUTINE chain_init
         
-    SUBROUTINE mpmd_recv(nions, posion)
+    SUBROUTINE mpmd_recv(nions, posion, b)
       INTEGER :: nions, NI
       REAL(q),DIMENSION(3,nions) :: posion
 
@@ -505,6 +501,7 @@
       INTEGER,DIMENSION(1024) :: icwd
       REAL(q),DIMENSION(3*nions) :: R
       REAL(q),DIMENSION(9) :: box
+      REAL(q),DIMENSION(3,3) :: b
 
       INTEGER stat(MPI_STATUS_SIZE)
 
@@ -529,7 +526,7 @@
       ENDDO
 
       DO NI=1,nions
-        CALL KARDIR(1,POSION(1:3,NI),my_LATT_CUR%B)
+        CALL KARDIR(1,POSION(1:3,NI),b)
       ENDDO
 
     END SUBROUTINE
