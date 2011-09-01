@@ -60,7 +60,7 @@
 #endif
     INTEGER :: ICHAIN,IOPT
     LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,LMPMD,cell_flag,twodim_flag
-    REAL(q) :: EDIFFG_local,ftot_val
+    REAL(q) :: EDIFFG_local,ftot_val,jacobian
     REAL(q),ALLOCATABLE :: Free(:,:)
 
 #ifdef EAM
@@ -268,6 +268,7 @@
         hstress(2,1)=0._q
         hstress(3,1)=0._q
         hstress(3,2)=0._q
+        hstress = hstress/jacobian
         fconverge = (fmaxatom .LT. ABS(EDIFFG_local))
         CALLMPI_C(and_chain(fconverge))
         IF (.NOT. fconverge) THEN
@@ -319,7 +320,12 @@
       COMPLEX(q) :: CDUM 
       LOGICAL :: LDUM
       REAL(q) :: RDUM
+      REAL(q) :: omega
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
+      TYPE (latt):: LATT_CUR
+      TYPE (TYPE_info) :: T_I
+      TYPE (dynamics) :: DYN
+
 
 #if defined(EAM)
       external EAM_POTINIT
@@ -426,11 +432,26 @@
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
+      IF(IMAGES==0) THEN
+          CALL RD_POSCAR_HEAD(LATT_CUR, T_I, &
+               NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
+          CALL RD_POSCAR(LATT_CUR, T_I, DYN, &
+               NIOND,NIONPD, NTYPD,NTYPPD, IO%IU0, IO%IU6)
+
+          IF (T_I%NIONS /= T_INFO%NIONS) THEN
+             IF (IU0>=0) WRITE(IU0,*)'ERROR: image mode number of ions wrong'
+          STOP
+          ENDIF
+          omega = LATT_CUR%OMEGA
+          jacobian = (omega/DBLE(T_INFO%nions))**(1._q/3._q)*sqrt(DBLE(T_INFO%nions))
+      ENDIF
+
       IF(ICHAIN==0) THEN
         IF(IMAGES>0) THEN
+          jacobian = 0.0_q
           IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the NEB'
         ENDIF
-        CALL neb_init(T_INFO,IO)
+        CALL neb_init(T_INFO,IO,jacobian)
       ELSEIF(ICHAIN==1) THEN
         IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Dynamical Matrix'
         CALL dynmat_init(T_INFO,IO)

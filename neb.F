@@ -513,10 +513,11 @@
 !
 !**********************************************************************
 
-    SUBROUTINE neb_init (T_INFO, IO)
+    SUBROUTINE neb_init (T_INFO, IO, chain_jacob)
       USE base
       TYPE (in_struct) :: IO
       TYPE (TYPE_info) :: T_INFO
+      REAL(q) :: chain_jacob
 
       ! needed only temporarily for reading
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
@@ -668,6 +669,7 @@
          STOP
       ENDIF
       IF (IU0>=0) WRITE(IU0,*) 'Jacobian: ',jacobian
+      chain_jacob = jacobian
 
       node=COMM_CHAIN%NODE_ME
       CALL MAKE_DIR_APP(node)
