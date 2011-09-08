@@ -129,9 +129,7 @@
       ! /Interactive Mode
 
       ! MPMD mode
-      IF (LMPMD .AND. (mpmd_client_rank .EQ. -1) .AND. IU6>0) THEN
-        CALL mpmd_recv(nions, posion, b)
-      ELSE IF (LMPMD .AND. IU6>0) THEN
+      IF (LMPMD .AND. IU6>0) THEN
         CALL mpmd_send(nions, toten, force)
         CALL mpmd_recv(nions, posion, b)
       ENDIF
@@ -489,8 +487,7 @@
 
       IF (LMPMD .EQV. .TRUE.) THEN
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: MPMD Mode'
-        IF (IO%IU0>=0) WRITE(IU0,*) 'CHAIN: MPMD Mode'
-        mpmd_client_rank = -1
+        mpmd_client_rank = comm_chain%mpmd_client_rank
       ENDIF
 
 #if defined(EAM)
@@ -515,6 +512,7 @@
     SUBROUTINE mpmd_recv(nions, posion, b)
       INTEGER :: nions, NI
       REAL(q),DIMENSION(3,nions) :: posion
+      REAL(q),DIMENSION(3,3) :: b
 
       INTEGER*8,DIMENSION(nions) :: N
       INTEGER :: pbc, i, ierr, irank
@@ -522,7 +520,6 @@
       INTEGER,DIMENSION(1024) :: icwd
       REAL(q),DIMENSION(3*nions) :: R
       REAL(q),DIMENSION(9) :: box
-      REAL(q),DIMENSION(3,3) :: b
 
       INTEGER stat(MPI_STATUS_SIZE)
 
@@ -530,8 +527,6 @@
 
       CALLMPI(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, stat, ierr))
       mpmd_client_rank = stat(MPI_SOURCE)
-
-      WRITE(*,'(A,I4)') 'mpmd_client_rank: ', mpmd_client_rank
 
       CALLMPI(MPI_Recv(N, 1, MPI_INTEGER8, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
       CALLMPI(MPI_Recv(atomicNrs, nions, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
@@ -562,8 +557,6 @@
 
       CALLMPI(MPI_Send(failed, 1, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, ierr))
       CALLMPI(MPI_Send(toten, 1, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, ierr))
-
-
 
       DO i=1,nions
         flat_force((3*(i-1))+1) = force(1,i)
