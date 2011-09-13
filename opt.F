@@ -58,7 +58,7 @@
 !        CALL dynamic_step(optflag,posion,toten,force,latt_a,latt_b)
       ELSEIF (iopt==7) THEN
         IF (iu6>=0) WRITE(iu6,*) 'OPT: FIRE Step'
-        CALL fire_step(optflag,posion,toten,force,latt_a,latt_b)
+        CALL fire_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
       ENDIF
 
 ! Put atoms back inside box

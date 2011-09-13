@@ -424,8 +424,10 @@
 
       ! check that solid state NEB uses our Optimizers 
       IF((IOPT .NE. 3) .AND. (cell_flag .EQV. .TRUE.)) THEN
-        IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 when using NEBCELL=.TRUE.'
-        STOP
+        IF(IOPT .NE. 7) THEN
+          IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using LNEBCELL=.TRUE.'
+          STOP
+        ENDIF
       ENDIF
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN

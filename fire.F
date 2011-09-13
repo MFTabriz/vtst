@@ -17,19 +17,20 @@
 
     INTEGER :: nions,iu0,iu6,Nsteps,Nmin
     REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
+    REAL(q) :: cvelocity(3,3),cstep(3,3)
     REAL(q) :: maxmove,dt,dtmax
     REAL(q) :: finc,fdec,fadec,alpha,alpha_start
-    LOGICAL :: qmflag
+    LOGICAL :: qmflag, cell_flag
 
 !**********************************************************************
 ! Fast Inertial Relaxation Engine (FIRE) method
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE fire_step(optflag,posion,toten,force,latt_a,latt_b)
+    SUBROUTINE fire_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
 
       REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: latt_a(3,3),latt_b(3,3)
+      REAL(q) :: hstress(3,3),latt_a(3,3),latt_b(3,3)
       REAL(q) :: Power
       LOGICAL :: optflag
 
@@ -42,15 +43,21 @@
 
       If (SUM(velocity) .NE. 0.0_q)THEN
         Power = SUM(force*velocity)
+        IF (cell_flag) Power = SUM(force*velocity)+SUM(hstress*cvelocity)
         IF (Power .GT. 0.0_q) THEN
 
           IF(qmflag) THEN
             ! qm step -> keep velocity in direction of force
             velocity = SUM(velocity*force)*force/SUM(force*force)
+            IF (cell_flag) cvelocity = SUM(cvelocity*hstress)*hstress/SUM(hstress*hstress)
           ELSE
             ! fire -> keeps most of the intial velocity
             velocity = (1.0_q-alpha)*velocity+ &
               alpha*force/SQRT(SUM(force*force))*SQRT(SUM(velocity*velocity))
+            IF (cell_flag) THEN
+              cvelocity = (1.0_q-alpha)*cvelocity+ &
+                alpha*hstress/SQRT(SUM(hstress*hstress))*SQRT(SUM(cvelocity*cvelocity))
+            ENDIF
           ENDIF
 
           IF (Nsteps .GE. Nmin) THEN
@@ -62,6 +69,7 @@
         ELSE
           ! reset alpha, velocity and decrease dt
           velocity = velocity*0.0_q
+          IF (cell_flag) cvelocity = cvelocity*0.0_q
           alpha = alpha_start
           dt = dt*fdec
           Nsteps = 0
@@ -81,10 +89,20 @@
       ! update posion
       posion = R
 
+      IF (cell_flag) THEN
+        cvelocity = cvelocity+(dt*hstress)
+        cstep = dt*cvelocity
+        IF (SQRT(SUM(cstep*cstep)) .GE. maxmove) THEN
+          cstep = maxmove*cstep/SQRT(SUM(cstep*cstep))
+        ENDIF
+        latt_a = latt_a + cstep
+      ENDIF
+
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, TIMESTEP ',dt
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, alpha    ',alpha
       END IF
+
 
 
     END SUBROUTINE fire_step
@@ -185,8 +203,18 @@
       ALLOCATE(step(3,nions),velocity(3,nions),R(3,nions))
 
       velocity = 0._q
+      cvelocity = 0._q
       Nsteps = 0
       alpha = alpha_start
+
+      ! determines of cell should change
+      cell_flag=.FALSE.
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LNEBCELL'' from file INCAR.'
+        STOP
+      ENDIF
 
       IF (iu6>=0) THEN
         WRITE(iu6,'(A5,A,F12.5)') 'OPT:',' FIRE, MAXMOVE  ',maxmove
