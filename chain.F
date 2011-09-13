@@ -129,10 +129,12 @@
       ! /Interactive Mode
 
       ! MPMD mode
+      #ifdef VASP_MPMD
       IF (LMPMD .AND. IU6>0) THEN
         CALL mpmd_send(nions, toten, force)
         CALL mpmd_recv(nions, posion, b)
       ENDIF
+      #endif
       CALLMPI(MPI_Barrier(comm_chain%mpi_comm, ierr))
       ! End MPMD mode
 
@@ -487,10 +489,12 @@
         ENDDO
       ENDIF
 
+      #ifdef VASP_MPMD
       IF (LMPMD .EQV. .TRUE.) THEN
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: MPMD Mode'
         mpmd_client_rank = comm_chain%mpmd_client_rank
       ENDIF
+      #endif
 
 #if defined(EAM)
       CALL EAM_POTINIT()
@@ -511,6 +515,7 @@
 
     END SUBROUTINE chain_init
         
+    #ifdef VASP_MPMD
     SUBROUTINE mpmd_recv(nions, posion, b)
       INTEGER :: nions, NI
       REAL(q),DIMENSION(3,nions) :: posion
@@ -549,6 +554,7 @@
 
     END SUBROUTINE
 
+
     SUBROUTINE mpmd_send(nions, toten, force)
       REAL(q) :: toten
       INTEGER :: nions, ierr, failed, i 
@@ -570,6 +576,7 @@
 
 
     END SUBROUTINE mpmd_send
+    #endif
 
 !**********************************************************************
 ! Returns true if hyper nudged elastic band method is used
