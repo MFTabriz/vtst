@@ -136,7 +136,7 @@
              rho(memory) = &
            & 1.0_q/SUM(change_in_G(memory,:,:,:)*change_in_R(memory,:,:,:))
            ENDIF
-           IF(iu6>0) write(iu6,*) 'OPT: LBFGS, itr,rho: ',itr,rho(itr)
+           IF(iu6>0) write(iu6,*) 'OPT: LBFGS, itr, rho: ',itr,rho(itr)
         ENDIF
 
         Rold = R
@@ -191,7 +191,7 @@
         ENDIF
 
 
-        IF(iu6>0) write(iu6,*) "OPT: LBFGS fdstep end"
+        IF(iu6>0) write(iu6,*) "OPT: LBFGS, fdstep end"
 
       ELSE  ! Translation step for line-minimizer
 
@@ -225,8 +225,8 @@
       ENDIF
 
       IF(iu6>0) THEN
-        WRITE(iu6,*)'OPT: LBFGS: POSION in car cord' 
-        WRITE(iu6,*) posion
+        WRITE(iu6,*)'OPT: LBFGS: positions in Cartesian coordinates' 
+        write(iu6,'(3f16.8)') posion
       ENDIF
       ! convert position back to direct cord
       CALL kardir(nions,posion,latt_b)
