@@ -15,7 +15,7 @@
 ! NOTE: the vasp folks have now added their own dynamical matrix
 ! code.  The only advantage of this dynamical matrix implementation
 ! is that you can combine forces from multiple vasp runs.  This
-! makes it easier to separate a large calculation into serveral jobs,
+! makes it easier to separate a large calculation into several jobs,
 ! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
