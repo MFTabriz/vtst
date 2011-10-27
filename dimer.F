@@ -151,7 +151,7 @@
         CALL KARDIR(NIONS,POSION,B)
         IF (IU6>=0) THEN
           OPEN(UNIT=IUcent,FILE='CENTCAR',STATUS='UNKNOWN')
-          CALL OUTCENT(IUcent,.TRUE.,DINFO%SZNAM2,1._q,A,DINFO%NTYP, & 
+          CALL OUTCENT(IUcent,.TRUE.,DINFO%SZNAM2,DINFO,1._q,A,DINFO%NTYP, & 
                     & DINFO%NITYP,DINFO%LSDYN,DINFO%NIONS,POSION,DINFO%LSFOR)
           CLOSE(IUcent)
         END IF
@@ -460,23 +460,24 @@
 ! Write the CENTCAR.  This routine is taken from poscar.F with a small change:
 ! the selective dynamics line is writen to the file.
 
-    SUBROUTINE OUTCENT(IU,LLONG,SZNAM,SCALE,Atmp,NTYP,NITYP,LSDYN,NIONS,POSION,LSFOR)
+    SUBROUTINE OUTCENT(IU,LLONG,SZNAM,T_INFO,SCALE,Atmp,NTYP,NITYP,LSDYN,NIONS,POSION,LSFOR)
 !      USE prec
 !      IMPLICIT REAL(q) (A-H,O-Z)
 
-      INTEGER IU,NIONS,NTYP
       LOGICAL LLONG,LSDYN
+      TYPE (type_info) :: T_INFO
+      REAL(q) :: SCALE
       REAL(q),DIMENSION(3,3) :: Atmp
       REAL(q),DIMENSION(3,NIONS) :: POSION
       LOGICAL,DIMENSION(3,NIONS) :: LSFOR
       INTEGER,DIMENSION(NTYP) :: NITYP
-      REAL(q) :: SCALE
 !      DIMENSION A(3,3)
 !      DIMENSION POSION(3,NIONS)
 !      DIMENSION LSFOR (3,NIONS)
 !      DIMENSION NITYP(NTYP)
       CHARACTER*40 FORM
       CHARACTER*40 SZNAM
+      INTEGER IU,NIONS,NTYP
       INTEGER NT,NI
 
 !-----direct lattice
@@ -489,6 +490,10 @@
         FORM='(1X,3F12.6)'
       ENDIF
       WRITE(IU,FORM) (Atmp(1,I)/SCALE,Atmp(2,I)/SCALE,Atmp(3,I)/SCALE,I=1,3)
+
+      IF (T_INFO%TYPE(1)/='  ') THEN
+         WRITE(IU,'(20A5)') (T_INFO%TYPE(NT),NT=1,T_INFO%NTYP)
+      ENDIF
 
       WRITE(IU,'(20I4)') (NITYP(NT),NT=1,NTYP)
       IF (LSDYN) WRITE(IU,'(A18)') 'Selective dynamics'
