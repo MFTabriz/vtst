@@ -59,8 +59,9 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,LMPMD,cell_flag,twodim_flag
-    REAL(q) :: EDIFFG_local,ftot_val,jacobian
+    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,LMPMD
+    LOGICAL :: sconverge,cell_flag,twodim_flag
+    REAL(q) :: EDIFFG_local,ftot_val,jacobian,PSTRESS_local 
     REAL(q),ALLOCATABLE :: Free(:,:)
 
 #ifdef EAM
@@ -80,7 +81,7 @@
   CONTAINS
     SUBROUTINE chain_force(nions,posion,toten,force,stress,a,b,iu6)
     !SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
-      INTEGER :: nions,ni,nj,iu6
+      INTEGER :: nions,ni,nj,iu6,I
       REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
@@ -88,6 +89,7 @@
       REAL(q),DIMENSION(3,3) :: stress,hstress,stress_vasp
       REAL(q),DIMENSION(3,3) :: sdA,sdB,sdA2
       REAL(q) :: stot,smaxdim
+      REAL(q) :: omega
       LOGICAL :: stopcar_exists, newcar_exists
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD,ierr
       TYPE (latt):: LATT_CUR
@@ -140,6 +142,18 @@
 
       ! save the original stress tensor
       stress_vasp = stress
+      ! if we are not using vasp optimizers we need to add 
+      ! the pressure to the stress tensor
+      IF (IOPT .NE. 0) THEN
+        ! find volume of cell
+        omega =  a(1,1)*(a(2,2)*a(3,3)-a(2,3)*a(3,2)) 
+        omega = omega - a(1,2)*(a(2,1)*a(3,3)-a(3,1)*a(2,3)) 
+        omega = omega + a(1,3)*(a(2,1)*a(3,2)-a(3,1)*a(2,2)) 
+        DO I=1,3
+          stress(I,I) = stress(I,I) - omega * PSTRESS_local 
+        ENDDO
+      ENDIF
+
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
         force_vasp=force
@@ -276,11 +290,21 @@
           !CALL opt_step(optflag,posion,toten,force,a,b)
           CALL opt_step(optflag,posion,toten,force,hstress,a,b)
         ELSE
-          IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
-          ! GH: remove any finite difference steps taken by dimer or lan
-          IF (ICHAIN==2 .OR. ICHAIN==3)  posion=posion_vasp
-          IF (ICHAIN==2) THEN
-            CALL dimer_fin()
+          IF (cell_flag) THEN
+            sconverge = (smaxdim .LT. ABS(EDIFFG_local)*dble(nions))
+            CALLMPI_C(and_chain(sconverge))
+          ELSE 
+            sconverge = .TRUE.
+          ENDIF
+          IF (.NOT. sconverge) THEN
+            CALL opt_step(optflag,posion,toten,force,hstress,a,b)
+          ELSE
+            IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
+            ! GH: remove any finite difference steps taken by dimer or lan
+            IF (ICHAIN==2 .OR. ICHAIN==3)  posion=posion_vasp
+            IF (ICHAIN==2) THEN
+              CALL dimer_fin()
+            ENDIF
           ENDIF
         ENDIF
       ENDIF
@@ -297,6 +321,8 @@
     IF (ICHAIN==2 .OR. ICHAIN==3) THEN
       force=force_vasp
     ENDIF
+    ! return unprojected stress vasp
+    stress =  stress_vasp
 
     END SUBROUTINE chain_force
 
@@ -321,6 +347,7 @@
       LOGICAL :: LDUM
       REAL(q) :: RDUM
       REAL(q) :: omega
+      PARAMETER EVTOJ=1.60217733E-19_q
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
@@ -431,6 +458,15 @@
           STOP
         ENDIF
       ENDIF
+
+      PSTRESS_local=0.0_q
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'PSTRESS','=','#',';','F', &
+     &            IDUM,PSTRESS_local,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''PSTRESS'' from file INCAR.'
+        STOP
+      ENDIF
+      PSTRESS_local=PSTRESS_local/(EVTOJ*1E22_q)
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
