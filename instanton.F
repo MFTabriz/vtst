@@ -21,7 +21,7 @@
     INTEGER nions
 
 #if defined(MPI) || defined(MPI_CHAIN)
-    
+
 ! Physical constants
     REAL(q),PARAMETER :: kB=8.61738573e-5_q
     REAL(q),PARAMETER :: hbar=6.46538e-2_q
@@ -150,7 +150,7 @@
           IF (ifcg) THEN
             IF (line_step) THEN
               CALL cg()                             ! -> effective_force has already been called
-            ELSE                                    ! -> min_step = .TRUE. now   
+            ELSE                                    ! -> min_step = .TRUE. now
               CALL ins_force()
 ! This may need to be changed if running prefactor in the same run
 ! Or maybe not since this part should not be reached if the system has
@@ -232,9 +232,9 @@
       IF (iu6 >= 0) THEN
         OPEN(iuins,FILE=DIR_APP(1:DIR_LEN)//'insout.dat')
         WRITE(iuins,'(A)')  &
-  &          '# ut    itr     fc      Pot. En.       Spr. En.         Fmax         eig' 
+  &          '# ut    itr     fc      Pot. En.       Spr. En.         Fmax         eig'
       END IF
- 
+
 ! Read in the variables necessary for instanton calculations
 ! Use here the keyletter "Q" to note variables for instanton calculations 
 ! ... Eigenvalue tolerance for Lanczos iteration
@@ -396,7 +396,7 @@
         END DO
 
 !      END IF
-      
+
       IF (ifcg) THEN
         ALLOCATE(Fold(3,ntot,nim),dold(3,ntot,nim),du(3,ntot,nim),d(3,ntot,nim),     &
   &              Ftmp(3,ntot,nim))
@@ -409,14 +409,14 @@
         ALLOCATE(vel(3,ntot,nim))
         vel=0.0_q
       END IF
-   
-! Do it like this here (i.e. only on node 1) , otherwise all the images get the same 
+
+! Do it like this here (i.e. only on node 1) , otherwise all the images get the same
 ! random numbers since it done with the same seed on separate processors
       node=comm_chain%node_me
       IF (node == 1) THEN
         INQUIRE(FILE=DIR_APP(1:DIR_LEN)//'MODECAR',EXIST=ertil)
         IF (ertil) THEN
-          IF (iu6 >= 0) WRITE(iuins,'(A)') ' Found a MODECAR -> reading it ... ' 
+          IF (iu6 >= 0) WRITE(iuins,'(A)') ' Found a MODECAR -> reading it ... '
           OPEN(738,FILE=DIR_APP(1:DIR_LEN)//'MODECAR',STATUS='old',ACTION='read')
           DO im=1,nim
             READ(738,*) (w(:,i,im) , i=1,ntot)
@@ -449,7 +449,7 @@
 
 
 !**********************************************************************
-! 
+!
 ! Apply the Lanczos algorithm to isolate the lowest curvarture mode at
 ! a given configuration. The current configuration is saved in "R0".
 !
@@ -543,7 +543,7 @@
 !            alpha=alpha+m(i,1)*bl(i)
 !          end do
 !          if (iu6 >= 0) write(iuins,*) alpha,eig,alpha/eig
-            
+
 ! Extract the real mode
           w=0.0_q
           DO i=1,it
@@ -558,7 +558,7 @@
             CLOSE(739)
           END IF
         ELSE
-! Do one more lanczos step  
+! Do one more lanczos step
           it=it+1
           qqold=qq
           qq=w/bta
@@ -593,10 +593,9 @@
       REAL(q),DIMENSION(3*ndof*nim) :: work
       INTEGER :: info
 
-
 ! Ok, lets start this part !!
 ! We come in here after calculating the force and energy for the INITIAL point
-! --> need to do finite difference around it. 
+! --> need to do finite difference around it.
 
 ! Imaginary time step size
       dtau=hbar/(kB*tpz*nim)
@@ -615,7 +614,7 @@
         U0=Uim
         IF (iu6 >= 0) THEN
           WRITE(iuins,'(1X,1A4,1X,1I4,1X,1A19,/)') 'Need',2*ndof+1,'steps for prefactor'
-          WRITE(iuins,'(1X,1A25)') 'Active degrees of freedom' 
+          WRITE(iuins,'(1X,1A25)') 'Active degrees of freedom'
           WRITE(iuins,'(3(1A4,2X))') 'dof','atom','comp'
           DO i=1,ndof-1
             WRITE(iuins,'(3(1I4,2X))') ifra(i),CEILING(REAL(ifra(i),q)/3),MOD(ifra(i)-1,3)+1
@@ -628,7 +627,7 @@
 
       IF (first_step) THEN
         first_step=.FALSE.
- 
+
         c_ndof=c_ndof+1
         IF (c_ndof <= ndof) THEN
           active_dof=MOD(ifra(c_ndof)-1,3)+1
@@ -646,12 +645,12 @@
               tatm=CEILING(REAL(ifra(j),q)/3)
               premat(shi+i,shi+j)=-(Fim(tdof,tatm,im)-Ftmp(tdof,tatm,im))/(2.0_q*dR)
             END DO
-          END DO       
+          END DO
         END IF
 
 ! If we have reached the last step, then make the hessian blocks symmetric and scale them,
 ! else move the system again
-        IF (c_ndof > ndof) THEN  
+        IF (c_ndof > ndof) THEN
           DO im=1,nim/2
             jm=nim-im+1
             shi=ndof*(im-1)
@@ -756,12 +755,11 @@
             WRITE(iuins,'(1X,1A25,1X,1ES14.6)') 'Log(Prefactor) [s^-1]   =',p2-LOG(time_unit)
           END IF
 
-
 !          d(1)=-d(1)
 !!          d(1)=1.0_q2
 !          d(2)=1.0_q2
 !! Work with the LN of the prefactor
-!          pfac = 0.5_q2 * LOG(S0/(2.0_q2*PI*hbar))                &     
+!          pfac = 0.5_q2 * LOG(S0/(2.0_q2*PI*hbar))                &
 !   &           -          LOG(dtau)                               &
 !   &           - 0.5_q2 * SUM(LOG(d))                             &
 !   &           -         (SUM(Uins)-Uref)/(kB*tpz)                &
@@ -773,7 +771,7 @@
 
 
 ! All done here ---> KILL KILL KILL 
-          tifor=0.0_q              
+          tifor=0.0_q
         ELSE
 ! Move the system in the active dof and recalculate the force
           IF (iu6 >= 0) THEN
@@ -793,7 +791,7 @@
         Ftmp=Fim
 ! Move the system in the active dof and recalculate the force
         IF (iu6 >= 0) THEN
-          WRITE(iuins,'(1X,1A11,2X,1I4,2X,1A16,2X,1I4)')                                  & 
+          WRITE(iuins,'(1X,1A11,2X,1I4,2X,1A16,2X,1I4)')                                  &
   &                    'Moving atom',active_atom,'& component in +',active_dof 
           END IF
 
@@ -837,7 +835,7 @@
 
       zero_mode=nim*kB*tpz/hbar*sum(fs0)
 
-    END FUNCTION zero_mode 
+    END FUNCTION zero_mode
 
 !**********************************************************************
 !
@@ -861,7 +859,7 @@
 ! Estimate the curvature along the conjugate direction
         line_step=.FALSE.
         IF (iu6 >= 0) THEN
-          WRITE(iuins,'(A)') ' Doing line-min in sub. cg() ' 
+          WRITE(iuins,'(A)') ' Doing line-min in sub. cg() '
           WRITE(iuins,'(A,1F14.8)')  '   Energy -> ',SUM(U0)
         END IF
 ! F0 is the force at the local point
@@ -872,14 +870,14 @@
           b1=SUM(F0*(F0-Fold))/a2
         ELSE
           b1=0.0_q
-        END IF    
+        END IF
         d=F0+b1*dold
         du=d/SQRT(SUM(d**2))
         f1d=SUM(F0*du)
         Ftmp=F0
 !        Fold=F0
-!        dold=d            
-        Rim=R0+dR*du        
+!        dold=d
+        Rim=R0+dR*du
       ELSE
         line_step=.TRUE.
 ! Minimize along the conjugate direction
@@ -1022,7 +1020,7 @@
 !        Fim(:,:,jm)=Fim(:,:,im)
 !        Rim(:,:,jm)=Rim(:,:,im)
 !        Uim(jm)=Uim(im)
-!      END DO           
+!      END DO
 !      Uim=Uim/nim
 
       Fim=Fim/nim
@@ -1041,12 +1039,12 @@
         tt=SUM(dx*t)
         Usp(im)   = Usp(im)   + tt * 0.25_q
         Usp(im+1) = Usp(im+1) + tt * 0.25_q
-      END DO   
+      END DO
       DO im=1,nim/2
         jm=nim-im+1
         Fsp(:,:,jm)=Fsp(:,:,im)
         Usp(jm)=Usp(im)
-      END DO   
+      END DO
 
 !      Uim=Uim*nim
 !      Fim=Fim*nim
@@ -1115,7 +1113,7 @@
     SUBROUTINE mic(v,n)
       INTEGER :: n
       REAL(q),INTENT(INOUT),DIMENSION(3,n) :: v
-    
+
       CALL KARDIR(n,v,latt_b)
       v=MOD(v+100.5_q,1.0_q)-0.5_q
       CALL DIRKAR(n,v,latt_a)
@@ -1129,7 +1127,7 @@
 !
 !**********************************************************************
 
-    SUBROUTINE pbc() 
+    SUBROUTINE pbc()
 
 
       RETURN
@@ -1144,7 +1142,7 @@
       R0=Rim
       F0=Fim
       CALL qm()
-   
+
       RETURN
     END SUBROUTINE test_qm
 
@@ -1174,7 +1172,7 @@
     END SUBROUTINE test_cg
 
 !**********************************************************************
- 
- #endif
+
+#endif
 
   END MODULE instanton
