@@ -341,6 +341,7 @@
 !   ICHAIN==1: dynamical matrix
 !   ICHAIN==2: dimer method
 !   ICHAIN==3: lanczos method
+!   ICHAIN==5: bond-boost method
 !**********************************************************************
 
     SUBROUTINE chain_init(T_INFO, IO)
@@ -520,7 +521,7 @@
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Instanton method'
         CALL instanton_init(T_INFO,IO)
 !INS_END
-      ELSEIF(ICHHAIN=5) THEN
+      ELSEIF(ICHAIN==5) THEN
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the bond-boost method'
       CALL bbm_init(T_INFO,IO)
       ENDIF
