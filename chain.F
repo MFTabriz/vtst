@@ -28,6 +28,7 @@
 !   Daniel Sheppard
 !   Blas Uberuaga
 !   Lijun Xu
+!   Liang Zhang
 !
 ! Email: henkelman@mail.utexas.edu
 !
@@ -44,6 +45,7 @@
     USE dynmat
     USE dimer
     USE lanczos
+    USE bbm
 !INS_BEGIN
     USE instanton
 !INS_END
@@ -196,7 +198,13 @@
           force_dimlan=force
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
-          force_dimlan=force
+          force_dimlan=force         
+        ELSEIF (ICHAIN==5) THEN
+        WRITE(*,*) 'CHAIN CHANGED FORCE'
+        WRITE(*,'(<3>F16.6)') force(1:3,151)
+          CALL bbm_step(optflag,posion,toten,force,a,b) 
+        WRITE(*,*) 'BBM CHANGED FORCE'
+        WRITE(*,'(<3>F16.6)') force(1:3,151)
 !INS_BEGIN
         ELSEIF (ICHAIN==4) THEN
           CALL instanton_step(optflag,posion,toten,force,a,b)
@@ -512,6 +520,9 @@
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Instanton method'
         CALL instanton_init(T_INFO,IO)
 !INS_END
+      ELSEIF(ICHHAIN=5) THEN
+      IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the bond-boost method'
+      CALL bbm_init(T_INFO,IO)
       ENDIF
 
       ! Make vector to zero out force on frozen atoms 
