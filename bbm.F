@@ -60,17 +60,17 @@
         DO J = 1,NBAS
           IF (I==BALIST(J)) THEN
             FLAG = 0
-          END IF
-        END DO
+          ENDIF
+        ENDDO
         IF (FLAG == 1) THEN
           ACOUNT = ACOUNT+1
           RMLIST(ACOUNT) = I
-        END IF
-      END DO
+        ENDIF
+      ENDDO
 
       IF (NRMS /= ACOUNT) THEN
         WRITE(IU6,'(A)') "NRMS does not equal to counted number !"
-      END IF
+      ENDIF
 
  !     WRITE(IU6,'(A,I7,A)') "There are",NBAS,"     boosted atoms:"
  !     WRITE(IU6,'(A,<NBAS>I7)') "Boosted Atoms List:",BALIST
@@ -113,7 +113,7 @@
          ORI_BOND = RBOND
       ELSE
          BOOST_BOND = RBOND
-      END IF
+      ENDIF
 
       ATOMR = ATOMR_TMP
       NBBS = BCOUNT   ! number of boosted bonds
@@ -125,21 +125,21 @@
          DO I = 1,NBBS
             EPSR_Q(I) = (BOOST_BOND(I)-ORI_BOND(I))/(QRR*ORI_BOND(I))
             WRITE(IU6,*) I,"::EPSR_Q=",EPSR_Q(I)
-         END DO
+         ENDDO
          DO I=1,NBBS
             EPSR_MAX=MAX(EPSR_MAX,ABS(EPSR_Q(I)))
-         END DO
+         ENDDO
          A_EPS_M = (1._q-EPSR_MAX**2)**2/(1._q-PRR**2*EPSR_MAX**2)
          SDTIME = SDTIME+BPOTIM
          WRITE(IU6,*) "MAX_EPSR",EPSR_MAX,"AEPS",A_EPS_M
-      END IF
+      ENDIF
 
       IF (SDTIME .GT. RDTM) THEN
         IF (EPSR_MAX .LT. 1._q) THEN
           DO I = 1,NBBS
             SUM_V = 0.0_q
             SUM_V = SUM_V+DVMAX*(1._q-EPSR_Q(I)**2)/REAL(NBBS)
-          END DO
+          ENDDO
           BOOST_FACT = A_EPS_M*SUM_V
           WRITE(IU6,*) "SUM_V=",SUM_V,"BOOST_FACT=",BOOST_FACT,"TEBEG=",BTEBEG
           SPTIME = SPTIME+BPOTIM*EXP(BOOST_FACT*1E5_q/BTEBEG/8.63125_q)
@@ -148,13 +148,13 @@
 
           DO I = 1,NBBS
             WRITE (IU6,'(3I7,F14.6)') I, ATOMR(I,1),ATOMR(I,2),ORI_BOND(I)
-          END DO
+          ENDDO
 
           DO I = 1,NIONS
             DO J = 1,3
               FICH(J,I) = 0._q
-            END DO
-          END DO
+            ENDDO
+          ENDDO
 
           DO I = 1,NBBS
 
@@ -186,7 +186,7 @@
 
               DO J = 1,NBBS
                 SUM_V = SUM_V+DVMAX*(1._q-(EPSR_Q(J))**2)/REAL(NBBS)
-              END DO
+              ENDDO
 
               WRITE(IU6,*) "SUM_V2=  ",SUM_V
 
@@ -211,8 +211,8 @@
               FICH(1,ATOMR_2) = FICH(1,ATOMR_2)-ADD_FOR(1,I)
               FICH(2,ATOMR_2) = FICH(2,ATOMR_2)-ADD_FOR(2,I)
               FICH(3,ATOMR_2) = FICH(3,ATOMR_2)-ADD_FOR(3,I)
-            END IF
-          END DO
+            ENDIF
+          ENDDO
 
           WRITE(IU6,*)"**************************************************************"
 
@@ -221,7 +221,7 @@
           DO I = 1,NIONS
             VTMP = POSION(1:3,I)
             WRITE(IU6,*) VTMP,  (FICH(J,I),J=1,3)
-          END DO
+          ENDDO
           WRITE(IU6,*)"***************************************************************"
 
           WRITE(IU6,*) " POSITION                                  ORIGINAL TOTAL FORCE"
@@ -229,7 +229,7 @@
           DO I = 1,NIONS
              VTMP = POSION(1:3,I)
              WRITE(IU6,*) VTMP, (TIFOR(J,I),J=1,3)
-          END DO
+          ENDDO
           WRITE(IU6,*) "*******************************************************************"
 
           TIFOR = TIFOR-FICH
@@ -238,18 +238,18 @@
           DO I = 1,NIONS
             VTMP = POSION(1:3,I)
             WRITE(IU6,*) VTMP, (TIFOR(J,I),J=1,3)
-          END DO
+          ENDDO
           WRITE(IU6,*) "*********************************************************************"
 
-        END IF
+        ENDIF
 
         IF (EPSR_MAX .GE. 1._q) THEN
 
           QRR = 0._q
           WRITE(IU6,*) " *********THE BOOST IS OVER******************** "
           WRITE(IU6,*) "**********************************************"
-        END IF
-      END IF
+        ENDIF
+      ENDIF
 
       WRITE(IU6,'(/,A)')     ' Bond-TESTING: -----------------'
       NSTEP = NSTEP+1
@@ -274,7 +274,7 @@
       ALLOCATE(BALIST(NBAS))
       DO NI = 1,NBAS
         BALIST(NI) = 0
-       END DO
+       ENDDO
        CALL RDATAB(.true.,'INCAR',IU5,'BALIST','=','#',';','I', &
      &            BALIST,RDUM,CDUM,LDUM,CHARAC,INint,NBAS,IERR)
        BTEBEG = 1.E-4_q
@@ -309,7 +309,7 @@
         WRITE(IU6,'(A,11X,F14.6)') ' Bond-Boost:  RCUT',RCUT
         WRITE(IU6,'(A,9X,F14.6)') ' Bond-Boost:  DV_MAX',DVMAX 
         WRITE(IU6,'(A,F14.6,/)') ' Bond-Boost:  Reguler MD Time',RDTM
-      END IF
+      ENDIF
 
     END SUBROUTINE ReadBBMVar
 
@@ -337,27 +337,27 @@
       ! PBC
       IF (D_x .GT. 0.5_q) THEN
         D_x = D_x-1.0_q
-      ELSE IF(D_x .LT. -0.5_q) THEN
+      ELSEIF(D_x .LT. -0.5_q) THEN
         D_x = D_x+1.0_q
       ELSE 
         D_x = D_x
-      END IF
+      ENDIF
 
       IF(D_y .GT. 0.5_q) THEN
         D_y = D_y-1.0_q
-      ELSE IF(D_y .LT. -0.5_q) THEN
+      ELSEIF(D_y .LT. -0.5_q) THEN
         D_y = D_y+1.0_q
       ELSE
         D_y = D_y
-      END IF
+      ENDIF
 
       IF(D_z .GT. 0.5_q) THEN
         D_z = D_z-1.0_q
-      ELSE IF (D_z .LT. -0.5_q) THEN
+      ELSEIF (D_z .LT. -0.5_q) THEN
         D_z = D_z+1.0_q
       ELSE 
         D_z = D_z
-      END IF
+      ENDIF
 
       ! Cartesian Coordinates
       Q_x = L(1,1)*D_x+L(1,2)*D_y+L(1,3)*D_z
@@ -399,9 +399,9 @@
             RBOND(BCOUNT) = BOND
             ATOMR_TMP(BCOUNT,1) = BALIST(I)
             ATOMR_TMP(BCOUNT,2) = BALIST(J)
-          END IF
-        END DO
-      END DO
+          ENDIF
+        ENDDO
+      ENDDO
 
       ! Record bonds between Boosted Atoms and Rest Atoms
       DO I = 1,NBAS
@@ -412,9 +412,9 @@
             RBOND(BCOUNT) = BOND
             ATOMR_TMP(BCOUNT,1) = BALIST(I)
             ATOMR_TMP(BCOUNT,2) = RMLIST(J)
-          END IF
-        END DO
-      END DO
+          ENDIF
+        ENDDO
+      ENDDO
 
     END SUBROUTINE Bondrecord
 

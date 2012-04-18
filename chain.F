@@ -200,11 +200,11 @@
           CALL lanczos_step(optflag,posion,toten,force,a,b)
           force_dimlan=force         
         ELSEIF (ICHAIN==5) THEN
-        WRITE(*,*) 'CHAIN CHANGED FORCE'
-        WRITE(*,'(<3>F16.6)') force(1:3,151)
+          WRITE(*,*) 'CHAIN CHANGED FORCE'
+          WRITE(*,'(<3>F16.6)') force(1:3,151)
           CALL bbm_step(optflag,posion,toten,force,a,b) 
-        WRITE(*,*) 'BBM CHANGED FORCE'
-        WRITE(*,'(<3>F16.6)') force(1:3,151)
+          WRITE(*,*) 'BBM CHANGED FORCE'
+          WRITE(*,'(<3>F16.6)') force(1:3,151)
 !INS_BEGIN
         ELSEIF (ICHAIN==4) THEN
           CALL instanton_step(optflag,posion,toten,force,a,b)
