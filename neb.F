@@ -520,7 +520,7 @@
       REAL(q) :: chain_jacob
 
       ! needed only temporarily for reading
-      INTEGER NIOND,NIONPD,NTYPPD,NTYPD
+      INTEGER NIOND,NIONPD,NTYPPD,NTYPD,ibrion
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
@@ -539,6 +539,18 @@
       IF (images==0) RETURN
 #if defined(MPI) || defined(MPI_CHAIN)
 
+      ! warn against using IBRION = 2
+      ibrion = 0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IBRION','=','#',';','I', &
+     &            ibrion,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*)'Error reading item ''IBRION'' from file INCAR.'
+         STOP
+      ENDIF
+      IF( (ibrion.EQ.2) ) THEN
+        IF (IU0>=0) WRITE(IU0,*) 'WARNING: it is not advised to use IBRION=2 with the NEB.'
+      ENDIF
+      
 !     determines of cell should change in NEB
       cell_flag=.FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
