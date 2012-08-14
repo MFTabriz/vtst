@@ -583,7 +583,7 @@
       CALLMPI(MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, stat, ierr))
       mpmd_client_rank = stat(MPI_SOURCE)
 
-      CALLMPI(MPI_Recv(N, 1, MPI_INTEGER8, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
+      CALLMPI(MPI_Recv(N, 1, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
       CALLMPI(MPI_Recv(atomicNrs, nions, MPI_INTEGER, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
       CALLMPI(MPI_Recv(R, 3*nions, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
       CALLMPI(MPI_Recv(box, 9, MPI_DOUBLE_PRECISION, mpmd_client_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr))
