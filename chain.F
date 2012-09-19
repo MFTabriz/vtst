@@ -23,6 +23,7 @@
 !
 ! Contributers:
 !   Andri Arnaldsson
+!   Sam Chill
 !   Graeme Henkelman
 !   Hannes Jonsson
 !   Daniel Sheppard
@@ -32,7 +33,7 @@
 !
 ! Email: henkelman@mail.utexas.edu
 !
-! Version 2.04b, Oct. 26, 2011
+! Version 3.0, Sept 19, 2012
 !
 !**********************************************************************
 
@@ -46,15 +47,13 @@
     USE dimer
     USE lanczos
     USE bbm
-!INS_BEGIN
     USE instanton
-!INS_END
     USE opt
 
     IMPLICIT NONE
     SAVE
     PRIVATE
-    PUBLIC :: chain_force, chain_init
+    PUBLIC :: chain_force, chain_init, parallel_tempering
     PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
     INTEGER mpmd_client_rank
 #ifdef EAM
@@ -74,6 +73,37 @@
 !    REAL(q),ALLOCATABLE :: Free(:,:)
     REAL(q) :: Uvasp,Ueam
 #endif
+
+!!! Tempering variables
+
+    INTEGER :: nions_max
+
+ ! tag VCAIMAGES allows to perform two MD's with e.g. different POTCAR files
+ ! allowing to do force averaging
+    LOGICAL :: LVCAIMAGES
+    REAL(q) :: VCAIMAGES   ! weight of first images, weight of second image is 1-VCAIMAGES
+ ! average forces over two images
+ ! it is recommended to combine this with the VCA type calculations
+ ! where the POSCAR/POTCAR/INCAR etc. are strictly identical
+ ! and the VCA tag is set for one type to 0 and 1 respectively
+ ! in the two POTCAR files
+ ! forces and energies are averaged over the two nodes
+ ! IMAGES in mpi_main.F is forced to two in this case
+
+
+ ! the tag LTEMPER allows to perform parallel tempering runs
+ ! IMAGES images of VASP are kicked up and the 
+ ! temperatures between the images (TEBEG) are swapped using
+ ! a Monte-Carlo algorithm (with corresponding temperature scaling)
+    LOGICAL :: LTEMPER
+    INTEGER :: NTEMPER     ! replica exchange every NTEMPER steps
+
+    INTEGER, ALLOCATABLE, SAVE :: ATTEMPTS(:)
+    INTEGER, ALLOCATABLE, SAVE :: SUCCESS(:)
+
+!!!
+
+
 
 !**********************************************************************
 !  General force routine for any method using the repeated image mode.
@@ -98,6 +128,32 @@
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
       TYPE (in_struct) :: IO
+
+!!! try parallel temperating and VCA code here
+
+      INTEGER node
+      REAL(q),ALLOCATABLE,SAVE :: force_all(:,:,:)
+
+!======================================================================
+! Parallel tempering return
+!======================================================================
+      IF (LTEMPER) THEN
+         RETURN
+!======================================================================
+! VCA average forces over two images
+!======================================================================
+      ELSE IF (LVCAIMAGES) THEN
+         ALLOCATE(force_all(3,nions,2))
+         force_all(:,:,1:2) =0
+         force_all(:,:,node)=force
+         CALLMPI_C( M_sum_d( comm_chain, force_all(1,1,1), nions*3*2))
+         force=0
+         force(:,:)=force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
+         force=force
+         DEALLOCATE(force_all)
+         RETURN
+      ENDIF
+!!!
 
       ! Interactive Mode only have rank 0 process write data
       IF (LINTERACT .AND. IU6>0) THEN
@@ -334,6 +390,8 @@
 
     END SUBROUTINE chain_force
 
+
+
 !**********************************************************************
 ! Initialize the chain (repeated image mode) and determine which of the
 ! three possible methods to use based on the ICHAIN variable:
@@ -370,7 +428,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 2.04b, (10/26/11)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0, (09/19/12)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
@@ -561,8 +619,72 @@
 !      ENDIF
 #endif
 
+
+!!! try putting the replica exchange code back here
+
+! read the VCAIMAGES
+      VCAIMAGES=-1
+
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'VCAIMAGES','=','#',';','F', &
+           &        IDUM,VCAIMAGES,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) WRITE(IO%IU0,*)'Error reading item ''VCAIMAGES'' from file INCAR.'
+         STOP
+      ENDIF
+      CALL XML_INCAR('VCAIMAGES','F',IDUM,VCAIMAGES,CDUM,LDUM,CHARAC,N)
+      IF (VCAIMAGES==-1) THEN
+         LVCAIMAGES=.FALSE.
+      ELSE
+         LVCAIMAGES=.TRUE.
+      ENDIF
+
+
+! LTEMPER -- use subspace diagonalization or not (default is TRUE):
+      LTEMPER=.FALSE.
+      CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'LTEMPER','=','#',';','L', &
+     &            IDUM,RDUM,CDUM,LTEMPER,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. &
+     &                    ((IERR==0).AND.(N<1))) THEN
+         IF (IO%IU0>=0) &
+         WRITE(IO%IU0,*)'Error reading item ''LTEMPER'' from file INCAR.'
+         STOP
+      ENDIF
+      CALL XML_INCAR('LTEMPER','L',IDUM,RDUM,CDUM,LTEMPER,CHARAC,N)
+
+      IF (LTEMPER) THEN
+         ! read NTEMPER
+         NTEMPER=200
+         CALL RDATAB(IO%LOPEN,'INCAR',IO%IU5,'NTEMPER','=','#',';','I', &
+              &            NTEMPER,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+         IF (((IERR/=0).AND.(IERR/=3)).OR. &
+              &                    ((IERR==0).AND.(N<1))) THEN
+            IF (IO%IU0>=0) &
+                 WRITE(IO%IU0,*)'Error reading item ''NTEMPER'' from file INCAR.'
+            STOP
+         ENDIF
+
+         CALL XML_INCAR('NTEMPER','I',NTEMPER,RDUM,CDUM,LDUM,CHARAC,N)
+
+         ALLOCATE(ATTEMPTS(images-1))
+         ALLOCATE(SUCCESS(images-1))
+         ATTEMPTS=0
+         SUCCESS=0
+      ENDIF
+
+      IF (LVCAIMAGES .OR. LTEMPER) THEN
+         nions_max=T_INFO%NIONS
+         CALL M_max_i(comm_chain, nions_max, 1 )
+         IF (T_INFO%NIONS /= nions_max) THEN
+            IF (IO%IU0>=0) WRITE(IO%IU0,*)'ERROR: image mode number of ions wrong'
+            STOP
+         ENDIF
+      ENDIF
+!!!
+
     END SUBROUTINE chain_init
         
+
+
     #ifdef VASP_MPMD
     SUBROUTINE mpmd_recv(nions, posion, b)
       INTEGER :: nions, NI
@@ -687,7 +809,8 @@
       ENDDO
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE s2ts
+
 !**************** SUBROUTINE ts2s ************************************
 ! transforms force on vectors to stress tensor
 !  stress=true_stress^T dot A
@@ -711,7 +834,7 @@
       ENDDO
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE ts2s
 
       SUBROUTINE sdotA(V,BASIS)
       USE prec
@@ -730,7 +853,7 @@
       V=AC
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE sdotA
 
       SUBROUTINE sdotB(V,BASIS)
       USE prec
@@ -749,7 +872,8 @@
       V=AC
 
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE sdotB
+
 !======================================================================
 ! Returns a unit vector along v1
 !======================================================================
@@ -811,5 +935,180 @@
       IF (IU6>0) WRITE(IU6,*) 'Ueam: ',Ueam
       end subroutine EAMForce
 #endif
+
+      SUBROUTINE PARALLEL_TEMPERING(NSTEP, NIONS, POSION, VEL, TOTEN, FORCE, TEBEG, TEEND, &
+        A, B, IU6)
+      USE constant
+      IMPLICIT NONE
+      INTEGER :: NSTEP           ! step
+      INTEGER :: NIONS           ! number of ions
+      INTEGER :: IU6             ! std-out  (unit for OUTCAR file)
+      REAL(q) :: POSION(3,nions) ! position of ions
+      REAL(q) :: VEL(3,nions)    ! velocity of ions
+      REAL(q) :: FORCE(3,nions)
+      REAL(q) :: TOTEN           ! total energy
+      REAL(q) :: TEBEG           ! temperature of ensemble
+      REAL(q) :: TEEND           ! temperature of ensemble (must equal TEBEG)
+      REAL(q) :: A(3,3),B(3,3)   ! lattice and reciprocal lattice
+! local
+      REAL(q),ALLOCATABLE :: TEBEG_old(:), TEBEG_new(:), TOTEN_all(:)
+      REAL(q) :: E1, E2
+      INTEGER,ALLOCATABLE :: ID(:)
+      INTEGER :: SWAP
+      INTEGER :: NODE, I, J
+      REAL(q) :: TEBEG_new_local, E
+      REAL(q) :: value
+
+#if defined(MPI) || defined (MPI_CHAIN)
+      IF (.NOT. LTEMPER) RETURN
+      IF (IU6>=0) WRITE(IU6,*) 'parallel tempering routine entered NSTEP=, NTEMPER=', NSTEP,NTEMPER
+      CALL RANDOM_NUMBER(value)
+
+      IF (value <1.0_q/NTEMPER) THEN
+
+         ALLOCATE(TEBEG_old(images), TEBEG_new(images), TOTEN_all(images), ID(images))
+
+         ! my id, i.e. which subdir I am running in
+         node=comm_chain%node_me
+
+         TEBEG_old=0
+         TEBEG_old(node)=TEBEG
+         TOTEN_all=0
+         TOTEN_all(node)=TOTEN
+         ID=0
+         ID(node)=node
+
+         CALLMPI_C( M_sum_d( comm_chain, TEBEG_old,  images))
+         CALLMPI_C( M_sum_d( comm_chain, TOTEN_all,  images))
+         CALLMPI_C( M_sum_i( comm_chain, ID,  images))
+
+! sort the temperatures ascendingly and store the corresponding node id 
+         CALL SORT_ASC_REAL(images, TEBEG_old, ID)
+!======================================================================
+! now select swaps randomly
+! images/2 swaps 
+! the array SWAP stores the list of images to be swapped 
+! 0 no swap
+! 1 two lowest temperatures are swapped
+! 2 next two are swapped and so on
+!======================================================================
+         CALL RANDOM_NUMBER(value)  ! values between [0,1[
+         SWAP=(images-1)*value+1    ! create a random number [1,images-1]
+
+         CALLMPI_C( M_bcast_i( comm_chain, SWAP,  1))
+         IF (IU6>=0) WRITE(IU6,'(A,16I10)')   ' attempting swapping', SWAP
+
+         TEBEG_new=TEBEG_old
+
+         IF (SWAP/=0) THEN
+            ATTEMPTS(SWAP)=ATTEMPTS(SWAP)+1
+
+            E=(1.0_q/TEBEG_old(SWAP)-1.0_q/TEBEG_old(SWAP+1))/ BOLKEV * (TOTEN_all(ID(SWAP))-TOTEN_all(ID(SWAP+1)))
+            E1=(1.0_q/TEBEG_old(SWAP)-1.0_q/TEBEG_old(SWAP+1))/ BOLKEV
+            E2=(TOTEN_all(ID(SWAP))-TOTEN_all(ID(SWAP+1)))
+            E=EXP(E)
+            CALL RANDOM_NUMBER(value) ! values between [0,1[
+            CALLMPI_C( M_bcast_d( comm_chain, value,  1))
+            IF (value>E) THEN
+               ! Metropolis forbids swap
+               SWAP=0
+            ELSE
+               SUCCESS(SWAP)=SUCCESS(SWAP)+1
+            ENDIF
+         ENDIF
+         IF (SWAP/=0) THEN
+            TEBEG_new(SWAP)  =TEBEG_old(SWAP+1)
+            TEBEG_new(SWAP+1)=TEBEG_old(SWAP)
+         ENDIF
+         IF (IU6>=0) WRITE(IU6,'(A,16F10.4)') '  1/T1-1/T2         ', E1
+         IF (IU6>=0) WRITE(IU6,'(A,16F10.4)') '  E1  -E2           ', E2
+         IF (IU6>=0) WRITE(IU6,'(A,16F10.7)')   '            random  ', value
+         IF (IU6>=0) WRITE(IU6,'(A,16I10)')   '            swapping', SWAP
+
+         IF (IU6>=0) WRITE(IU6,'(A,16F14.7)') ' parallel tempering old TOTEN ', (TOTEN_all(ID(I)),I=1,images)
+         IF (IU6>=0) WRITE(IU6,'(A,16F14.7)') ' parallel tempering old TEBEG ', TEBEG_old
+         IF (IU6>=0) WRITE(IU6,'(A,16F14.7)') ' parallel tempering new TEBEG ', TEBEG_new
+         IF (IU6>=0) WRITE(IU6,'(A,16F14.7)') ' Acceptance ratio for swaps          ', REAL(SUCCESS,q)/MAX(1,ATTEMPTS)
+
+         DO I=1,images
+            IF ( ID(I)==node) THEN
+               IF (TEBEG /= TEBEG_old(I)) THEN
+                  WRITE(*,*) 'internal error in PARALELL_TEMPERING:', I,ID(I), TEBEG, TEBEG_old(I)
+               ENDIF
+               TEBEG_new_local=TEBEG_new(I)
+            ENDIF
+         END DO
+
+         VEL(:,:)=VEL(:,:)*SQRT(TEBEG_new_local/TEBEG)
+
+         TEBEG=TEBEG_new_local
+         TEEND=TEBEG_new_local
+
+         IF (IU6>=0) WRITE(IU6,*)
+         IF (IU6>=0) WRITE(IU6,"('   TEBEG  = ',F6.1,';   TEEND  =',F6.1)") TEBEG,TEEND
+         IF (IU6>=0) WRITE(IU6,*)
+
+         DEALLOCATE(TEBEG_old, TEBEG_new, TOTEN_all, ID)
+      ENDIF
+
+#endif
+    END SUBROUTINE PARALLEL_TEMPERING
+
+!**********************************************************************
+! sorts RA in descending order, and rearanges an index array RB
+! seems to be a quicksort, but I am not sure
+! subroutine writen by Florian Kirchhof
+!**********************************************************************
+
+  SUBROUTINE SORT_ASC_REAL(N, RA, RB)
+    REAL(q) :: RA(N)
+    INTEGER :: RB(N)
+    REAL(q) :: RRA
+    INTEGER :: RRB
+    INTEGER :: N, L, IR, J, I
+
+    IF (N<=1) RETURN
+
+    L=N/2+1
+    IR=N
+10  CONTINUE
+    IF(L.GT.1)THEN
+       L=L-1
+       RRA=RA(L)
+       RRB=RB(L)
+    ELSE
+       RRA=RA(IR)
+       RRB=RB(IR)
+       RA(IR)=RA(1)
+       RB(IR)=RB(1)
+       IR=IR-1
+       IF(IR.EQ.1)THEN
+          RA(1)=RRA
+          RB(1)=RRB
+          RETURN
+       ENDIF
+    ENDIF
+    I=L
+    J=L+L
+20  IF(J.LE.IR)THEN
+       IF(J.LT.IR)THEN
+          IF(RA(J).GT.RA(J+1))J=J+1
+       ENDIF
+       IF(RRA.GT.RA(J))THEN
+          RA(I)=RA(J)
+          RB(I)=RB(J)
+          I=J
+          J=J+J
+       ELSE
+          J=IR+1
+       ENDIF
+       GO TO 20
+    ENDIF
+    RA(I)=RRA
+    RB(I)=RRB
+    GO TO 10
+  END SUBROUTINE SORT_ASC_REAL
+
+!!! end parallel tempering code
 
 END MODULE chain
