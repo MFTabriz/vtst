@@ -255,12 +255,8 @@
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
           force_dimlan=force         
-        ELSEIF (ICHAIN==5) THEN
-          WRITE(*,*) 'CHAIN CHANGED FORCE'
-          WRITE(*,'(<3>F16.6)') force(1:3,151)
+        ELSEIF (ICHAIN==6) THEN
           CALL bbm_step(optflag,posion,toten,force,a,b) 
-          WRITE(*,*) 'BBM CHANGED FORCE'
-          WRITE(*,'(<3>F16.6)') force(1:3,151)
 !INS_BEGIN
         ELSEIF (ICHAIN==4) THEN
           CALL instanton_step(optflag,posion,toten,force,a,b)
@@ -399,7 +395,7 @@
 !   ICHAIN==1: dynamical matrix
 !   ICHAIN==2: dimer method
 !   ICHAIN==3: lanczos method
-!   ICHAIN==5: bond-boost method
+!   ICHAIN==6: bond-boost method
 !**********************************************************************
 
     SUBROUTINE chain_init(T_INFO, IO)
@@ -579,7 +575,7 @@
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Instanton method'
         CALL instanton_init(T_INFO,IO)
 !INS_END
-      ELSEIF(ICHAIN==5) THEN
+      ELSEIF(ICHAIN==6) THEN
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the bond-boost method'
       CALL bbm_init(T_INFO,IO)
       ENDIF
