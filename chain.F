@@ -134,6 +134,12 @@
       INTEGER node
       REAL(q),ALLOCATABLE,SAVE :: force_all(:,:,:)
 
+      IF (images==0) RETURN
+      IF (spring==-1000) RETURN
+
+#if defined(MPI) || defined (MPI_CHAIN)
+      node=comm_chain%node_me
+
 !======================================================================
 ! Parallel tempering return
 !======================================================================
@@ -153,6 +159,7 @@
          DEALLOCATE(force_all)
          RETURN
       ENDIF
+#endif
 !!!
 
       ! Interactive Mode only have rank 0 process write data
@@ -764,24 +771,58 @@
 
 ! Sum over elements
 
-      SUBROUTINE sum_chain(value)
+    SUBROUTINE sum_chain( value )
       REAL(q) :: value
-      IF (images==0) RETURN
-      CALLMPI_C(M_sum_d(comm_chain,value,1))
-      END SUBROUTINE sum_chain
+      REAL(q) :: value_all(images)
+      INTEGER node
 
-! Logical sum over elements
+      IF (images==0    ) RETURN
+      IF (spring==-1000) RETURN
+      IF (LTEMPER) RETURN
+#if defined(MPI) || defined (MPI_CHAIN)
+      ! VCAIMAGES returns average value for energies etc.
+      IF (LVCAIMAGES) THEN
+         node=comm_chain%node_me
+         value_all=0
+         value_all(node)=value
+         CALLMPI_C( M_sum_d( comm_chain, value_all, 2))
+         value=value_all(1)*VCAIMAGES+value_all(2)*(1-VCAIMAGES)
+      ELSE
+         CALLMPI_C( M_sum_d( comm_chain, value, 1 ))
+      ENDIF
+#endif
 
-      SUBROUTINE and_chain(value)
+    END SUBROUTINE sum_chain
+
+
+!**********************************************************************
+!
+! also the logical break conditionions must be
+!
+!**********************************************************************
+
+    SUBROUTINE and_chain( value )
       LOGICAL :: value
-      REAL(q) :: sum_all
+      REAL(q) :: sum
+
       IF (images==0) RETURN
-      sum_all=1
-      IF (value) sum_all=0
-      CALLMPI_C(M_sum_d(comm_chain,sum_all,1))
-      value=.TRUE.
-      IF (sum_all>=1) value=.FALSE.
-      END SUBROUTINE and_chain
+      IF (spring==-1000) RETURN
+
+! if one node is .FALSE., .FALSE. is returned on all nodes
+      IF (value) THEN
+         sum=0
+      ELSE
+         sum=1
+      ENDIF
+      CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
+
+      IF (sum>=1) THEN
+         value=.FALSE.
+      ELSE
+         value=.TRUE.
+      ENDIF
+    END SUBROUTINE and_chain
+
 
 !**************** SUBROUTINE s2ts ************************************
 ! transform stress tensor to force on vectors
