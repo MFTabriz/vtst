@@ -33,7 +33,7 @@
 !
 ! Email: henkelman@mail.utexas.edu
 !
-! Version 3.0a, Oct. 1, 2012
+! Version 3.0b, Nov. 11, 2012
 !
 !**********************************************************************
 
@@ -135,7 +135,6 @@
       REAL(q),ALLOCATABLE,SAVE :: force_all(:,:,:)
 
       IF (images==0) RETURN
-      IF (spring==-1000) RETURN
 
 #if defined(MPI) || defined (MPI_CHAIN)
       node=comm_chain%node_me
@@ -431,7 +430,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0a, (10/01/12)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0b, (11/11/12)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
@@ -480,7 +479,7 @@
         STOP
       ENDIF
 
-!     determines of cell should change in NEB
+!     determines if cell should change in NEB
       cell_flag=.FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
      &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
@@ -489,7 +488,7 @@
         STOP
       ENDIF
 
-!     sets stress tensor to two dimentions 
+!     sets stress tensor to two dimensions 
       twodim_flag=.FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LTWODIM','=','#',';','L', &
      &            IDUM,RDUM,CDUM,twodim_flag,CHARAC,N,1,IERR)
@@ -577,11 +576,9 @@
           IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Must set IOPT>0 to use the Lanczos method'
           STOP
         ENDIF
-!INS_BEGIN
       ELSEIF (ICHAIN==4) THEN
         IF (IO%IU6>=0) WRITE(IU6,*) 'CHAIN: Running the Instanton method'
         CALL instanton_init(T_INFO,IO)
-!INS_END
       ELSEIF(ICHAIN==6) THEN
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Running the bond-boost method'
       CALL bbm_init(T_INFO,IO)
@@ -624,6 +621,10 @@
 
 
 !!! try putting the replica exchange code back here
+
+! quick return, if we are not running in image mode
+      IF (images==0) RETURN
+      #if defined(MPI) || defined(MPI_CHAIN)
 
 ! read the VCAIMAGES
       VCAIMAGES=-1
@@ -682,6 +683,7 @@
             STOP
          ENDIF
       ENDIF
+#endif
 !!!
 
     END SUBROUTINE chain_init
@@ -777,7 +779,6 @@
       INTEGER node
 
       IF (images==0    ) RETURN
-      IF (spring==-1000) RETURN
       IF (LTEMPER) RETURN
 #if defined(MPI) || defined (MPI_CHAIN)
       ! VCAIMAGES returns average value for energies etc.
@@ -806,7 +807,6 @@
       REAL(q) :: sum
 
       IF (images==0) RETURN
-      IF (spring==-1000) RETURN
 
 ! if one node is .FALSE., .FALSE. is returned on all nodes
       IF (value) THEN
