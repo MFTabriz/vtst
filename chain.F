@@ -134,7 +134,7 @@
       INTEGER node
       REAL(q),ALLOCATABLE,SAVE :: force_all(:,:,:)
 
-      IF (images==0) RETURN
+!      IF (images==0) RETURN
 
 #if defined(MPI) || defined (MPI_CHAIN)
       node=comm_chain%node_me

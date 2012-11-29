@@ -117,6 +117,10 @@
 
       ! read in variables used for dynamics
 
+      ! Thermostat = 0: Newtonian dynamics- NVE
+      ! Thermostat = 1: Anderson- NVT
+      ! Thermostat = 2: Velcoity scaling 
+      ! Thermostat = 3: Brownian Dynamics 
       thermostat=0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'THERMOSTAT','=','#',';','I', &
      &            thermostat,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
@@ -158,20 +162,24 @@
       ENDIF
 
       ! set up thermostat parameters
+      ! Thermostat = 0: Newtonian dynamics- NVE
+      ! Thermostat = 1: Anderson- NVT
+      ! Thermostat = 2: Velcoity scaling 
+      ! Thermostat = 3: Brownian Dynamics 
       IF (thermostat .EQ. 0) .OR. (gam .EQ. 0.0_q) THEN
         c0 = 1.0_q
         c1 = 1.0_q
         c2 = 0.5_q
       ELSE 
         ! coefficients for Brownian integration (Allen and Tildesley, p. 261)
-        gdt = mdgamma*dt
+        gdt = gam*dt
         c0 = EXP(-gdt)
         c1 = (1.0_q-c0)/(gdt)
         c2 = (1.0_q-c1)/(gdt)
-        sig2r = temp*k/mass/mdgamma/mdgamma *
+        sig2r = temp*k/mass/gam/gam *
      x      (2.0_q*gdt-3.0_q+4.0_q*EXP(-gdt)-EXP(-2.0_q*gdt))
         sig2v=temp*k/mass*(1.0_q-EXP(-2.0_q*gdt))
-        sigrsigvcrv=temp*k/mass/mdgamma*(1.0_q-EXP(-gdt))**2
+        sigrsigvcrv=temp*k/mass/gam*(1.0_q-EXP(-gdt))**2
         sigr=SQRT(sig2r)
         sigv=SQRT(sig2v)
         crv=sigrsigvcrv/(sigr*sigv)
