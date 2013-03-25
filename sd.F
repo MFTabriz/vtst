@@ -76,7 +76,7 @@
 
       ! loading variables for sd step
 
-      alpha = 0.1_q
+      alpha = 0.01_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'SDALPHA','=','#',';','F', &
      &            IDUM,alpha,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
