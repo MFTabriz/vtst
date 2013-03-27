@@ -33,7 +33,7 @@
 !
 ! Email: henkelman@mail.utexas.edu
 !
-! Version 3.0b, Nov. 11, 2012
+! Version 3.0c, Mar. 27, 2013
 !
 !**********************************************************************
 
@@ -430,7 +430,7 @@
       IU6=IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0b, (11/11/12)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0c, (03/27/13)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
