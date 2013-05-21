@@ -416,7 +416,7 @@
       LOGICAL :: LDUM
       REAL(q) :: RDUM
       REAL(q) :: omega
-      PARAMETER EVTOJ=1.60217733E-19_q
+      REAL, PARAMETER EVTOJ=1.60217733E-19_q
       INTEGER NIOND,NIONPD,NTYPPD,NTYPD
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
