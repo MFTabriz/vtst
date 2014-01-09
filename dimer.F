@@ -189,7 +189,8 @@
             OptFlag = .true.
           END IF
         END IF
-        CALL WriteMode() ! Save the current mode
+        ! Thanks to Craig Plaisance for this if statement correction.
+        IF (.NOT. FdStep) CALL WriteMode() ! Save the current mode 
       END IF
 
       IF (OptFlag) THEN  ! going back to the optimizer; set R and Feff

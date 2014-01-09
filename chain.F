@@ -31,9 +31,9 @@
 !   Lijun Xu
 !   Liang Zhang
 !
-! Email: henkelman@mail.utexas.edu
+! Email: henkelman@cm.utexas.edu
 !
-! Version 3.0c, Mar. 27, 2013
+! Version 3.0d, Jan. 9, 2014
 !
 !**********************************************************************
 
@@ -100,9 +100,7 @@
 
     INTEGER, ALLOCATABLE, SAVE :: ATTEMPTS(:)
     INTEGER, ALLOCATABLE, SAVE :: SUCCESS(:)
-
 !!!
-
 
 
 !**********************************************************************
@@ -111,9 +109,9 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE chain_force(nions,posion,toten,force,stress,a,b,iu6)
-    !SUBROUTINE chain_force(nions,posion,toten,force,a,b,iu6)
-      INTEGER :: nions,ni,nj,iu6,I
+    SUBROUTINE chain_force(nions,posion,toten,force,stress,a,b,IU6)
+    !SUBROUTINE chain_force(nions,posion,toten,force,a,b,IU6)
+      INTEGER :: nions,ni,nj,IU6,I
       REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
       REAL(q),DIMENSION(3,nions) :: posion,force
       REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
@@ -136,8 +134,8 @@
 
 !      IF (images==0) RETURN
 
-#if defined(MPI) || defined (MPI_CHAIN)
-      node=comm_chain%node_me
+#if defined(MPI) || defined(MPI_CHAIN)
+      node = comm_chain%node_me
 
 !======================================================================
 ! Parallel tempering return
@@ -149,12 +147,12 @@
 !======================================================================
       ELSE IF (LVCAIMAGES) THEN
          ALLOCATE(force_all(3,nions,2))
-         force_all(:,:,1:2) =0
-         force_all(:,:,node)=force
+         force_all(:,:,1:2) = 0
+         force_all(:,:,node) = force
          CALLMPI_C( M_sum_d( comm_chain, force_all(1,1,1), nions*3*2))
-         force=0
-         force(:,:)=force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
-         force=force
+         force = 0
+         force(:,:) = force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
+         force = force
          DEALLOCATE(force_all)
          RETURN
       ENDIF
@@ -188,7 +186,7 @@
         ENDIF
       ENDIF
 
-#if defined(MPI) || defined (MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
           CALLMPI(MPI_Barrier(comm_chain%mpi_comm, ierr))
 #endif
 
@@ -220,35 +218,35 @@
 
       ! for dimer/lanczos, save the force and posion for the vasp stop criteria
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-        force_vasp=force
-        posion_vasp=posion
+        force_vasp = force
+        posion_vasp = posion
       ENDIF
 
 #ifdef EAM
       IF (.NOT. eaminit) THEN
         eaminit=.TRUE.
-        Ream=posion
-        Rvasp=posion
-        Fvasp=force
-        Uvasp=toten
+        Ream = posion
+        Rvasp = posion
+        Fvasp = force
+        Uvasp = toten
       ENDIF
       posion=Ream
-      IF (iu6>0) WRITE(iu6,*) 'Calling EAMForce'
-      IF (iu6>0) WRITE(iu6,*) 'posion'
-      IF (iu6>0) WRITE(iu6,'(3F14.6)') posion
-      CALL EAMForce(iu6,nions,posion,a,Feam,Ueam)
-      force=Feam
-      toten=Ueam
-      IF (iu6>0) WRITE(iu6,*) 'force'
-      IF (iu6>0) WRITE(iu6,'(3F14.6)') force
-      IF (iu6>0) WRITE(iu6,*) 'U ',Ueam
+      IF (IU6>0) WRITE(IU6,*) 'Calling EAMForce'
+      IF (IU6>0) WRITE(IU6,*) 'posion'
+      IF (IU6>0) WRITE(IU6,'(3F14.6)') posion
+      CALL EAMForce(IU6,nions,posion,a,Feam,Ueam)
+      force = Feam
+      toten = Ueam
+      IF (IU6>0) WRITE(IU6,*) 'force'
+      IF (IU6>0) WRITE(IU6,'(3F14.6)') force
+      IF (IU6>0) WRITE(IU6,*) 'U ',Ueam
 #endif
 
       ! optflag indicates who has control
       !  true: optimizer is active
       !  false: chain method is active (for dimer/lanczos)
       IF (IMAGES==0 .AND. ICHAIN==0) THEN
-        optflag=.TRUE.
+        optflag = .TRUE.
       ELSE
         IF (ICHAIN==0) THEN
           CALL neb_step(optflag,posion,toten,force,stress,a,b)
@@ -270,16 +268,16 @@
         ENDIF
       ENDIF
 
-      IF (iu6>0) THEN
-        WRITE(iu6,*) "stress matrix after NEB project (eV)"
-        WRITE(iu6,'(3F13.5)') stress
+      IF (IU6>0) THEN
+        WRITE(IU6,*) "stress matrix after NEB project (eV)"
+        WRITE(IU6,'(3F13.5)') stress
       ENDIF
 
       ! 2D calculations (only in x,y)
       IF (twodim_flag) THEN
-        stress(1,3)=0._q
-        stress(2,3)=0._q
-        stress(3,3)=0._q
+        stress(1,3) = 0._q
+        stress(2,3) = 0._q
+        stress(3,3) = 0._q
       ENDIF
 
       ! zero out any added forces on frozen atoms
@@ -287,48 +285,48 @@
 
       ! for dimer/lanczos, check force criteria using the vasp force
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-        force_dimlan=force
-        force=force_vasp
+        force_dimlan = force
+        force = force_vasp
       ENDIF
 
-      ftot=0._q
-      fmaxatom=0._q
-      fmaxdim=0._q
-      DO ni=1,nions
-        ftemp=0._q
-        DO nj=1,3
-          ftot=ftot+force(nj,ni)**2
-          ftemp=ftemp+force(nj,ni)**2
+      ftot = 0._q
+      fmaxatom = 0._q
+      fmaxdim = 0._q
+      DO ni = 1,nions
+        ftemp = 0._q
+        DO nj = 1,3
+          ftot = ftot + force(nj,ni)**2
+          ftemp = ftemp + force(nj,ni)**2
           IF(fmaxdim.LT.ABS(force(nj,ni))) THEN
-            fmaxdim=ABS(force(nj,ni))
+            fmaxdim = ABS(force(nj,ni))
           ENDIF
         ENDDO
-        IF (ftemp .GT. fmaxatom) fmaxatom=ftemp
+        IF (ftemp .GT. fmaxatom) fmaxatom = ftemp
       ENDDO
-      frms=SQRT(ftot/REAL(nions))
-      fmaxatom=SQRT(fmaxatom)
-      IF (iu6>=0) WRITE(iu6,4693) fmaxatom,frms
- 4693 format(1x,' FORCES: max atom, RMS ',2f12.6)
-      IF (iu6>=0) WRITE(iu6,4694) SQRT(ftot),fmaxdim
- 4694 format(1x,' FORCE total and by dimension',2f12.6)
+      frms = SQRT(ftot/REAL(nions))
+      fmaxatom = SQRT(fmaxatom)
+      IF (IU6>=0) WRITE(IU6,4693) fmaxatom,frms
+ 4693 FORMAT(1x,' FORCES: max atom, RMS ',2f12.6)
+      IF (IU6>=0) WRITE(IU6,4694) SQRT(ftot),fmaxdim
+ 4694 FORMAT(1x,' FORCE total and by dimension',2f12.6)
 
       ! added to monitor the stress vector 
-      stot=0._q
-      smaxdim=0._q
+      stot = 0._q
+      smaxdim = 0._q
       DO ni=1,3
         DO nj=1,3
-          stot=stot+stress(nj,ni)**2
+          stot = stot+stress(nj,ni)**2
           IF(smaxdim.LT.ABS(stress(nj,ni))) THEN
-            smaxdim=ABS(stress(nj,ni))
+            smaxdim = ABS(stress(nj,ni))
           ENDIF
         ENDDO
       ENDDO
- 4695 format(1x,' Stress total and by dimension',2f12.6)
-      IF (iu6>=0) WRITE(iu6,4695) SQRT(stot),smaxdim
+ 4695 FORMAT(1x,' Stress total and by dimension',2f12.6)
+      IF (IU6>=0) WRITE(IU6,4695) SQRT(stot),smaxdim
 
       ! for dimer/lanczos, use projected force in optimizer
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-        force=force_dimlan
+        force = force_dimlan
       ENDIF
 
       ! stops based on the Magnitude of the Force
@@ -336,7 +334,7 @@
         fconverge = (SQRT(ftot) .LT. ftot_val)
         CALLMPI_C(and_chain(fconverge))
         IF (fconverge) THEN
-          IF (iu6>=0) WRITE(iu6,*) 'CONVERGED based on Magnitude of Force'
+          IF (IU6>=0) WRITE(IU6,*) 'CONVERGED based on Magnitude of Force'
           STOP
         ENDIF
       ENDIF
@@ -345,9 +343,9 @@
         hstress = stress
         CALL sdotA(hstress,a)
         ! freeze out rotation
-        hstress(2,1)=0._q
-        hstress(3,1)=0._q
-        hstress(3,2)=0._q
+        hstress(2,1) = 0._q
+        hstress(3,1) = 0._q
+        hstress(3,2) = 0._q
         hstress = hstress/jacobian
         fconverge = (fmaxatom .LT. ABS(EDIFFG_local))
         CALLMPI_C(and_chain(fconverge))
@@ -365,7 +363,7 @@
           IF (.NOT. sconverge) THEN
             CALL opt_step(optflag,posion,toten,force,hstress,a,b)
           ELSE
-            IF (iu6>=0) WRITE(iu6,*) 'OPT: skip step - force has converged'
+            IF (IU6>=0) WRITE(IU6,*) 'OPT: skip step - force has converged'
             ! GH: remove any finite difference steps taken by dimer or lan
             IF (ICHAIN==2 .OR. ICHAIN==3)  posion=posion_vasp
             IF (ICHAIN==2) THEN
@@ -376,22 +374,21 @@
       ENDIF
 
 #ifdef EAM
-      Ream=posion
+      Ream = posion
       ! copy saved variables back for vasp
-      posion=Rvasp
-      force=Fvasp
-      toten=Uvasp
+      posion = Rvasp
+      force = Fvasp
+      toten = Uvasp
 #endif
 
     ! for dimer/lanczos, return the true force to vasp
     IF (ICHAIN==2 .OR. ICHAIN==3) THEN
-      force=force_vasp
+      force = force_vasp
     ENDIF
     ! return unprojected stress vasp
-    stress =  stress_vasp
+    stress = stress_vasp
 
     END SUBROUTINE chain_force
-
 
 
 !**********************************************************************
@@ -422,15 +419,14 @@
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
 
-
-#if defined(EAM)
-      external EAM_POTINIT
+#ifdef EAM
+      EXTERNAL EAM_POTINIT
 #endif
-      IU0=IO%IU0
-      IU6=IO%IU6
+      IU0 = IO%IU0
+      IU6 = IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0c, (03/27/13)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0d, (01/09/14)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
@@ -602,7 +598,7 @@
       ENDIF
 #endif
 
-#if defined(EAM)
+#ifdef EAM
       CALL EAM_POTINIT()
       eaminit=.FALSE.
       ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
@@ -624,7 +620,7 @@
 
 ! quick return, if we are not running in image mode
       IF (images==0) RETURN
-      #if defined(MPI) || defined(MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
 
 ! read the VCAIMAGES
       VCAIMAGES=-1
@@ -780,7 +776,7 @@
 
       IF (images==0    ) RETURN
       IF (LTEMPER) RETURN
-#if defined(MPI) || defined (MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
       ! VCAIMAGES returns average value for energies etc.
       IF (LVCAIMAGES) THEN
          node=comm_chain%node_me
@@ -837,12 +833,12 @@
       DIMENSION V(3,3),BASIS(3,3)
 
       DO N=1,3
-        V1=V(N,1)*BASIS(1,1)+V(N,2)*BASIS(2,1)+V(N,3)*BASIS(3,1)
-        V2=V(N,1)*BASIS(1,2)+V(N,2)*BASIS(2,2)+V(N,3)*BASIS(3,2)
-        V3=V(N,1)*BASIS(1,3)+V(N,2)*BASIS(2,3)+V(N,3)*BASIS(3,3)
-        V(N,1)=V1
-        V(N,2)=V2
-        V(N,3)=V3
+        V1 = V(N,1)*BASIS(1,1) + V(N,2)*BASIS(2,1) + V(N,3)*BASIS(3,1)
+        V2 = V(N,1)*BASIS(1,2) + V(N,2)*BASIS(2,2) + V(N,3)*BASIS(3,2)
+        V3 = V(N,1)*BASIS(1,3) + V(N,2)*BASIS(2,3) + V(N,3)*BASIS(3,3)
+        V(N,1) = V1
+        V(N,2) = V2
+        V(N,3) = V3
       ENDDO
 
       RETURN
@@ -862,12 +858,12 @@
       DIMENSION V(3,3),BASIS(3,3)
 
       DO N=1,3
-        V1=V(N,1)*BASIS(1,1)+V(N,2)*BASIS(1,2)+V(N,3)*BASIS(1,3)
-        V2=V(N,1)*BASIS(2,1)+V(N,2)*BASIS(2,2)+V(N,3)*BASIS(2,3)
-        V3=V(N,1)*BASIS(3,1)+V(N,2)*BASIS(3,2)+V(N,3)*BASIS(3,3)
-        V(N,1)=V1
-        V(N,2)=V2
-        V(N,3)=V3
+        V1 = V(N,1)*BASIS(1,1) + V(N,2)*BASIS(1,2) + V(N,3)*BASIS(1,3)
+        V2 = V(N,1)*BASIS(2,1) + V(N,2)*BASIS(2,2) + V(N,3)*BASIS(2,3)
+        V3 = V(N,1)*BASIS(3,1) + V(N,2)*BASIS(3,2) + V(N,3)*BASIS(3,3)
+        V(N,1) = V1
+        V(N,2) = V2
+        V(N,3) = V3
       ENDDO
 
       RETURN
@@ -880,14 +876,14 @@
       DIMENSION V(3,3),BASIS(3,3),AC(3,3)
       AC=0
       DO J=1,3
-      DO I=1,3
-         !A(I,J)=AC(I,J)
-         DO K=1,3
-            AC(I,J)=AC(I,J) + V(I,K)*BASIS(K,J)
+         DO I=1,3
+            !A(I,J)=AC(I,J)
+            DO K=1,3
+               AC(I,J) = AC(I,J) + V(I,K)*BASIS(K,J)
+            ENDDO
          ENDDO
       ENDDO
-      ENDDO
-      V=AC
+      V = AC
 
       RETURN
       END SUBROUTINE sdotA
@@ -899,14 +895,14 @@
       DIMENSION V(3,3),BASIS(3,3),AC(3,3)
       AC=0
       DO J=1,3
-      DO I=1,3
-         !A(I,J)=AC(I,J)
-         DO K=1,3
-            AC(I,J)=AC(I,J) + V(I,K)*BASIS(J,K)
+         DO I=1,3
+            !A(I,J)=AC(I,J)
+            DO K=1,3
+               AC(I,J) = AC(I,J) + V(I,K)*BASIS(J,K)
+            ENDDO
          ENDDO
       ENDDO
-      ENDDO
-      V=AC
+      V = AC
 
       RETURN
       END SUBROUTINE sdotB
@@ -917,22 +913,22 @@
       FUNCTION return_unit(v1,nmax)
       INTEGER :: nmax
       REAL(q) :: v1(3,nmax)
-      REAL(q),dimension(3,nmax) :: return_unit
+      REAL(q),DIMENSION(3,nmax) :: return_unit
       IF (SUM(v1*v1) .NE. 0._q) THEN
-        return_unit=v1*(1._q/SQRT(SUM(v1*v1)))
+        return_unit = v1*(1._q/SQRT(SUM(v1*v1)))
       ELSE
-        return_unit=v1*0._q
+        return_unit = v1*0._q
       ENDIF
       END FUNCTION return_unit
 
-#if defined(EAM)
+#ifdef EAM
 
 !**********************************************************************
 ! Empirical potential, for testing purposes only
 !**********************************************************************
 
-      SUBROUTINE EAMForce(iu6,NIONS,POSION,A,Feam,Ueam)
-      INTEGER :: NIONS,iu6
+      SUBROUTINE EAMForce(IU6,NIONS,POSION,A,Feam,Ueam)
+      INTEGER :: NIONS,IU6
       REAL(q) :: POSION(3,NIONS)
       REAL(q) :: Reamcar(3,NIONS),Feam(3,NIONS)
       REAL(q) :: A(3,3)
@@ -942,35 +938,35 @@
       REAL*8 :: Ueam
       REAL*8 :: Ax,Ay,Az
 
-      external EAM_FORCE
+      EXTERNAL EAM_FORCE
 
-      Ax=A(1,1)
-      Ay=A(2,2)
-      Az=A(3,3)
+      Ax = A(1,1)
+      Ay = A(2,2)
+      Az = A(3,3)
 
       IF (IU6>0) WRITE(IU6,*) 'IN EAMForce'
       ! Convert positions to Cartesian
-      Reamcar=POSION
-      call DIRKAR(NIONS,Reamcar,A)
+      Reamcar = POSION
+      CALL DIRKAR(NIONS,Reamcar,A)
       IF (IU6>0) WRITE(IU6,*) 'Reamcar'
       IF (IU6>0) WRITE(IU6,'(3F14.8)') Reamcar(:,:)
       ! 
-      do NI=1,NIONS
-         do NJ=1,3
-            Rtmp(3*(NI-1)+NJ)=Reamcar(NJ,NI)
-         enddo
-      enddo
+      DO NI=1,NIONS
+         DO NJ=1,3
+            Rtmp(3*(NI-1)+NJ) = Reamcar(NJ,NI)
+         ENDDO
+      ENDDO
       call EAM_FORCE(Nions,Rtmp,Ftmp,Ueam,Ax,Ay,Az)
-      do NI=1,NIONS
-         do NJ=1,3
-            Feam(NJ,NI)=Ftmp(3*(NI-1)+NJ)
-         enddo
-      enddo
-      Feam=Feam*Free
+      DO NI=1,NIONS
+         DO NJ=1,3
+            Feam(NJ,NI) = Ftmp(3*(NI-1)+NJ)
+         ENDDO
+      ENDDO
+      Feam = Feam*Free
       IF (IU6>0) WRITE(IU6,*) 'EAMForce'
       IF (IU6>0) WRITE(IU6,'(3F14.8)') FEAM(:,:)
       IF (IU6>0) WRITE(IU6,*) 'Ueam: ',Ueam
-      end subroutine EAMForce
+      END SUBROUTINE EAMForce
 #endif
 
       SUBROUTINE PARALLEL_TEMPERING(NSTEP, NIONS, POSION, VEL, TOTEN, FORCE, TEBEG, TEEND, &
@@ -996,7 +992,7 @@
       REAL(q) :: TEBEG_new_local, E
       REAL(q) :: value
 
-#if defined(MPI) || defined (MPI_CHAIN)
+#if defined(MPI) || defined(MPI_CHAIN)
       IF (.NOT. LTEMPER) RETURN
       IF (IU6>=0) WRITE(IU6,*) 'parallel tempering routine entered NSTEP=, NTEMPER=', NSTEP,NTEMPER
       CALL RANDOM_NUMBER(value)
@@ -1006,14 +1002,14 @@
          ALLOCATE(TEBEG_old(images), TEBEG_new(images), TOTEN_all(images), ID(images))
 
          ! my id, i.e. which subdir I am running in
-         node=comm_chain%node_me
+         node = comm_chain%node_me
 
-         TEBEG_old=0
-         TEBEG_old(node)=TEBEG
-         TOTEN_all=0
-         TOTEN_all(node)=TOTEN
-         ID=0
-         ID(node)=node
+         TEBEG_old = 0
+         TEBEG_old(node) = TEBEG
+         TOTEN_all = 0
+         TOTEN_all(node) = TOTEN
+         ID = 0
+         ID(node) = node
 
          CALLMPI_C( M_sum_d( comm_chain, TEBEG_old,  images))
          CALLMPI_C( M_sum_d( comm_chain, TOTEN_all,  images))
