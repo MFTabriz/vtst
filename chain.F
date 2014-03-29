@@ -33,7 +33,7 @@
 !
 ! Email: henkelman@cm.utexas.edu
 !
-! Version 3.0d, Jan. 9, 2014
+! Version 3.1, Mar. 28, 2014
 !
 !**********************************************************************
 
@@ -60,18 +60,18 @@
     PRIVATE :: EAMForce
 #endif
     INTEGER :: ICHAIN,IOPT
-    LOGICAL :: optflag,fconverge,ftot_flag,LINTERACT,LMPMD
-    LOGICAL :: sconverge,cell_flag,twodim_flag
-    REAL(q) :: EDIFFG_local,ftot_val,jacobian,PSTRESS_local 
+    LOGICAL :: optflag, fconverge, ftot_flag, LINTERACT, LMPMD
+    LOGICAL :: sconverge, cell_flag, twodim_flag
+    REAL(q) :: EDIFFG_local, ftot_val, jacobian, PSTRESS_local 
     REAL(q),ALLOCATABLE :: Free(:,:)
 
 #ifdef EAM
     ! Variables used for calling the EAM potential (testing)
     LOGICAL :: eaminit
-    REAL(q),ALLOCATABLE :: Ream(:,:),Feam(:,:)
-    REAL(q),ALLOCATABLE :: Rvasp(:,:),Fvasp(:,:)
+    REAL(q),ALLOCATABLE :: Ream(:,:), Feam(:,:)
+    REAL(q),ALLOCATABLE :: Rvasp(:,:), Fvasp(:,:)
 !    REAL(q),ALLOCATABLE :: Free(:,:)
-    REAL(q) :: Uvasp,Ueam
+    REAL(q) :: Uvasp, Ueam
 #endif
 
 !!! Tempering variables
@@ -109,19 +109,19 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE chain_force(nions,posion,toten,force,stress,a,b,IU6)
+    SUBROUTINE chain_force(nions, posion, toten, force, stress, a, b, IU6)
     !SUBROUTINE chain_force(nions,posion,toten,force,a,b,IU6)
       INTEGER :: nions,ni,nj,IU6,I
-      REAL(q) :: ftot,frms,fmaxatom,ftemp,fmaxdim,toten
+      REAL(q) :: ftot, frms, fmaxatom, ftemp, fmaxdim, toten
       REAL(q),DIMENSION(3,nions) :: posion,force
-      REAL(q),DIMENSION(3,nions) :: posion_vasp,force_vasp,force_dimlan
-      REAL(q),DIMENSION(3,3) :: a,b
-      REAL(q),DIMENSION(3,3) :: stress,hstress,stress_vasp
-      REAL(q),DIMENSION(3,3) :: sdA,sdB,sdA2
-      REAL(q) :: stot,smaxdim
+      REAL(q),DIMENSION(3,nions) :: posion_vasp, force_vasp, force_dimlan
+      REAL(q),DIMENSION(3,3) :: a, b
+      REAL(q),DIMENSION(3,3) :: stress, hstress, stress_vasp
+      REAL(q),DIMENSION(3,3) :: sdA, sdB, sdA2
+      REAL(q) :: stot, smaxdim
       REAL(q) :: omega
       LOGICAL :: stopcar_exists, newcar_exists
-      INTEGER NIOND,NIONPD,NTYPPD,NTYPD,ierr
+      INTEGER NIOND, NIONPD, NTYPPD, NTYPD, ierr
       TYPE (latt):: LATT_CUR
       TYPE (TYPE_info) :: T_I
       TYPE (dynamics) :: DYN
@@ -151,7 +151,7 @@
          force_all(:,:,node) = force
          CALLMPI_C( M_sum_d( comm_chain, force_all(1,1,1), nions*3*2))
          force = 0
-         force(:,:) = force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
+         force(:,:) = force_all(:,:,1)*VCAIMAGES + force_all(:,:,2)*(1-VCAIMAGES)
          force = force
          DEALLOCATE(force_all)
          RETURN
@@ -208,9 +208,9 @@
       ! the pressure to the stress tensor
       IF (IOPT .NE. 0) THEN
         ! find volume of cell
-        omega =  a(1,1)*(a(2,2)*a(3,3)-a(2,3)*a(3,2)) 
-        omega = omega - a(1,2)*(a(2,1)*a(3,3)-a(3,1)*a(2,3)) 
-        omega = omega + a(1,3)*(a(2,1)*a(3,2)-a(3,1)*a(2,2)) 
+        omega =  a(1,1)*(a(2,2)*a(3,3) - a(2,3)*a(3,2)) 
+        omega = omega - a(1,2)*(a(2,1)*a(3,3) - a(3,1)*a(2,3)) 
+        omega = omega + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2)) 
         DO I=1,3
           stress(I,I) = stress(I,I) - omega * PSTRESS_local 
         ENDDO
@@ -315,8 +315,8 @@
       smaxdim = 0._q
       DO ni=1,3
         DO nj=1,3
-          stot = stot+stress(nj,ni)**2
-          IF(smaxdim.LT.ABS(stress(nj,ni))) THEN
+          stot = stot + stress(nj,ni)**2
+          IF(smaxdim .LT. ABS(stress(nj,ni))) THEN
             smaxdim = ABS(stress(nj,ni))
           ENDIF
         ENDDO
@@ -426,16 +426,16 @@
       IU6 = IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.0d, (01/09/14)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.1, (03/28/14)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
       ! initialize optimizer
       CALL opt_init(T_INFO, IO)
-      optflag=.FALSE.
+      optflag = .FALSE.
 
       ! initialize chain based method
-      ICHAIN=0
+      ICHAIN = 0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ICHAIN','=','#',';','I', &
      &            ICHAIN,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -443,7 +443,7 @@
         STOP
       ENDIF
 
-      LINTERACT=.FALSE.
+      LINTERACT = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LINTERACT','=','#',';','L', &
      &            IDUM,RDUM,CDUM,LINTERACT,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -451,7 +451,7 @@
         STOP
       ENDIF
 
-      LMPMD =.FALSE.
+      LMPMD = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LMPMD','=','#',';','L', &
      &            IDUM,RDUM,CDUM,LMPMD,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -459,7 +459,7 @@
         STOP
       ENDIF
 
-      IOPT=0
+      IOPT = 0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IOPT','=','#',';','I', &
      &            IOPT,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -467,7 +467,7 @@
         STOP
       ENDIF
 
-      EDIFFG_local=0.1_q
+      EDIFFG_local = 0.1_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'EDIFFG','=','#',';','F', &
      &            IDUM,EDIFFG_local,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -476,7 +476,7 @@
       ENDIF
 
 !     determines if cell should change in NEB
-      cell_flag=.FALSE.
+      cell_flag = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
      &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -485,7 +485,7 @@
       ENDIF
 
 !     sets stress tensor to two dimensions 
-      twodim_flag=.FALSE.
+      twodim_flag = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LTWODIM','=','#',';','L', &
      &            IDUM,RDUM,CDUM,twodim_flag,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -494,7 +494,7 @@
       ENDIF
 
 !     USED to converge based on Magnitude of the force
-      ftot_flag=.FALSE.
+      ftot_flag = .FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FMAGFLAG','=','#',';','L', &
      &            IDUM,RDUM,CDUM,ftot_flag,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -502,7 +502,7 @@
         STOP
       ENDIF
 
-      ftot_val=0.01_q
+      ftot_val = 0.01_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'FMAGVAL','=','#',';','F', &
      &            IDUM,ftot_val,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
@@ -524,14 +524,14 @@
         ENDIF
       ENDIF
 
-      PSTRESS_local=0.0_q
+      PSTRESS_local = 0.0_q
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'PSTRESS','=','#',';','F', &
      &            IDUM,PSTRESS_local,CDUM,LDUM,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''PSTRESS'' from file INCAR.'
         STOP
       ENDIF
-      PSTRESS_local=PSTRESS_local/(EVTOJ*1E22_q)
+      PSTRESS_local = PSTRESS_local/(EVTOJ*1E22_q)
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
@@ -600,7 +600,7 @@
 
 #ifdef EAM
       CALL EAM_POTINIT()
-      eaminit=.FALSE.
+      eaminit = .FALSE.
       ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
       ALLOCATE(Fvasp(3,T_INFO%nions),Rvasp(3,T_INFO%nions))
 !      ALLOCATE(Free(3,T_INFO%nions))
