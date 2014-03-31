@@ -26,7 +26,7 @@
     REAL(q),ALLOCATABLE,DIMENSION(:,:,:,:) :: change_in_G, change_in_R
 
     REAL(q) :: dir2car(3,3), car2dir(3,3)
-    REAL(q) :: finite_step, maxmove, invcurv
+    REAL(q) :: finite_step, maxmove, invcurv, damping
     LOGICAL :: fdstep, reset_flag, global, lineopt, autoscale
 
 !**********************************************************************
@@ -99,8 +99,12 @@
           fp1 = SUM(Fold*direction/direction_norm)
           fp2 = SUM(F*direction/direction_norm)
           curvature = (fp1-fp2)/direction_norm
-          invcurv = 1.0_q/curvature
-          IF(iu6>0) WRITE(iu6,*) 'OPT: LBFGS, invcurv = ', invcurv
+
+          ! "damping" makes invcurv smaller, which means that smaller
+          ! steps will be taken along the descent direction. This conservative
+          ! approach helps when the forces are noisy.
+          invcurv = 1.0_q / curvature / damping
+          IF(iu6>0) write(iu6,*) 'OPT: LBFGS, invcurv = ', invcurv
 
           IF (invcurv .LT. 0.0) THEN
             reset_flag = .TRUE.
@@ -453,6 +457,14 @@
          IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''INVCURV'' from file INCAR.'
          STOP
       ENDIF
+
+      damping = 2.00_q
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'DAMPING','=','#',';','F', &
+     &            IDUM,damping,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR. ((IERR==0).AND.(N<1))) THEN
+         IF (iu0>=0) WRITE(iu0,*) 'Error reading item ''DAMPING'' from file INCAR.'
+         STOP
+      ENDIF
  
       images_local = 0
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'IMAGES','=','#',';','I', &
@@ -494,6 +506,7 @@
         WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LLINEOPT',lineopt
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, FDSTEP ',finite_step
         WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LAUTOSCALE',autoscale
+        WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, DAMPING',damping
       END IF
 
       reset_flag = .TRUE.
