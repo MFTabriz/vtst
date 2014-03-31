@@ -506,7 +506,7 @@
         WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LLINEOPT',lineopt
         WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, FDSTEP ',finite_step
         WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, LAUTOSCALE',autoscale
-        WRITE(iu6,'(A5,A,L7)') 'OPT:',' LBFGS, DAMPING',damping
+        WRITE(iu6,'(A5,A,F14.6)') 'OPT:',' LBFGS, DAMPING',damping
       END IF
 
       reset_flag = .TRUE.
