@@ -1,0 +1,735 @@
+
+!  type used for projection in Bader volume
+      REAL(q),ALLOCATABLE :: RPROJ(:,:)
+      COMPLEX(q),ALLOCATABLE :: CRREXP(:,:)
+      INTEGER, ALLOCATABLE :: NPIND(:)
+
+      TYPE :: bader_obj
+        REAL(q),ALLOCATABLE,DIMENSION(:,:,:) :: ATOMNUM
+        INTEGER,ALLOCATABLE,DIMENSION(:) :: PTMAX
+        INTEGER,DIMENSION(3) :: NPTS
+        INTEGER :: NRHO
+        REAL(q),ALLOCATABLE,DIMENSION(:,:) ::r_dir
+        REAL(q),ALLOCATABLE,DIMENSION(:) :: RMAX
+      END TYPE
+!  end of change
+
+111111
+
+!  for projection in Bader volume
+!      REAL(q) WORKR(WDES%NRPLWV), WORKI(WDES%NRPLWV)
+      TYPE (bader_obj)   BADER
+      TYPE(wavefun1) W1
+      REAL(q),ALLOCATABLE:: WORKR(:), WORKI(:)
+      CHARACTER(LEN=128) :: chargefile
+      INTEGER :: PTIND
+      INTEGER:: asum
+      COMPLEX(q),ALLOCATABLE :: CW(:), CRD(:)
+!  end of change
+
+111111
+
+!  for projection in Bader volume
+io_begin
+      WRITE(*,*) "START DOS PROJECTION IN BADER VOLUMES"
+io_end
+
+#ifdef MPI
+      NUM_CPU=GRID%COMM%NCPU
+#else
+      NUM_CPU=1
+#endif
+      ALLOCATE(BADER%RMAX(NUM_CPU))
+      asum=SUM(T_INFO%NITYP(:))
+      chargefile='BDRCAR'
+      CALL read_charge_chgcar(BADER,chargefile)
+      CALLMPI( M_sum_z( WDES%COMM_INB,BADER%r_dir(1,:),asum))
+!  end of change
+
+111111
+
+!  for projection in Bader volume
+      ALLOCATE(W1%CR(GRID%MPLWV*WDES%NRSPINORS))
+!  end of change
+
+111111
+
+!  for projection in Bader volume 
+      BADER%RMAX=0._q
+      INDMAX=BADER%PTMAX(NI)
+      IF(INDMAX==0) EXIT
+      IF((.NOT. WDES%LSPIRAL)) ALLOCATE(CRREXP(INDMAX,1))
+      IF(WDES%LSPIRAL) ALLOCATE(CRREXP(INDMAX,2))
+      ALLOCATE(RPROJ(INDMAX,LMDIMP*LTRUNC),NPIND(INDMAX))
+      ALLOCATE(WORKR(INDMAX),WORKI(INDMAX))
+      CALL BDRPROJ_SET(T_INFO,GRID,WDES,LATT_CUR,BADER,NI,LDIMP,LMDIMP,LTRUNC,INDMAX)
+      CALL PHASER(T_INFO,GRID,LATT_CUR,NK,WDES,INDMAX,NI,BADER)  ! reset phase factor
+      NGVECTOR=WDES%NGVECTOR(NK)
+!  end of change
+
+111111
+
+!  for projection in Bader volume
+!      CALL SETWAV_(W,W1,NB,NK,ISP)
+      W1%CPTWFP=>W%CPTWFP(:,NB,NK,ISP)
+      W1%CPROJ =>W%CPROJ(:,NB,NK,ISP)
+      W1%FERWE =W%FERWE(NB,NK,ISP)
+      W1%CELEN =W%CELEN(NB,NK,ISP)
+      CALL FFTWAV(NGVECTOR,WDES%NINDPW(1,NK),W1%CR(1+ISPINOR*GRID%MPLWV),W1%CPTWFP(1+ISPINOR*NGVECTOR),GRID)
+      WFMINV=GRID%NGX*GRID%NGY*GRID%NGZ
+      WFMINV=1._q/SQRT(WFMINV)
+      W1%CR(:)=W1%CR(:)*WFMINV
+      DO IND=1,INDMAX
+        PTIND=NPIND(IND)+ISPINOR*GRID%MPLWV
+#ifdef gammareal
+        WORKR(IND) = REAL(W1%CR(PTIND),KIND=qn)
+#else
+        CTMP=  W1%CR(PTIND)*CRREXP(IND,ISPIRAL)
+        WORKR(IND) = REAL( CTMP ,KIND=qn)
+        WORKI(IND) = AIMAG(CTMP)
+#endif
+      ENDDO
+!  end of change
+
+111111
+!  for projection in Bader volume
+!DIR$ IVDEP
+!OCL NOVREC
+               DO IND=1,INDMAX
+                  SUMR = SUMR+WORKR(IND)*RPROJ(IND,LMS)
+#ifndef gammareal
+                  SUMI = SUMI+WORKI(IND)*RPROJ(IND,LMS)
+#endif
+               ENDDO
+               CTMP=GREAL(CMPLX( SUMR , SUMI ,KIND=q))
+!  end of change
+111111
+!  for projection in Bader volume
+      CSUM=CSUM/SQRT(REAL(NUM_CPU))
+      CSUM_PHASE=CSUM_PHASE/SQRT(REAL(NUM_CPU))
+!  end of change
+
+111111
+!  for projection in Bader volume
+      DEALLOCATE(RPROJ,CRREXP,NPIND,WORKR,WORKI)
+!  end of change
+111111
+!  for projection in Bader volume
+      DEALLOCATE(W1%CR)
+!  end of change
+111111
+
+!  for projection in Bader volume
+io_begin
+      WRITE(*,*) "FINISH DOS PROJECTION IN BADER VOLUMES"
+io_end
+!  end of change
+
+111111
+!*******************subroutine BDRPROJ_SET*******************************
+!
+!  subroutine BDRPROJ_SET calculates the sperical harmonics
+!  projection operators in real space
+!  the result is the full real space projection operator  PROJ
+!
+!  full nonlocal pseudopotential is given by
+!    RPROJ = 1/Omega ^(1/2) Y_lm(r-R(N) Exp(i k r-R(N))
+!
+!***********************************************************************
+
+      SUBROUTINE BDRPROJ_SET(T_INFO,GRID,WDES,LATT_CUR,BADER,NI,LDIMP,LMDIMP,LTRUNC,INDMAX)
+      USE prec
+      USE nonl
+      USE main_mpi
+      USE constant
+      USE pseudo
+      USE poscar
+      USE mpimy
+      USE mgrid
+      USE lattice
+      USE constant
+      USE wave
+      USE asa
+      IMPLICIT COMPLEX(q) (C)
+      IMPLICIT REAL(q) (A-B,D-H,O-Z)
+
+      TYPE (type_info)   T_INFO
+      TYPE (grid_3d)     GRID
+      TYPE (latt)        LATT_CUR
+      TYPE (bader_obj)   BADER
+      TYPE (wavedes)     WDES
+      INTEGER NI,LDIMP,LMDIMP
+
+! work arrays
+      REAL(q),ALLOCATABLE :: DIST(:),XS(:),YS(:),ZS(:),YLM(:,:)
+      REAL(q) :: QZERO(LTRUNC)
+      REAL(q) :: GRIDVOL
+      INTEGER :: IND, INDMAX
+
+      REAL(q),DIMENSION(3) :: DIFF
+!      REAL(q) :: RPROJ(INDMAX,LMDIMP*LTRUNC)
+!      INTEGER :: NPIND(INDMAX)
+
+      LYDIM=LDIM-1
+      LMYDIM=LMDIMP-1         ! number of lm pairs
+
+      LMMAX =LMDIMP ! number of nlm indices in the non local potential
+     
+      INDMAX=BADER%PTMAX(NI)
+      ALLOCATE(DIST(INDMAX),XS(INDMAX),YS(INDMAX),ZS(INDMAX),YLM(INDMAX,LMDIMP))
+
+!=======================================================================
+! find lattice points contained within the cutoff-sphere
+! this loop might be done in scalar unit
+!=======================================================================
+      F1=1._q/GRID%NGX
+      F2=1._q/GRID%NGY
+      F3=1._q/GRID%NGZ
+
+!-----------------------------------------------------------------------
+! restrict loop to points contained within a cubus around the ion
+!-----------------------------------------------------------------------
+      N3LOW= 1
+      N2LOW= 1
+      N1LOW= 1
+
+!write(*,*) "ngx npt:",GRID%NGX,GRID%NGY,GRID%NGZ
+      N3HI=GRID%NGZ
+      N2HI=GRID%NGY
+      N1HI=GRID%NGX
+      
+      RPROJ= 0._q; DIST=0._q; XS=0._q; YS=0._q; ZS=0._q
+      YLM=0._q
+
+!-----------------------------------------------------------------------
+! loop over cubus
+! MPI version z ist the fast index
+!-----------------------------------------------------------------------
+#ifdef MPI
+      IND=1
+      PTIND=1
+
+      DO N2=N2LOW,N2HI
+      X2=(N2*F2-T_INFO%POSION(2,NI))
+      N2P=MOD(N2+10*GRID%NGY,GRID%NGY)
+
+      DO N1=N1LOW,N1HI
+      X1=(N1*F1-T_INFO%POSION(1,NI))
+      N1P=MOD(N1+10*GRID%NGX,GRID%NGX)
+
+      NCOL=GRID%RL%INDEX(N1P,N2P)
+      IF (NCOL==0) CYCLE ! not on local node go on
+      IF (GRID%RL%I2(NCOL) /= N1P+1 .OR. GRID%RL%I3(NCOL) /= N2P+1) THEN
+        WRITE(*,*)'BDRPROJ_SET: internal ERROR:', &
+           GRID%RL%I2(NCOL),N1P+1, GRID%RL%I3(NCOL),N2P+1,NCOL
+        STOP
+      ENDIF
+!OCL SCALAR
+
+      DO N3=N3LOW,N3HI
+      X3=(N3*F3-T_INFO%POSION(3,NI))
+      N3P=MOD(N3+10*GRID%NGZ,GRID%NGZ)
+      NLI =1+N3P+ GRID%NGZ*(NCOL-1)
+
+      A1=MOD(2*N1+1,BADER%NPTS(1))
+      A2=MOD(2*N2+1,BADER%NPTS(2))
+      A3=MOD(2*N3+1,BADER%NPTS(3))
+      IF(BADER%ATOMNUM(A1,A2,A3)/=NI) THEN
+         PTIND=PTIND+1
+         CYCLE
+      END IF
+
+      XC= X1*LATT_CUR%A(1,1)+X2*LATT_CUR%A(1,2)+X3*LATT_CUR%A(1,3)
+      YC= X1*LATT_CUR%A(2,1)+X2*LATT_CUR%A(2,2)+X3*LATT_CUR%A(2,3)
+      ZC= X1*LATT_CUR%A(3,1)+X2*LATT_CUR%A(3,2)+X3*LATT_CUR%A(3,3)
+
+      CALL dpbc_car(XC,YC,ZC,LATT_CUR)
+      D=SQRT(XC*XC+YC*YC+ZC*ZC)
+
+      IF (D<1E-4_q) THEN
+        DIST(IND)=1E-4_q
+      ELSE
+        DIST(IND)=D
+      ENDIF
+
+!      NPIND(IND)=PTIND
+      NPIND(IND)=NLI
+      XS(IND)  =XC/DIST(IND)
+      YS(IND)  =YC/DIST(IND)
+      ZS(IND)  =ZC/DIST(IND)
+      IND=IND+1
+      PTIND=PTIND+1
+     ENDDO
+     ENDDO
+     ENDDO
+#else
+!-----------------------------------------------------------------------
+! loop over cubus around one ion
+! conventional version x is fast index
+!-----------------------------------------------------------------------
+      IND=1
+      PTIND=1
+
+      DO N3=N3LOW,N3HI
+      X3=(N3*F3-T_INFO%POSION(3,NI))
+      N3P=MOD(N3+10*GRID%NGZ,GRID%NGZ)
+
+      DO N2=N2LOW,N2HI
+      X2=(N2*F2-T_INFO%POSION(2,NI))
+      N2P=MOD(N2+10*GRID%NGY,GRID%NGY)
+
+      NCOL=GRID%RL%INDEX(N2P,N3P)
+
+      DO N1=N1LOW,N1HI
+      X1=(N1*F1-T_INFO%POSION(1,NI))
+      N1P=MOD(N1+10*GRID%NGX,GRID%NGX)
+      NLI =N1P+(NCOL-1)*GRID%NGX+1
+
+      IF (NLI /= 1+N1P+GRID%NGX*(N2P+GRID%NGY* N3P)) THEN
+        WRITE(*,*)'BDRPROJ_SET internal ERROR:',N1P,N2P,N3P, NCOL
+        STOP
+      ENDIF
+
+      A1=MOD(2*N1+1,BADER%NPTS(1))
+      A2=MOD(2*N2+1,BADER%NPTS(2))
+      A3=MOD(2*N3+1,BADER%NPTS(3))
+      IF(BADER%ATOMNUM(A1,A2,A3)/=NI) THEN
+         PTIND=PTIND+1
+         CYCLE
+      END IF
+
+      XC= X1*LATT_CUR%A(1,1)+X2*LATT_CUR%A(1,2)+X3*LATT_CUR%A(1,3)
+      YC= X1*LATT_CUR%A(2,1)+X2*LATT_CUR%A(2,2)+X3*LATT_CUR%A(2,3)
+      ZC= X1*LATT_CUR%A(3,1)+X2*LATT_CUR%A(3,2)+X3*LATT_CUR%A(3,3)
+
+      CALL dpbc_car(XC,YC,ZC,LATT_CUR)
+      D=SQRT(XC*XC+YC*YC+ZC*ZC)
+
+      IF (D<1E-4_q) THEN
+        DIST(IND)=1E-4_q
+      ELSE
+        DIST(IND)=D
+      ENDIF
+
+!      NPIND(IND)=PTIND
+      NPIND(IND)=NLI
+      XS(IND)  =XC/DIST(IND)
+      YS(IND)  =YC/DIST(IND)
+      ZS(IND)  =ZC/DIST(IND)
+      IND=IND+1
+      PTIND=PTIND+1
+     ENDDO
+     ENDDO
+     ENDDO
+#endif
+!-----------------------------------------------------------------------
+!  compare maximum index with INDMAX
+!-----------------------------------------------------------------------
+      INDMAX=IND-1
+!      WRITE(*,*)"points:",INDMAX, BADER%PTMAX(NI)
+      IF (INDMAX > BADER%PTMAX(NI)) THEN
+        WRITE(*,*)'internal ERROR: BDRPROJ_SET:  number of total points ',INDMAX, &
+     &            'is larger than:',BADER%PTMAX(NI)
+        stop
+      ENDIF
+!=======================================================================
+! now calculate the tables containing the spherical harmonics
+! multiplied by the pseudopotential
+!=======================================================================
+      CALL SETYLM(LDIMP-1,INDMAX,YLM,XS,YS,ZS)
+
+      RCUT=MAXVAL(DIST(:))
+#ifdef MPI
+      BADER%RMAX(GRID%COMM%NODE_ME)=RCUT
+#else
+      BADER%RMAX(1)=RCUT
+#endif
+
+#ifdef MPI
+      CALLMPI (M_sum_d(WDES%COMM, BADER%RMAX(1), GRID%COMM%NCPU))
+#endif
+!      CALLMPI( M_bcast_d(GRID%COMM, BADER%RMAX(1), GRID%COMM%NCPU))
+      RCUT=MAXVAL(BADER%RMAX)
+
+!WRITE(*,*)"RCUT:", RCUT
+
+      LMIND=1
+      l_loop: DO LL=0,LDIMP-1
+!-----------------------------------------------------------------------
+! interpolate the non-local pseudopotentials
+! and multiply by (LATT_CUR%OMEGA)^(1/2)
+! interpolation is done here using spline-fits this inproves the
+! numerical stability of the forces the MIN operation takes care
+! that the index is between  1 and NPSRNL
+!-----------------------------------------------------------------------
+        FAKT= SQRT(LATT_CUR%OMEGA)
+        MMAX=2*LL
+        LMBASE=LL**2+1
+
+        CALL BEZERO(QZERO,LL,LTRUNC)
+        QZERO(:)=QZERO(:)/RCUT
+        
+        ltrunc_loop: DO I=1,LTRUNC
+
+        DO LM=0,MMAX
+        PROJSUM=0.0_q
+        DO IND=1,INDMAX
+           QR=DIST(IND)*QZERO(I)
+           CALL SBESSE2(QR, BQ, BQP, LL)
+           VPS=1
+!           VPS=BQ
+           RPROJ(IND,LMIND+LM)=RPROJ(IND,LMIND+LM)+VPS*YLM(IND,LM+LMBASE)
+!           PROJSUM=PROJSUM+RPROJ(IND,LMIND+LM)*CONJG(RPROJ(IND,LMIND+LM))
+           PROJSUM=PROJSUM+RPROJ(IND,LMIND+LM)*RPROJ(IND,LMIND+LM)
+        ENDDO
+        CALLMPI (M_sum_d( WDES%COMM, PROJSUM, 1))
+#ifdef MPI
+      NUM_CPU=GRID%COMM%NCPU
+#else
+      NUM_CPU=1
+#endif
+        PROJSUM=PROJSUM/NUM_CPU
+
+        IF(PROJSUM < 1E-8_q) PROJSUM=1.0_q
+!        RPROJ(:,LMIND+LM)=RPROJ(:,LMIND+LM)/SQRT((PROJSUM*GRIDVOL))
+!        RPROJ(:,LMIND+LM)=RPROJ(:,LMIND+LM)
+!        RPROJ(:,LMIND+LM)=RPROJ(:,LMIND+LM)*FAKT
+        RPROJ(:,LMIND+LM)=RPROJ(:,LMIND+LM)/SQRT(PROJSUM)
+        ENDDO
+        LMIND=LMIND+MMAX+1
+
+        END DO ltrunc_loop
+        ENDDO l_loop
+
+      IF (LMIND-1/=LMMAX*LTRUNC) THEN
+        WRITE(*,*)'internal ERROR: BDRPROJ_SET:  LMMAX is wrong',LMIND-1,LMMAX
+        stop
+      ENDIF
+
+!-----------------------------------------------------------------------
+! finally store the coefficients 
+!-----------------------------------------------------------------------
+
+     DEALLOCATE(DIST,XS,YS,ZS,YLM)
+
+     RETURN
+     END SUBROUTINE
+!****************** subroutine PHASER  *********************************
+! subroutine PHASER
+! recalculates the phase factor for the real-space projectors
+! the recalculation is only done if the k-point changes
+!***********************************************************************
+
+      SUBROUTINE PHASER(T_INFO,GRID,LATT_CUR,NK,WDES,INDMAX,NI,BADER)
+
+      USE prec
+      USE poscar
+      USE lattice
+      USE mpimy
+      USE mgrid
+      USE constant
+      USE pseudo
+      USE wave
+      IMPLICIT COMPLEX(q) (C)
+      IMPLICIT REAL(q) (A-B,D-H,O-Z)
+
+      TYPE (type_info)::  T_INFO
+      TYPE (grid_3d)     GRID
+      TYPE (latt)        LATT_CUR
+      TYPE (wavedes)     WDES
+      TYPE (bader_obj)   BADER
+      INTEGER :: NK, INDMAX,NI
+      REAL(q),DIMENSION(3) :: DIFF
+!      COMPLEX(q),POINTER:: CRREXP(INDMAX,1)
+#ifdef gammareal
+      RETURN
+#else
+!-----------------------------------------------------------------------
+! k-point in kartesian coordiantes
+!-----------------------------------------------------------------------
+      VKX= WDES%VKPT(1,NK)*LATT_CUR%B(1,1)+WDES%VKPT(2,NK)*LATT_CUR%B(1,2)+WDES%VKPT(3,NK)*LATT_CUR%B(1,3)
+      VKY= WDES%VKPT(1,NK)*LATT_CUR%B(2,1)+WDES%VKPT(2,NK)*LATT_CUR%B(2,2)+WDES%VKPT(3,NK)*LATT_CUR%B(2,3)
+      VKZ= WDES%VKPT(1,NK)*LATT_CUR%B(3,1)+WDES%VKPT(2,NK)*LATT_CUR%B(3,2)+WDES%VKPT(3,NK)*LATT_CUR%B(3,3)
+!-MM- spin spiral stuff
+!-----------------------------------------------------------------------
+! spin spiral propagation vector in cartesian coordinates
+! is simply zero when LSPIRAL=.FALSE.
+!-----------------------------------------------------------------------
+      QX= (WDES%QSPIRAL(1)*LATT_CUR%B(1,1)+WDES%QSPIRAL(2)*LATT_CUR%B(1,2)+WDES%QSPIRAL(3)*LATT_CUR%B(1,3))/2
+      QY= (WDES%QSPIRAL(1)*LATT_CUR%B(2,1)+WDES%QSPIRAL(2)*LATT_CUR%B(2,2)+WDES%QSPIRAL(3)*LATT_CUR%B(2,3))/2
+      QZ= (WDES%QSPIRAL(1)*LATT_CUR%B(3,1)+WDES%QSPIRAL(2)*LATT_CUR%B(3,2)+WDES%QSPIRAL(3)*LATT_CUR%B(3,3))/2
+!     QX=0;QY=0;QZ=0
+
+!=======================================================================
+! Loop over NSPINORS: here only in case of spin spirals NRSPINOR=2
+!=======================================================================
+      IF (WDES%LSPIRAL) THEN 
+         NSPINORS=2
+      ELSE
+         NSPINORS=1
+      ENDIF
+
+      spinor: DO ISPINOR=1,NSPINORS
+!-MM- end of addition
+      
+!OCL SCALAR
+!=======================================================================
+! find lattice points contained within the cutoff-sphere
+! this loop might be done in scalar unit
+!=======================================================================
+      F1=1._q/GRID%NGX
+      F2=1._q/GRID%NGY
+      F3=1._q/GRID%NGZ
+!-----------------------------------------------------------------------
+! restrict loop to points contained within a cubus around the ion
+!-----------------------------------------------------------------------
+      N3LOW=1
+      N2LOW=1
+      N1LOW=1
+
+      N3HI=GRID%NGZ
+      N2HI=GRID%NGY
+      N1HI=GRID%NGX
+
+      CRREXP=(0._q,0._q)
+!-----------------------------------------------------------------------
+! loop over cubus
+! MPI version z ist the fast index
+!-----------------------------------------------------------------------
+#ifdef MPI
+      IND=1
+
+      DO N2=N2LOW,N2HI
+      X2=(N2*F2-T_INFO%POSION(2,NI))
+      N2P=MOD(N2+10*GRID%NGY,GRID%NGY)
+
+
+      DO N1=N1LOW,N1HI
+      X1=(N1*F1-T_INFO%POSION(1,NI))
+      N1P=MOD(N1+10*GRID%NGX,GRID%NGX)
+
+      NCOL=GRID%RL%INDEX(N1P,N2P)
+      IF (NCOL==0) CYCLE ! not on local node go on
+      IF (GRID%RL%I2(NCOL) /= N1P+1 .OR. GRID%RL%I3(NCOL) /= N2P+1) THEN
+        WRITE(*,*)'RSPHER: internal ERROR:', &
+           GRID%RL%I2(NCOL),N1P+1, GRID%RL%I3(NCOL),N2P+1,NCOL
+        STOP
+      ENDIF
+
+      DO N3=N3LOW,N3HI
+      X3=(N3*F3-T_INFO%POSION(3,NI))
+
+      A1=MOD(2*N1+1,BADER%NPTS(1))
+      A2=MOD(2*N2+1,BADER%NPTS(2))
+      A3=MOD(2*N3+1,BADER%NPTS(3))
+
+      IF(BADER%ATOMNUM(A1,A2,A3)/=NI) THEN
+         CYCLE
+      END IF
+
+      X= X1*LATT_CUR%A(1,1)+X2*LATT_CUR%A(1,2)+X3*LATT_CUR%A(1,3)
+      Y= X1*LATT_CUR%A(2,1)+X2*LATT_CUR%A(2,2)+X3*LATT_CUR%A(2,3)
+      Z= X1*LATT_CUR%A(3,1)+X2*LATT_CUR%A(3,2)+X3*LATT_CUR%A(3,3)
+
+      CALL dpbc_car(X,Y,Z,LATT_CUR)
+!-MM- begin alteration
+! original statement
+!       NONLR_S%CRREXP(IND,NI)=EXP(CITPI*(X*VKX+Y*VKY+Z*VKZ))
+! change in phaser array to accomodate spin spirals
+        CRREXP(IND,ISPINOR)=EXP(CITPI*(X*(VKX-QX)+Y*(VKY-QY)+Z*(VKZ-QZ)))
+!WRITE(*,*)"CRREXP:",CRREXP(IND,ISPINOR)
+!-MM- end of alteration
+
+        IND=IND+1
+      ENDDO; ENDDO; ENDDO
+#else
+!-----------------------------------------------------------------------
+! loop over cubus around one ion
+! conventional version x is fast index
+!-----------------------------------------------------------------------
+      IND=1
+
+      DO N3=N3LOW,N3HI
+      X3=(N3*F3-T_INFO%POSION(3,NI))
+      N3P=MOD(N3+10*GRID%NGZ,GRID%NGZ)
+
+      DO N2=N2LOW,N2HI
+      X2=(N2*F2-T_INFO%POSION(2,NI))
+      N2P=MOD(N2+10*GRID%NGY,GRID%NGY)
+
+      DO N1=N1LOW,N1HI
+      X1=(N1*F1-T_INFO%POSION(1,NI))
+
+      A1=MOD(2*N1+1,BADER%NPTS(1))
+      A2=MOD(2*N2+1,BADER%NPTS(2))
+      A3=MOD(2*N3+1,BADER%NPTS(3))
+
+      IF(BADER%ATOMNUM(A1,A2,A3)/=NI) THEN
+         CYCLE
+      END IF
+
+      X= X1*LATT_CUR%A(1,1)+X2*LATT_CUR%A(1,2)+X3*LATT_CUR%A(1,3)
+      Y= X1*LATT_CUR%A(2,1)+X2*LATT_CUR%A(2,2)+X3*LATT_CUR%A(2,3)
+      Z= X1*LATT_CUR%A(3,1)+X2*LATT_CUR%A(3,2)+X3*LATT_CUR%A(3,3)
+
+      CALL dpbc_car(X,Y,Z,LATT_CUR)
+!-MM- begin alteration
+! original statement
+!       NONLR_S%CRREXP(IND,NI)=EXP(CITPI*(X*VKX+Y*VKY+Z*VKZ))
+! change in phaser array to accomodate spin spirals
+        CRREXP(IND,ISPINOR)=EXP(CITPI*(X*(VKX-QX)+Y*(VKY-QY)+Z*(VKZ-QZ)))
+!WRITE(*,*)"CRREXP:",CRREXP(IND,ISPINOR)
+!-MM- end of alteration
+
+        IND=IND+1
+      ENDDO; ENDDO; ENDDO
+#endif
+
+!-----------------------------------------------------------------------
+!  compare maximum index with INDMAX
+!-----------------------------------------------------------------------
+      INDMAX=IND-1
+      IF (INDMAX > BADER%PTMAX(NI)) THEN
+        WRITE(*,*)'internal ERROR: PHASER:  number of total points ',INDMAX, &
+     &            'is larger than:',BADER%PTMAX(NI)
+        stop
+      ENDIF
+      
+!-MM- conjugate phase alteration for spin down: -q/2 -> q/2
+      QX=-QX
+      QY=-QY
+      QZ=-QZ
+      ENDDO spinor
+!-MM- end of addition
+
+#endif
+
+      RETURN
+      END SUBROUTINE
+
+!-----------------------------------------------------------------------------------!
+! read_charge_chgcar: Reads the charge density from a file in vasp format
+!-----------------------------------------------------------------------------------!
+
+   SUBROUTINE read_charge_chgcar(BADER,chargefile)
+!   SUBROUTINE read_charge_chgcar(BADER,chargefile,WDES)
+
+!     USE wave
+!     TYPE (wavedes)     WDES
+
+     CHARACTER(LEN=128) :: chargefile
+     TYPE(bader_obj) :: BADER
+     REAL(q) :: scalefactor
+     INTEGER :: i,n1,n2,n3,d1,d2,d3,niontypes,nions
+     INTEGER,DIMENSION(110) :: nionlist=0
+     REAL(q),DIMENSION(3,3) :: bdr_lattice
+     CHARACTER*330:: name_ion
+     INTEGER :: vasp_version
+     CHARACTER(LEN=7) :: text1,text2
+
+      OPEN(100,FILE=chargefile,STATUS='old',ACTION='read',BLANK='null',PAD='yes')
+      READ(100,'(6/,1A7)') text1
+      READ(100,'(1A7)') text2
+!      WRITE(*,*) text1; WRITE(*,*) text2
+      CLOSE(100)
+      text1=ADJUSTL(text1); text2=ADJUSTL(text2)
+      it1=LEN_TRIM(text1); it2=LEN_TRIM(text2)
+      IF (text1(1:it1) == 'Direct') THEN
+        vasp_version=4
+      ELSE IF (text2(1:it2) == 'Direct') THEN
+        vasp_version=5       
+      ENDIF
+
+     OPEN(100,FILE=chargefile,STATUS='old',ACTION='read',BLANK='null',PAD='yes')
+!     WRITE(*,'(/,1A11,1A20)') 'OPEN ... ',chargefile
+!     WRITE(*,'(2x,A)') 'VASP-STYLE INPUT FILE'
+     READ(100,'(/,1F20.16)') scalefactor
+     READ(100,'(3F13.6)') (bdr_lattice(i,1:3) , i=1,3)
+
+     IF(vasp_version == 5) THEN
+       READ(100,'(330A)') name_ion
+     END IF
+
+     READ(100,'(110I4)') nionlist
+     READ(100,*)
+     DO i=1,110
+      if(nionlist(i).eq.0) exit
+     ENDDO
+     niontypes=i-1
+     nions=SUM(nionlist)
+     ALLOCATE(BADER%r_dir(nions,3),BADER%PTMAX(nions))
+     DO i=1,nions
+       READ(100,'(3(2X,1F8.6))') BADER%r_dir(i,:)
+     END DO
+     READ(100,*) 
+     READ(100,*) BADER%NPTS(:)
+     BADER%NRHO=PRODUCT(BADER%NPTS(:))
+     ALLOCATE(BADER%ATOMNUM(BADER%NPTS(1),BADER%NPTS(2),BADER%NPTS(3)))
+     READ(100,*) (((BADER%ATOMNUM(n1,n2,n3), &
+     &  n1=1,BADER%NPTS(1)),n2=1,BADER%NPTS(2)),n3=1,BADER%NPTS(3))
+     CLOSE(100)
+   
+     BADER%PTMAX=0 
+     DO n1=1,BADER%NPTS(1),2
+       DO n2=1,BADER%NPTS(2),2
+         DO n3=1,BADER%NPTS(3),2
+           BADER%PTMAX(BADER%ATOMNUM(n1,n2,n3))=BADER%PTMAX(BADER%ATOMNUM(n1,n2,n3))+1
+         END DO
+       END DO
+     END DO
+
+   RETURN
+   END SUBROUTINE
+!-----------------------------------------------------------------------------------!
+! dpbc_car:  Find the smallest distance vector in Cartesian coordinates
+!-----------------------------------------------------------------------------------!
+
+  SUBROUTINE dpbc_car(XC,YC,ZC,LATT_CUR)
+      USE prec
+      USE lattice
+
+    TYPE (latt)  LATT_CUR   
+    REAL(q) :: XC,YC,ZC 
+    REAL(q),DIMENSION(3) :: dr_car
+    REAL(q),DIMENSION(3) :: drt_car,v1,v2,v3
+    REAL(q) :: dsq,dsqmin
+    INTEGER :: d1,d2,d3
+    LOGICAL :: shortest
+
+!write(*,*) "XC,YC,ZC:",XC,YC,ZC
+    dr_car(1)=XC;dr_car(2)=YC;dr_car(3)=ZC      
+    dsqmin=DOT_PRODUCT(dr_car,dr_car)
+    DO    
+      shortest=.TRUE.
+      DO d1=-1,1
+        v1=LATT_CUR%A(:,1)*REAL(d1,q)
+        DO d2=-1,1
+          v2=LATT_CUR%A(:,2)*REAL(d2,q)
+          DO d3=-1,1
+            v3=LATT_CUR%A(:,3)*REAL(d3,q)
+
+            drt_car=dr_car+v1+v2+v3
+            dsq=DOT_PRODUCT(drt_car,drt_car)
+            IF(dsq<dsqmin) THEN
+              dr_car=drt_car
+              dsqmin=dsq
+              shortest=.FALSE.
+            END IF
+
+          END DO
+        END DO
+      END DO
+      IF(shortest) EXIT
+    END DO
+!write(*,*) "1:",LATT_CUR%A(:,1)
+!write(*,*) "2:",LATT_CUR%A(:,2)
+!write(*,*) "3:",LATT_CUR%A(:,3)
+    XC=dr_car(1);YC=dr_car(2);ZC=dr_car(3);    
+!write(*,*) "XC,YC,ZC:",XC,YC,ZC
+!stop
+
+  RETURN
+  END SUBROUTINE dpbc_car
+
+END MODULE mbdrpro
+
