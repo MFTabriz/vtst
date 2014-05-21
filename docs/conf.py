@@ -30,12 +30,12 @@ sys.path.append(os.path.abspath('.'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    'sphinx.ext.mathjax',
-]
-#extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage']
+#extensions = [
+#    'sphinx.ext.mathjax',
+#]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.mathjax']
 #extensions.append('mathjax')
-#mathjax_path = 'http://theory.cm.utexas.edu/MathJax/MathJax.js'
+mathjax_path = 'http://theory.cm.utexas.edu/MathJax/MathJax.js'
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -121,11 +121,11 @@ html_theme_path = ["."]
 html_title = "Transition State Tools for VASP"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-#html_short_title = None
+html_short_title = "VTSTTools"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = "_static/logo.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
