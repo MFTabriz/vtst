@@ -1,0 +1,66 @@
+.. _REFERENCES:
+
+==========
+References
+==========
+
+----------------------------------------------------------------------------------------------------------------
+
+
+Nudged elastic band method
+==========================
+
+* D. Sheppard, P. Xiao, W. Chemelewski, D. D. Johnson, and G. Henkelman A generalized solid-state nudged elastic band method, J. Chem. Phys. 136, 074103 (2012). 
+
+* D. Sheppard and G. Henkelman, Paths to which the nudged elastic band converges, J. Comp. Chem. 32, 1769-1771 (2011). 
+
+* D. Sheppard, R. Terrell, and G. Henkelman Optimization methods for finding minimum energy paths, J. Chem. Phys. 128, 134106 (2008). 
+
+* G. Henkelman, B.P. Uberuaga, and H. Jónsson, A climbing image nudged elastic band method for finding saddle points and minimum energy paths, J. Chem. Phys. 113, 9901 (2000). 
+
+* G. Henkelman and H. Jónsson, Improved tangent estimate in the nudged elastic band method for finding minimum energy paths and saddle points, J. Chem. Phys. 113, 9978 (2000). 
+
+* H. Jónsson, G. Mills, K. W. Jacobsen, Nudged Elastic Band Method for Finding Minimum Energy Paths of Transitions, in Classical and Quantum Dynamics in Condensed Phase Simulations, Ed. B. J. Berne, G. Ciccotti and D. F. Coker (World Scientific, 1998), page 385.
+
+
+Dimer Method
+============
+
+
+* J. Kästner and P. Sherwood Superlinearly converging dimer method for transition state search, J. Chem. Phys. 128, 014106, (2008). 
+
+* A. Heyden, A. T. Bell, and F. J. Keil, Efficient methods for finding transition states in chemical reactions: Comparison of improved dimer method and partitioned rational function optimization method, J. Chem. Phys. 123, 224101, (2005). 
+
+* R. A. Olsen, G. J. Kroes, G. Henkelman, A. Arnaldsson, and H. Jónsson, Comparison of methods for finding saddle points without knowledge of the final states, J. Chem. Phys. 121, 9776, (2004). 
+
+* G. Henkelman, B.P. Uberuaga, S. Dunham and H. Jónsson, Simulations of dopant clustering in silicon: Dimer calculations using DFT forces, 2nd International Conference on Computational Nanoscience and Nanotechnology, p. 144 (2002). 
+
+* G. Henkelman and H. Jónsson, A dimer method for finding saddle points on high dimensional potential surfaces using only first derivatives', J. Chem. Phys. 111, 7010 (1999).
+
+Adaptive kinetic Monte Carlo
+============================
+
+
+* L. Xu and G. Henkelman, Adaptive kinetic Monte Carlo for first-principles accelerated dynamics, J. Chem. Phys. 129 114104 (2008). 
+
+* G. Henkelman, and H. Jónsson, Long time scale kinetic Monte Carlo simulations without lattice approximation and predefined event table J. Chem. Phys. 115, 9657, (2001).
+
+Comparison of saddle point finding methods
+==========================================
+
+
+* R. A. Olsen, G. J. Kroes, G. Henkelman, A. Arnaldsson, and H. Jónsson, Comparison of methods for finding saddle points without knowledge of the final states, J. Chem. Phys. 121, 9776, (2004). 
+
+* G. Henkelman, G. Jóhannesson, and H. Jónsson, Methods for Finding Saddle Points and Minimum Energy Paths, in Progress on Theoretical Chemistry and Physics, Ed. S. D. Schwartz (Kluwer Academic Publishers, 2000) pp. 269-300.
+
+
+Bader charge density analysis
+=============================
+
+
+* W. Tang, E. Sanville, and G. Henkelman A grid-based Bader analysis algorithm without lattice bias, J. Phys.: Condens. Matter 21, 084204 (2009). 
+
+* E. Sanville, S. D. Kenny, R. Smith, and G. Henkelman An improved grid-based algorithm for Bader charge allocation, J. Comp. Chem. 28, 899-908 (2007). 
+
+* G. Henkelman, A. Arnaldsson, and H. Jónsson, A fast and robust algorithm for Bader decomposition of charge density, Comput. Mater. Sci. 36, 254-360 (2006).
+
