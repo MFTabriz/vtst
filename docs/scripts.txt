@@ -37,7 +37,6 @@ The scripts are organized into the following categories:
 
 ------------------------------------------------------------------------------------------------------------
 
-============================
 General Scripts
 ============================
 
@@ -87,7 +86,6 @@ General Scripts
 
 
 
-============================
 File Conversion Scripts
 ============================
 
@@ -117,7 +115,6 @@ File Conversion Scripts
         output: ``velocity using forward difference method to VDATCAR file``
 
 
-============================
 Nudged Elastic Band Scripts
 ============================
 
@@ -179,7 +176,6 @@ Warning: this script does not give a set of equally spaced images.
         output: ``POSCAR files, to original files``
 
 
-============================
 Charge Density Scripts
 ============================
 
@@ -209,7 +205,6 @@ Charge Density Scripts
         output: ``CHGCAR.cube``
 
 
-============================
 Dimer Scripts
 ============================
 
@@ -240,7 +235,6 @@ Dimer Scripts
 
 
 
-============================
 Dynamical Matrix
 ============================
 
@@ -291,55 +285,68 @@ Dynamical Matrix
 
         output: ``DISPLACECAR file, to STDOUT``
 
-****:
-        usage: ````
+**dymcmpdisp.pl**:Similar to dymseldsp.pl, except it only takes one POSCAR and also needs an atom number as input. It then finds the n atoms closest to the chosen atom and these are the atoms given non-zero displacements in the DISPLACECAR file.
+        usage: ``dymselsph.pl (POSCAR) (Central atom) (radius) (displacement)``
 
-        output: ````
+        output: ``DISPLACECAR file, to STDOUT``
 
-****:
-        usage: ````
+**dymcmpdisp.pl**:Takes as input two DISPLACECAR files, compares them, and outputs a DISPLACECAR file in which those degrees of freedom that are set in one DISPLACECAR but not the other. Thus, if you use dymseldsp.pl to create a DISPLACECAR with 24 degrees of freedom, and then you want to calculate then next 12 degrees of freedom, you would dymseldsp.pl for 36 degrees of freedom and use compare_disp.pl to extract those 12 which aren't included in the first DISPLACECAR. You can then run the dynamical matrix calculation on this new file, getting the forces for these 12 new displacements, and then use dymmatrix.pl to combine the OUTCARs from both calculations into one matrix.
+        usage: ``dymcmpdisp.pl (DISPLACECAR 1) (DISPLACECAR 2)``
 
-        output: ````
+        output: ``DISPLACECAR file, to STDOUT``
 
-****:
-        usage: ````
+**dymfit.pl**:Used to fit between two or more matrices together. It takes as input the order of the fit, and then pairs of displacements and matrices. It outputs a matrix of the same order. It requires the Perl modules Math::Matrix and Math::Approx.
+        usage: ``dymfit.pl (order of fit) (displacement 1) (matrix 1) (displacement 2) (matrix 2) ...``
 
-        output: ````
-
-
-****:
-        usage: ````
-
-        output: ````
-
-****:
-        usage: ````
-
-        output: ````
-
-****:
-        usage: ````
-
-        output: ````
-
-****:
-        usage: ````
-
-        output: ````
+        output: ``dynamical matrix, to STDOUT``
 
 
-============================
+**dymextract.pl**:Used to create a smaller dynamical matrix from a larger one. If you calculated many degrees of freedom the first time and want to check how the quantity converges versus degrees of freedom, use this to create the smaller matrix. You need the DISPLACECAR for the matrix you have and the DISPLACECAR for the matrix you want.
+        usage: ``dymextract.pl (DISPLACECAR of matrix you have)(DISPLACECAR of matrix you want)(matrix you have)``
+
+        output: ``dynamical matrix, to STDOUT``
+
+**dymreorder.pl**:Reorders a dynamical matrix. You might want to use this if you plan on fitting matrices, but you got at them different ways (for example, one you had by doing all of the degrees of freedom at once and the second you created by doing degrees of freedom a bit at a time... the ordering of the displacements in each matrix will be different). You need the series of DISPLACECARs that were used to create each matrix.
+        usage: ``dymreorder.pl (number of DISPLACECARs with desired order)      (list of DISPLACECARs) (number of DISPLACECARs of current order)        (list of DISPLACECARs) (current matrix)``
+
+        output: ``dynamical matrix, to STDOUT``
+
+**dymprefactor.pl**:
+        usage: ``dymprefactor.pl (freq.dat of minimum) (freq.dat of transition state)``
+
+        output: ``prefactor in units of inverse cm``
+
+**dymanalyze.pl**:Intended to help analyze the convergence of the dynamical matrices and compare the differences both between different displacements as well as different orders of fits. It takes as input pairs of displacements and their corresponding matrix. The first argument is a flag. If it is zero, then a fit is done with each successive matrix added to the points used to determine the fit. The output tells how much the force constants change as each point is added to the fit. If the flag is greater than zero, then a fit is done with the first n, where flag equals n, matrices, and the difference between the force constants calculated for the other matrices and the fitted matrices is printed. The analysis is done for any modes which have a frequency larger than modevalue.
+        usage: ``dymanalyze.pl (flag) (modevalue) (displacement 1) (matrix 1) (displacement 2) (matrix 2) ...``
+
+        output: ``information on the agreement between the  fits and the original matrices``
+
+**dymmodes2xyz.pl**:Takes the configuration file (POSCAR), displacement file (DISPLACECAR) and modes file (modes.dat), which is created by running dymmatrix.pl, and creates a movie for each mode. These xyz movies are saved in the moviefolder (if designated) or the current directory. The frequency of each mode will be written to the xyz files if the freq.dat file is provided. The numimages variable sets the number of frames in each mode movie and the dist variable sets the vibrational amplitude.
+Note: if the modes.dat is created by using serveral DISPLACECARs as indicated in dymmatrix.pl, use the concatenated DISPLACECAR file in this script (i.e., cat those DISPLACECAR files in the same order as they were used in dymmatrix.pl).
+        usage: ``dymmodes2xyz.pl POSCAR DISPLACECAR modes.dat (moviefolder) (freq.dat) (numimages) (dist)``
+
+        output: ``movies for each normal mode``
+
 Density of State Scripts
 ============================
 
-****:
-        usage: ````
+**dosanalyze.pl**:This script sums up the atomic projected DOS over some group of atoms, and then calculates the center of the specific band using a weighted average. The default is set to calcualted the center for the whole band. However, it can also consider DOS within a user specified range by using the optional "w=" or "e=" flag.
+By using "e=emin,emax" flag, only the states in ranger [emin,emax] are considered.
 
-        output: ````
+By using "w=" flag, the script finds a half width for the band at half the max height and, based on the number following w= , calculates a weighted average within the limits of that many half widths at half height from the center. In this manner, a band center may be found by weighted average without including noncontributing states.
 
-****:
-        usage: ````
+If no orbital flag is specified, the script analyzes the d-band. If no atom is selected, it analyzes all of them. If no w= tag specified, the center is calculated between 2.5 half widths at half height
 
-        output: ````
+Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of atoms in the unit cell.
+        usage: ``dosanalyze.pl [w=num width at quarter-height] [e=emin,emax]``
+
+        output: ``center of the specified band for selected atoms based on aweighted average, to STDOUT``
+
+**doslplot.pl**:The out put eps file has DOS plot for each of selected atoms (bule lines), and the DOS plot for the all system (red line).
+If no orbital flag, plot the d-band.If no atom is selected, plot all of them.
+Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of atoms in the unit cell.
+        usage: ``doslplot.pl``
+
+        output: ``ldosplot.eps``
 
 

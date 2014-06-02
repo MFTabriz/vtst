@@ -76,10 +76,9 @@
 <li>We recommend that the first line in the POSCAR file contain the element symbols, in the same order as they appear in the POTCAR. This will allow for proper visualization when files are converted to xyz files.</li>
 <li>For NEB scripts, there needs to be OUTCAR files for the initial and final states placed in the 00 and NI+1, respectively. Please direct questions about these scripts to the discussion forum.</li>
 </ul>
-</div>
 <hr class="docutils" />
 <div class="section" id="general-scripts">
-<h1>General Scripts<a class="headerlink" href="#general-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>General Scripts<a class="headerlink" href="#general-scripts" title="Permalink to this headline">¶</a></h2>
 <p><strong>Vasp.pm</strong>: Perl module that contains various common commands that one might want when deal with VASP POSCAR files. These include reading and writing a POSCAR file, reading and writing a generic vector file, doing dot products and finding magnitudes of vectors and other similar functions</p>
 <dl class="docutils">
 <dt><strong>vef.pl</strong>: Prints the force and energy at each iteration of a vasp run.</dt>
@@ -117,7 +116,7 @@
 </dl>
 </div>
 <div class="section" id="file-conversion-scripts">
-<h1>File Conversion Scripts<a class="headerlink" href="#file-conversion-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>File Conversion Scripts<a class="headerlink" href="#file-conversion-scripts" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt><strong>pos2con.pl</strong></dt>
 <dd><p class="first">usage: <tt class="docutils literal"><span class="pre">pos2con.pl</span> <span class="pre">(POSCAR</span> <span class="pre">or</span> <span class="pre">con</span> <span class="pre">file)</span></tt></p>
@@ -142,7 +141,7 @@
 </dl>
 </div>
 <div class="section" id="nudged-elastic-band-scripts">
-<h1>Nudged Elastic Band Scripts<a class="headerlink" href="#nudged-elastic-band-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>Nudged Elastic Band Scripts<a class="headerlink" href="#nudged-elastic-band-scripts" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt><strong>nebmake.pl</strong>: Takes initial and final POSCAR files, and linearly interpolates the specified number of images between them. The interpolated files are written to the directories 00 to NI+1, where NI is the number of specified images.</dt>
 <dd><p class="first">usage: <tt class="docutils literal"><span class="pre">nebmake.pl</span> <span class="pre">(POSCAR1)</span> <span class="pre">(POSCAR2)</span> <span class="pre">(number</span> <span class="pre">of</span> <span class="pre">images,</span> <span class="pre">NI)</span></tt></p>
@@ -193,7 +192,7 @@ Warning: this script does not give a set of equally spaced images.</p>
 </div></blockquote>
 </div>
 <div class="section" id="charge-density-scripts">
-<h1>Charge Density Scripts<a class="headerlink" href="#charge-density-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>Charge Density Scripts<a class="headerlink" href="#charge-density-scripts" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt><em>gavg.pl*</em>: Generates an average CHGCAR.</dt>
 <dd><p class="first">usage: <tt class="docutils literal"><span class="pre">chgavg.pl</span> <span class="pre">CHGCAR1</span> <span class="pre">CHGCAR2</span></tt></p>
@@ -218,7 +217,7 @@ Warning: this script does not give a set of equally spaced images.</p>
 </dl>
 </div>
 <div class="section" id="dimer-scripts">
-<h1>Dimer Scripts<a class="headerlink" href="#dimer-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>Dimer Scripts<a class="headerlink" href="#dimer-scripts" title="Permalink to this headline">¶</a></h2>
 <p><strong>dimplot.pl</strong>: Generates simple figures from the out.dat file to monitor the behavior of a dimer run.</p>
 <blockquote>
 <div><p>usage: <tt class="docutils literal"><span class="pre">dimplot.pl</span></tt></p>
@@ -242,7 +241,7 @@ Warning: this script does not give a set of equally spaced images.</p>
 </dl>
 </div>
 <div class="section" id="dynamical-matrix">
-<h1>Dynamical Matrix<a class="headerlink" href="#dynamical-matrix" title="Permalink to this headline">¶</a></h1>
+<h2>Dynamical Matrix<a class="headerlink" href="#dynamical-matrix" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt><strong>dymmatrix.pl</strong>: Takes the output from the dynamical matrix calculation and creates the matrix. The DISPLACECARs should only contain those degrees of freedom that were calculated in their corresponding OUTCARs (see dymcmpdisp.pl). The scripts now handles the diagonalization itself via package from CPAN. (It could be a bit slow for large matrices).</dt>
 <dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymmatrix.pl</span> <span class="pre">(DISPLACECAR)</span> <span class="pre">(OUTCAR)</span></tt></p>
@@ -283,48 +282,62 @@ Warning: this script does not give a set of equally spaced images.</p>
 <dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymselsph.pl</span> <span class="pre">(POSCAR)</span> <span class="pre">(Central</span> <span class="pre">atom)</span> <span class="pre">(radius)</span> <span class="pre">(displacement)</span></tt></p>
 <p class="last">output: <tt class="docutils literal"><span class="pre">DISPLACECAR</span> <span class="pre">file,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id2"><span class="problematic" id="id3">**</span></a><a href="#id4"><span class="problematic" id="id5">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id6"><span class="problematic" id="id7">``</span></a><a href="#id8"><span class="problematic" id="id9">``</span></a></p>
-<p class="last">output: <a href="#id10"><span class="problematic" id="id11">``</span></a><a href="#id12"><span class="problematic" id="id13">``</span></a></p>
+<dt><strong>dymcmpdisp.pl</strong>:Similar to dymseldsp.pl, except it only takes one POSCAR and also needs an atom number as input. It then finds the n atoms closest to the chosen atom and these are the atoms given non-zero displacements in the DISPLACECAR file.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymselsph.pl</span> <span class="pre">(POSCAR)</span> <span class="pre">(Central</span> <span class="pre">atom)</span> <span class="pre">(radius)</span> <span class="pre">(displacement)</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">DISPLACECAR</span> <span class="pre">file,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id14"><span class="problematic" id="id15">**</span></a><a href="#id16"><span class="problematic" id="id17">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id18"><span class="problematic" id="id19">``</span></a><a href="#id20"><span class="problematic" id="id21">``</span></a></p>
-<p class="last">output: <a href="#id22"><span class="problematic" id="id23">``</span></a><a href="#id24"><span class="problematic" id="id25">``</span></a></p>
+<dt><strong>dymcmpdisp.pl</strong>:Takes as input two DISPLACECAR files, compares them, and outputs a DISPLACECAR file in which those degrees of freedom that are set in one DISPLACECAR but not the other. Thus, if you use dymseldsp.pl to create a DISPLACECAR with 24 degrees of freedom, and then you want to calculate then next 12 degrees of freedom, you would dymseldsp.pl for 36 degrees of freedom and use compare_disp.pl to extract those 12 which aren&#8217;t included in the first DISPLACECAR. You can then run the dynamical matrix calculation on this new file, getting the forces for these 12 new displacements, and then use dymmatrix.pl to combine the OUTCARs from both calculations into one matrix.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymcmpdisp.pl</span> <span class="pre">(DISPLACECAR</span> <span class="pre">1)</span> <span class="pre">(DISPLACECAR</span> <span class="pre">2)</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">DISPLACECAR</span> <span class="pre">file,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id26"><span class="problematic" id="id27">**</span></a><a href="#id28"><span class="problematic" id="id29">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id30"><span class="problematic" id="id31">``</span></a><a href="#id32"><span class="problematic" id="id33">``</span></a></p>
-<p class="last">output: <a href="#id34"><span class="problematic" id="id35">``</span></a><a href="#id36"><span class="problematic" id="id37">``</span></a></p>
+<dt><strong>dymfit.pl</strong>:Used to fit between two or more matrices together. It takes as input the order of the fit, and then pairs of displacements and matrices. It outputs a matrix of the same order. It requires the Perl modules Math::Matrix and Math::Approx.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymfit.pl</span> <span class="pre">(order</span> <span class="pre">of</span> <span class="pre">fit)</span> <span class="pre">(displacement</span> <span class="pre">1)</span> <span class="pre">(matrix</span> <span class="pre">1)</span> <span class="pre">(displacement</span> <span class="pre">2)</span> <span class="pre">(matrix</span> <span class="pre">2)</span> <span class="pre">...</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">dynamical</span> <span class="pre">matrix,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id38"><span class="problematic" id="id39">**</span></a><a href="#id40"><span class="problematic" id="id41">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id42"><span class="problematic" id="id43">``</span></a><a href="#id44"><span class="problematic" id="id45">``</span></a></p>
-<p class="last">output: <a href="#id46"><span class="problematic" id="id47">``</span></a><a href="#id48"><span class="problematic" id="id49">``</span></a></p>
+<dt><strong>dymextract.pl</strong>:Used to create a smaller dynamical matrix from a larger one. If you calculated many degrees of freedom the first time and want to check how the quantity converges versus degrees of freedom, use this to create the smaller matrix. You need the DISPLACECAR for the matrix you have and the DISPLACECAR for the matrix you want.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymextract.pl</span> <span class="pre">(DISPLACECAR</span> <span class="pre">of</span> <span class="pre">matrix</span> <span class="pre">you</span> <span class="pre">have)(DISPLACECAR</span> <span class="pre">of</span> <span class="pre">matrix</span> <span class="pre">you</span> <span class="pre">want)(matrix</span> <span class="pre">you</span> <span class="pre">have)</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">dynamical</span> <span class="pre">matrix,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id50"><span class="problematic" id="id51">**</span></a><a href="#id52"><span class="problematic" id="id53">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id54"><span class="problematic" id="id55">``</span></a><a href="#id56"><span class="problematic" id="id57">``</span></a></p>
-<p class="last">output: <a href="#id58"><span class="problematic" id="id59">``</span></a><a href="#id60"><span class="problematic" id="id61">``</span></a></p>
+<dt><strong>dymreorder.pl</strong>:Reorders a dynamical matrix. You might want to use this if you plan on fitting matrices, but you got at them different ways (for example, one you had by doing all of the degrees of freedom at once and the second you created by doing degrees of freedom a bit at a time... the ordering of the displacements in each matrix will be different). You need the series of DISPLACECARs that were used to create each matrix.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymreorder.pl</span> <span class="pre">(number</span> <span class="pre">of</span> <span class="pre">DISPLACECARs</span> <span class="pre">with</span> <span class="pre">desired</span> <span class="pre">order)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">(list</span> <span class="pre">of</span> <span class="pre">DISPLACECARs)</span> <span class="pre">(number</span> <span class="pre">of</span> <span class="pre">DISPLACECARs</span> <span class="pre">of</span> <span class="pre">current</span> <span class="pre">order)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">(list</span> <span class="pre">of</span> <span class="pre">DISPLACECARs)</span> <span class="pre">(current</span> <span class="pre">matrix)</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">dynamical</span> <span class="pre">matrix,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
-<dt><a href="#id62"><span class="problematic" id="id63">**</span></a><a href="#id64"><span class="problematic" id="id65">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id66"><span class="problematic" id="id67">``</span></a><a href="#id68"><span class="problematic" id="id69">``</span></a></p>
-<p class="last">output: <a href="#id70"><span class="problematic" id="id71">``</span></a><a href="#id72"><span class="problematic" id="id73">``</span></a></p>
+<dt><strong>dymprefactor.pl</strong>:</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymprefactor.pl</span> <span class="pre">(freq.dat</span> <span class="pre">of</span> <span class="pre">minimum)</span> <span class="pre">(freq.dat</span> <span class="pre">of</span> <span class="pre">transition</span> <span class="pre">state)</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">prefactor</span> <span class="pre">in</span> <span class="pre">units</span> <span class="pre">of</span> <span class="pre">inverse</span> <span class="pre">cm</span></tt></p>
 </dd>
-<dt><a href="#id74"><span class="problematic" id="id75">**</span></a><a href="#id76"><span class="problematic" id="id77">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id78"><span class="problematic" id="id79">``</span></a><a href="#id80"><span class="problematic" id="id81">``</span></a></p>
-<p class="last">output: <a href="#id82"><span class="problematic" id="id83">``</span></a><a href="#id84"><span class="problematic" id="id85">``</span></a></p>
+<dt><strong>dymanalyze.pl</strong>:Intended to help analyze the convergence of the dynamical matrices and compare the differences both between different displacements as well as different orders of fits. It takes as input pairs of displacements and their corresponding matrix. The first argument is a flag. If it is zero, then a fit is done with each successive matrix added to the points used to determine the fit. The output tells how much the force constants change as each point is added to the fit. If the flag is greater than zero, then a fit is done with the first n, where flag equals n, matrices, and the difference between the force constants calculated for the other matrices and the fitted matrices is printed. The analysis is done for any modes which have a frequency larger than modevalue.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dymanalyze.pl</span> <span class="pre">(flag)</span> <span class="pre">(modevalue)</span> <span class="pre">(displacement</span> <span class="pre">1)</span> <span class="pre">(matrix</span> <span class="pre">1)</span> <span class="pre">(displacement</span> <span class="pre">2)</span> <span class="pre">(matrix</span> <span class="pre">2)</span> <span class="pre">...</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">information</span> <span class="pre">on</span> <span class="pre">the</span> <span class="pre">agreement</span> <span class="pre">between</span> <span class="pre">the</span>&nbsp; <span class="pre">fits</span> <span class="pre">and</span> <span class="pre">the</span> <span class="pre">original</span> <span class="pre">matrices</span></tt></p>
 </dd>
 </dl>
+<p><strong>dymmodes2xyz.pl</strong>:Takes the configuration file (POSCAR), displacement file (DISPLACECAR) and modes file (modes.dat), which is created by running dymmatrix.pl, and creates a movie for each mode. These xyz movies are saved in the moviefolder (if designated) or the current directory. The frequency of each mode will be written to the xyz files if the freq.dat file is provided. The numimages variable sets the number of frames in each mode movie and the dist variable sets the vibrational amplitude.
+Note: if the modes.dat is created by using serveral DISPLACECARs as indicated in dymmatrix.pl, use the concatenated DISPLACECAR file in this script (i.e., cat those DISPLACECAR files in the same order as they were used in dymmatrix.pl).</p>
+<blockquote>
+<div><p>usage: <tt class="docutils literal"><span class="pre">dymmodes2xyz.pl</span> <span class="pre">POSCAR</span> <span class="pre">DISPLACECAR</span> <span class="pre">modes.dat</span> <span class="pre">(moviefolder)</span> <span class="pre">(freq.dat)</span> <span class="pre">(numimages)</span> <span class="pre">(dist)</span></tt></p>
+<p>output: <tt class="docutils literal"><span class="pre">movies</span> <span class="pre">for</span> <span class="pre">each</span> <span class="pre">normal</span> <span class="pre">mode</span></tt></p>
+</div></blockquote>
 </div>
 <div class="section" id="density-of-state-scripts">
-<h1>Density of State Scripts<a class="headerlink" href="#density-of-state-scripts" title="Permalink to this headline">¶</a></h1>
+<h2>Density of State Scripts<a class="headerlink" href="#density-of-state-scripts" title="Permalink to this headline">¶</a></h2>
+<p><strong>dosanalyze.pl</strong>:This script sums up the atomic projected DOS over some group of atoms, and then calculates the center of the specific band using a weighted average. The default is set to calcualted the center for the whole band. However, it can also consider DOS within a user specified range by using the optional &#8220;w=&#8221; or &#8220;e=&#8221; flag.
+By using &#8220;e=emin,emax&#8221; flag, only the states in ranger [emin,emax] are considered.</p>
+<p>By using &#8220;w=&#8221; flag, the script finds a half width for the band at half the max height and, based on the number following w= , calculates a weighted average within the limits of that many half widths at half height from the center. In this manner, a band center may be found by weighted average without including noncontributing states.</p>
+<p>If no orbital flag is specified, the script analyzes the d-band. If no atom is selected, it analyzes all of them. If no w= tag specified, the center is calculated between 2.5 half widths at half height</p>
 <dl class="docutils">
-<dt><a href="#id86"><span class="problematic" id="id87">**</span></a><a href="#id88"><span class="problematic" id="id89">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id90"><span class="problematic" id="id91">``</span></a><a href="#id92"><span class="problematic" id="id93">``</span></a></p>
-<p class="last">output: <a href="#id94"><span class="problematic" id="id95">``</span></a><a href="#id96"><span class="problematic" id="id97">``</span></a></p>
-</dd>
-<dt><a href="#id98"><span class="problematic" id="id99">**</span></a><a href="#id100"><span class="problematic" id="id101">**</span></a>:</dt>
-<dd><p class="first">usage: <a href="#id102"><span class="problematic" id="id103">``</span></a><a href="#id104"><span class="problematic" id="id105">``</span></a></p>
-<p class="last">output: <a href="#id106"><span class="problematic" id="id107">``</span></a><a href="#id108"><span class="problematic" id="id109">``</span></a></p>
+<dt>Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of atoms in the unit cell.</dt>
+<dd><p class="first">usage: <tt class="docutils literal"><span class="pre">dosanalyze.pl</span> <span class="pre">[w=num</span> <span class="pre">width</span> <span class="pre">at</span> <span class="pre">quarter-height]</span> <span class="pre">[e=emin,emax]</span></tt></p>
+<p class="last">output: <tt class="docutils literal"><span class="pre">center</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">specified</span> <span class="pre">band</span> <span class="pre">for</span> <span class="pre">selected</span> <span class="pre">atoms</span> <span class="pre">based</span> <span class="pre">on</span> <span class="pre">aweighted</span> <span class="pre">average,</span> <span class="pre">to</span> <span class="pre">STDOUT</span></tt></p>
 </dd>
 </dl>
+<p><strong>doslplot.pl</strong>:The out put eps file has DOS plot for each of selected atoms (bule lines), and the DOS plot for the all system (red line).
+If no orbital flag, plot the d-band.If no atom is selected, plot all of them.
+Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of atoms in the unit cell.</p>
+<blockquote>
+<div><p>usage: <tt class="docutils literal"><span class="pre">doslplot.pl</span></tt></p>
+<p>output: <tt class="docutils literal"><span class="pre">ldosplot.eps</span></tt></p>
+</div></blockquote>
+</div>
 </div>
 
 
@@ -349,7 +362,7 @@ Warning: this script does not give a set of equally spaced images.</p>
       </ul>
             <h3>This page</h3>
             <ul>
-<li><a class="reference internal" href="#">SCRIPTS</a></li>
+<li><a class="reference internal" href="#">SCRIPTS</a><ul>
 <li><a class="reference internal" href="#general-scripts">General Scripts</a></li>
 <li><a class="reference internal" href="#file-conversion-scripts">File Conversion Scripts</a></li>
 <li><a class="reference internal" href="#nudged-elastic-band-scripts">Nudged Elastic Band Scripts</a></li>
@@ -357,6 +370,8 @@ Warning: this script does not give a set of equally spaced images.</p>
 <li><a class="reference internal" href="#dimer-scripts">Dimer Scripts</a></li>
 <li><a class="reference internal" href="#dynamical-matrix">Dynamical Matrix</a></li>
 <li><a class="reference internal" href="#density-of-state-scripts">Density of State Scripts</a></li>
+</ul>
+</li>
 </ul>
 
       <!-- Where does one find this "prev" variable?
