@@ -1,0 +1,118 @@
+.. _DIMER:
+
+=================
+THE DIMER METHOD 
+=================
+
+The dimer method is one of the min-mode following methods that allows the user to start from any initial configuration and search for a nearby saddle point. This method can also be used to start from a minimum basin and search in random directions for saddle points. In some simple systems, reaction endpoints can be guessed, and the nudged elastic band can be used to find reaction pathways. In more complex systems, it has been shown that reactions often take place via unexpected mechanisms. The dimer method is designed to deal with this problem by searching for saddle points corresponding to unknown reaction mechanisms.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Dimer calculation setup
+========================
+
+The setup for a dimer run has changed in vtstcode v2.00 (Feb 2007). Make sure to download the latest version of the code, before using these instructions.
+
+The setup for a dimer calculation is (now) very similar to a regular VASP calculation. The following input files are needed:
+
+  1. The POTCAR and KPOINTS are as normal.
+  2. The INCAR has all the usual variables, but it must also contain the variables IBRION=3, POTIM=0, and some value of IOPT (2 is recommended).
+  3. The initial POSCAR contains the starting configuration for the calculation. This could either be a point near a known saddle, or a configuration that is far away from a saddle, such as near an initial minimum.
+  4. The MODECAR file contains the initial direction along the dimer. This is a unit vector which should be a guess at the lowest curvature mode in the system. If no MODECAR is specified, a random direction will be used. It is strongly recommended that you generate a MODECAR file. One does not have to know specifically about lowest curvature mode; the important aspect of the MODECAR file is that the significant components of the vector be in the coordinates that are likely to be involved in the reaction. The MODECAR file will be generated automatically if an NEB calculation is used as a starting point with the neb2dim.pl script. Another possible choice is the vector between initial and final states, or between a known minimum and the initial POSCAR file. To generate a MODECAR file as the direction between two configurations, use the modemake.pl script.
+
+
+One use of the dimer method is to accurately converge upon a saddle point, starting from an NEB calculation. The dimer method requires fewer images than the NEB, so it can be more efficient to use the dimer method, particularly when testing convergence with a higher energy cutoff or a finer k-point mesh. For these kinds of calculations, the initial files can be generated automatically using the neb2dim.pl script. This will generate and initial POSCAR file at the interpolated saddle, and an initial MODECAR file along the direction through which the NEB passes though this point.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Example
+========
+
+  * Input files for H diffusion in a frozen Ir lattice: dimrun.tar.gz.
+  * Completed calculation: dimrun_complete.tar.gz.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Dimer input parameters
+=======================
+
+The following parameters are read from the INCAR file. Dimer specific parameters start with D.
+
+Required Parameters
+====================
+
++----------+--------+----------------------------------------------------------------------------------+
+|Parameter |Default | Description                                                                      |
+|          |Value   |                                                                                  |
++==========+========+==================================================================================+
+|ICHAIN    | 2      |	Use the dimer method (required for the latest code)			       |
++----------+--------+----------------------------------------------------------------------------------+
+|IBRION    |	3   |	Specify that VASP do MD with a zero time step				       |
++----------+--------+----------------------------------------------------------------------------------+
+|POTIM     |	0   |	Zero time step so that VASP does not move the ions			       |
++----------+--------+----------------------------------------------------------------------------------+
+
+
+Standard Parameters
+====================
+
++----------+--------+----------------------------------------------------------------------------------+
+|DdR	   |5E-3    | The dimer separation (twice the distance between images)		       	       |
++----------+--------+----------------------------------------------------------------------------------+
+|DRotMax   |1  	    | Maximum number of rotation steps per translation step			       |
++----------+--------+----------------------------------------------------------------------------------+
+|DFNMin    |	0.01| Magnitude of the rotational force below which the dimer is not rotated 	       |
++----------+--------+----------------------------------------------------------------------------------+
+|DFNMax    |	1.0 | Magnitude of the rotational force below which dimer rotation stops; if the       |
+|	   |	    | rotational force is between DFNMin and DFNMax, at least one rotational           |
+|	   |	    | iteration is done								       |
++----------+--------+----------------------------------------------------------------------------------+
+
+Dimer output
+============
+
+
+The DIMCAR can give a quick idea of how the dimer is converging. The file contains the following data for each iteration in the six columns:
+
+The OUTCAR file has details of the calculation. This information is prefixed with the Dimer tag.
+
+A summary of the important parameters are written to the DIMCAR file. The values in the columns are:
+
+  1. **Step**: The number of translation steps. Note that there can be several rotations per step.
+
+  2. **Force**: The maximum force on any degree of freedom in the system. When this number is lower than the value of -ediffg in the INCAR file, and the curvature is negative, the run will converge.
+
+  3. **Torque**: The rotational force on the dimer. This indicates how well the lowest mode has been determined.
+
+  4. **Energy**: The energy of the center of the dimer. NOTE this is not the extrapolated energy without entropy, and it should not be taken as the saddle point energy. Get this from the OUTCAR file.
+
+  5. **Curvature**: The curvature along the dimer. This is the current best estimate of the lowest curvature mode. The curvature and the force are the best indicators of how close the dimer is to a saddle point region. If the curvature is negative, and the force (FMax) is dropping, this is a good sign that the dimer is converging to a saddle. If the curvature is positive, the calculation needs to continue.
+
+  6. **Angle**: The angle through which the dimer is rotated. This can start high, but should drop and stay low during convergence. If this remains high (around 1) there are problems.
+
+The most important variables are the Force, Torque and the Curvature. One should see the Torque drop systematically as the dimer rotates. If this does not happen, the forces are not accurate enough, and ediff should be lowered to around 1E-7 or 1E-8. The finite difference distance, DdR can also be increased as high as 0.01 Ang. To see if the dimer is converging, check if the Force is dropping, and the Curvature is consistently negative. If the force is large or the curvature is positive, the method is not near a saddle point. This is not necessarily a problem, it just means that it is not near convergence.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

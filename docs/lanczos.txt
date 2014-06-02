@@ -1,0 +1,65 @@
+.. _LANCZOS:
+===============================
+LANCZOS 
+===============================
+There have been several similar but distinct methods published to locate lowest (or minimum) eigenmodes. We prefer to call them collectively Min-Mode following methods. The most successful ones are the Lagrange multiplier approach, Phys. Rev. B 59, 3969 (1999), the ARTn method, Phys. Rev. E 62, 7723 (2000), and the `Dimer`_ method.
+
+The use of a Lanczos type scheme in this field was pioneered by N. Mousseau et al. in their ARTn method. This method is is similar in spirit to the Dimer method in that it can be used to search for nearby saddle points from a local minimum or any other starting configuration, and it has recently been shown that the convergence properties are comparible between the two methods (see J. Chem. Phys. 121, 9776, (2004)).
+
+The difference between the two methods is how the lowest curvature mode is found. The Dimer method rotates a dimer to find the lowest modes, and the Lanczos method finds an approximation to the Hessian eigenvector by expansion in a systematically increasing dimensional Krylov subspace. After the lowest mode is found, the two method proceed in an identical manner.
+
+Lanczos input parameter set
+===========================
+The following parameters are read from the INCAR file. All parameters specific to the Lanczos method start with S.
+
+Required Parameters
+====================
+
++----------+--------+----------------------------------------------------------------------------------+
+|Parameter |Default | Description                                                                      |
+|          |Value   |                                                                                  |
++==========+========+==================================================================================+
+|ICHAIN    | 3      |Use the Lanczos method              					       |
++----------+--------+----------------------------------------------------------------------------------+
+|IBRION    | 3      |Specify that VASP do MD with a zero time step				       |
++----------+--------+----------------------------------------------------------------------------------+
+|POTIM     | 0      |Zero time step so that VASP does not move the ions				       |
++----------+--------+----------------------------------------------------------------------------------+
+|EDIFF     | 1E-8   |Strict force criteria to accurately find force differences (curvature)            |
++----------+--------+----------------------------------------------------------------------------------+
+
+
+Standard Parameters (default values given)
+==========================================
+
++----------+--------+----------------------------------------------------------------------------------+
+|SLTOL     | 0.01   |Use the Lanczos method                                                            |
++----------+--------+----------------------------------------------------------------------------------+
+|Sdr       | 0.001  |Specify that VASP do MD with a zero time step                                     |
++----------+--------+----------------------------------------------------------------------------------+
+|SNL       | 20     |Zero time step so that VASP does not move the ions                                |
++----------+--------+----------------------------------------------------------------------------------+
+
+Lanczos Output
+=============
+All output related to the Lanczos procedure is directed to the LANCAR file. A combination of the unix commands grep/cut/head/tail can be used to extract the results.
+
+
+Keywords to "grep" for in the LANCAR file:
+==========================================
+
++----------+-------------------------------------------------------------------------------------------+
+|Keyword   | Description                                                                               |
+|          |   		                                                                               |
++==========+===========================================================================================+
+|For       |Gets the force components for each central point, i.e. points after translating the system |
++----------+-------------------------------------------------------------------------------------------+
+|Coo       |Gets the coordinate components for each central point				       |
++----------+-------------------------------------------------------------------------------------------+
+|Low       |Gets the lowest mode at each central point						       |
++----------+-------------------------------------------------------------------------------------------+
+|eig       |Gets the lowest eigenvalue convergence sequence at each central point		       |
++----------+-------------------------------------------------------------------------------------------+
+|conv      |Gets the size of the Lanczos matrix, energy, maximum force and lowest eigenvalue at each   |     
+|          |central point									       |	
++----------+-------------------------------------------------------------------------------------------+
