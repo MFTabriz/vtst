@@ -5,6 +5,20 @@
 Installation
 ============
 
+NOTE: in v2.04 and later versions, an additional modification to main.F is required for the solid-state NEB. 
+Find and replace:
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           LATT_CUR%A,LATT_CUR%B,IO%IU6)
+with
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           TSIF,LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
 The VTST•Tools has a fortran component which can be linked into the VASP code as well as a collection of scripts.
 
 
