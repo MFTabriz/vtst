@@ -1,0 +1,31 @@
+Index: main.F
+===================================================================
+--- main.F	(revision 40)
++++ main.F	(working copy)
+@@ -374,7 +374,11 @@
+ !     CALL sigtrp()
+ 
+       NPAR=1
++      #ifdef NO_VASPRUN
++      IUXML_SET=-1
++      #else
+       IUXML_SET=20
++      #endif
+ #if defined(MPI) || defined(MPI_CHAIN)
+       CALL INIT_MPI(NPAR,IO)
+       NODE_ME= COMM%NODE_ME
+@@ -2908,9 +2912,13 @@
+       ! of course it is unique since it  changes radically energy
+       CALL DYNMATFULL_ENERGY_FORCE(SCALEE, T_INFO%NIONS, DYN%POSION, TOTEN, TIFOR, LATT_CUR%A , IO%IU0)
+ 
++!VTST      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
++!VTST           LATT_CUR%A,LATT_CUR%B,IO%IU6)
++
+       CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+-           LATT_CUR%A,LATT_CUR%B,IO%IU6)
++                 TSIF, LATT_CUR%A,LATT_CUR%B,IO%IU6)
+ 
++
+       CALL PARALLEL_TEMPERING(NSTEP,T_INFO%NIONS,DYN%POSION,DYN%VEL,TOTEN,TIFOR,DYN%TEBEG,DYN%TEEND, &
+            LATT_CUR%A,LATT_CUR%B,IO%IU6)
+ 
