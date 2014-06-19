@@ -10,7 +10,7 @@
           {%- block sidebarsearch %}
           {%- if pagename != "search" %}
             <!-- <h3>[[ builder == 'web' and 'Keyword' or 'Quick' ]] search</h3> -->
-        <div class="toprightsearch" style="float:right">
+        <div class="toprightsearch" style="float:right; position: relative;  top: 15px">
             <form class="search" action="{{ pathto('search') }}" method="get">
               <input type="text" name="q" size="18" /> <input type="submit" value="Search" />
               <input type="hidden" name="check_keywords" value="yes" />
@@ -34,7 +34,7 @@
         {%- endfor %}
 
         {%- block rootrellink %}
-        <li><a href="{{ pathto('index') }}"><img class="logo" src="{{ pathto('_static/' + logo, 1) }}" alt="VTST logo"/></a></li>
+        <li><a href="{{ pathto('index') }}"><img class="logo" src="{{ pathto('_static/' + logo, 1) }}" alt="VTST logo" style="position: relative; left: -220px; top: 0px"/></a></li>
         {%- endblock %}
 
     <!-- <li> {{ reldelim1 }} <a href="{{ pathto('download') }}">Download</a>{{ reldelim1 }}</li> -->
@@ -61,7 +61,7 @@
         <div class="sphinxsidebarwrapper">
           {%- block sidebartoc %}
 
-<!--          <h3><a href="{{ pathto('index') }}">VTST</a></h3>  -->
+          <h3><a href="{{ pathto('index') }}">VTST</a></h3>  
       <ul class="this-page-menu">
         <li><a href="{{ pathto('download') }}">Download</a></li>
         <li><a href="{{ pathto('installation') }}">Installation</a></li>
@@ -74,6 +74,13 @@
         <li><a href="{{ pathto('bader') }}">Bader</a></li>
         <li><a href="{{ pathto('references') }}">References</a></li>
       </ul>
+
+
+      <h3>Development</h3>
+      <ul class="this-page-menu">
+            <li><a href="http://theory.cm.utexas.edu/redmine/projects/vtsttools/repository">Source Code Browser</a></li>
+            <li><a href="http://theory.cm.utexas.edu/redmine/projects/vtsttools/issues">Bug       Tracker</a></li>
+          </ul>
 
           {%- if display_toc and current_page_name not in ['index', 'contents'] %}
             <h3>This page</h3>
@@ -106,7 +113,7 @@
               <li><a href="{{ pathto('@edit/' + sourcename)|e }}">Suggest Change</a></li>
               <li><a href="{{ pathto('@source/' + sourcename)|e }}">Show Source</a></li>
             {%- elif builder == 'html' %}
-<!--              <li><a href="{{ pathto('_sources/' + sourcename, true)|e }}">Page Source</a></li> --> <!-- label changed from "Show source" to avoid confusion with the source code svn link -->
+              <li><a href="{{ pathto('_sources/' + sourcename, true)|e }}">Page Source</a></li>  <!-- label changed from "Show source" to avoid confusion with the source code svn link -->
             {%- endif %}
             </ul>
           {%- endif %}
