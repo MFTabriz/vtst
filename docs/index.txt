@@ -16,7 +16,6 @@ Three saddle point finding methods and a couple other tools have been implemente
 - :ref:`Lanczos <lanczos>`: provides an alternative way to find the lowest mode and find saddle points.
 - :ref:`Optimizers <optimizers>`: provides an alternative way to find the lowest mode and find saddle points.
 - :ref:`Dynamical Matrix <dymmat>`: uses finite difference to find normal modes and reaction prefactors.
-- :ref:`Bader <bader>`: analysis of charge density grids to find charges and dipole moments of atoms in molecules.
 
 Note to Users
 =============

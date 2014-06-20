@@ -54,13 +54,4 @@ Comparison of saddle point finding methods
 * G. Henkelman, G. Jóhannesson, and H. Jónsson, Methods for Finding Saddle Points and Minimum Energy Paths, in Progress on Theoretical Chemistry and Physics, Ed. S. D. Schwartz (Kluwer Academic Publishers, 2000) pp. 269-300.
 
 
-Bader charge density analysis
-=============================
-
-
-* W. Tang, E. Sanville, and G. Henkelman A grid-based Bader analysis algorithm without lattice bias, J. Phys.: Condens. Matter 21, 084204 (2009). 
-
-* E. Sanville, S. D. Kenny, R. Smith, and G. Henkelman An improved grid-based algorithm for Bader charge allocation, J. Comp. Chem. 28, 899-908 (2007). 
-
-* G. Henkelman, A. Arnaldsson, and H. Jónsson, A fast and robust algorithm for Bader decomposition of charge density, Comput. Mater. Sci. 36, 254-360 (2006).
 
