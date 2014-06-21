@@ -2,7 +2,7 @@
 ===============================
 LANCZOS 
 ===============================
-There have been several similar but distinct methods published to locate lowest (or minimum) eigenmodes. We prefer to call them collectively Min-Mode following methods. The most successful ones are the Lagrange multiplier approach, Phys. Rev. B 59, 3969 (1999), the ARTn method, Phys. Rev. E 62, 7723 (2000), and the Dimer method.
+There have been several similar but distinct methods published to locate lowest (or minimum) eigenmodes. We prefer to call them collectively Min-Mode following methods. The most successful ones are the Lagrange multiplier approach, Phys. Rev. B 59, 3969 (1999), the ARTn method, Phys. Rev. E 62, 7723 (2000), and the `Dimer method`_.
 
 The use of a Lanczos type scheme in this field was pioneered by N. Mousseau et al. in their ARTn method. This method is is similar in spirit to the Dimer method in that it can be used to search for nearby saddle points from a local minimum or any other starting configuration, and it has recently been shown that the convergence properties are comparible between the two methods (see J. Chem. Phys. 121, 9776, (2004)).
 
@@ -10,7 +10,7 @@ The difference between the two methods is how the lowest curvature mode is found
 
 Lanczos input parameter set
 ===========================
-The following parameters are read from the INCAR file. All parameters specific to the Lanczos method start with S.
+The following parameters are read from the `INCAR`_ file. All parameters specific to the Lanczos method start with S.
 
 Required Parameters
 ====================
@@ -63,3 +63,11 @@ Keywords to "grep" for in the LANCAR file:
 |conv      |Gets the size of the Lanczos matrix, energy, maximum force and lowest eigenvalue at each   |     
 |          |central point									       |	
 +----------+-------------------------------------------------------------------------------------------+
+
+
+
+.. _Dimer method: http://theory.cm.utexas.edu/vtsttools/dimer.html
+.. _INCAR: http://theory.cm.utexas.edu/code/vtstools/lanczos/INCAR
+
+
+
