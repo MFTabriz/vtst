@@ -31,7 +31,7 @@ The system is an Al adatom on an Al(100) surface. The process is an exchange bet
 
 Notice how the climbing image calculation has shifted the position of the images (by compressing the images on the left) so that one image sits right at the saddle point.
 
-*The cNEB energies have been shifted by 0.05 eV so that the two curves are distinct.
+* The cNEB energies have been shifted by 0.05 eV so that the two curves are distinct.
 
 
 [Nudged Elastic Band] Options

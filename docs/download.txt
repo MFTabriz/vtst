@@ -7,6 +7,29 @@ Download
 VTST•Tools is released under the `GNU General Public License version 3`_.
 
 
+Tar files
+Version: 3.1, Mar. 28, 2014 (compatible with vasp.5.3.x)
+
+    VTST Code: `vtstcode.tar.gz`_
+
+    VTST Scripts: `vtstscripts.tar.gz`_
+
+NOTE: in v2.04 and later versions, an additional modification to main.F is required for the solid-state NEB.
+Find and replace:
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+with
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           TSIF,LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+Older Versions: 2.04c, Mar. 27, 2013
+
+    VTST Code: vtstcode_v2.04c.tar.gz
+    VTST Scripts: vtstscripts_130410.tar.gz 
+
 
 SVN Access
 ==========
@@ -30,3 +53,6 @@ For more information on subversion read its `online documentation`_.
 .. _online documentation: http://svnbook.red-bean.com/en/1.5/index.html
 .. _GNU General Public License version 3: http://www.gnu.org/copyleft/gpl.html
 
+
+.. _vtstcode.tar.gz: http://theory.cm.utexas.edu/code/vtstscripts.tar.gz
+.. _vtstscripts.tar.gz: http://theory.cm.utexas.edu/code/vtstcode.tar.gz
