@@ -24,7 +24,7 @@ The code on this site was written by several people who were in or associated wi
 
 We have a `discussion forum`_ to address issues related to the code and scripts.
 
-.. _VASP (Vienna Ab-initio Simulation Package): http://cms.mpi.univie.ac.at/vasp/
+.. _VASP (Vienna Ab-initio Simulation Package): http://www.vasp.at
 .. _Henkelman group: http://henkelmanlab.org
 .. _Jónsson group: http://www.hi.is/~hj/indexE.html
 .. _discussion forum: http://theory.cm.utexas.edu/forum

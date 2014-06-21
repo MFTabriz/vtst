@@ -5,6 +5,31 @@
 Installation
 ============
 
+The VTST•Tools has a fortran component which can be linked into the VASP code as well as a collection of scripts.
+
+--------------
+
+Code change in the VASP main.F file
+===================================
+
+In VTST v2.04 and later, a  modification is required in main.F for the solid-state NEB.
+
+Find and replace:
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+with
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           TSIF,LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+--------------
+
 Building the VTST code into VASP
 ================================
 
@@ -21,25 +46,5 @@ The objects dynmat.o, neb.o, dimer.o, lanczos.o, and instanton.o must be in the 
 - ICHAIN=1: Dynamical matrix
 - ICHAIN=2: Dimer
 - ICHAIN=3: Lanczos
-
-
-NOTE
-====
-
-In v2.04 and later versions, an additional modification to main.F is required for the solid-state NEB. 
-Find and replace:
-
-.. code-block:: sh
-
-      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
-           LATT_CUR%A,LATT_CUR%B,IO%IU6)
-with
-
-.. code-block:: sh
-
-      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
-           TSIF,LATT_CUR%A,LATT_CUR%B,IO%IU6)
-
-The VTST•Tools has a fortran component which can be linked into the VASP code as well as a collection of scripts.
 
 

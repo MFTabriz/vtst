@@ -7,11 +7,14 @@ Nudged Elastic Band
 
 The nudged elastic band (NEB) is a method for finding saddle points and minimum energy paths between known reactants and products. The method works by optimizing a number of intermediate images along the reaction path. Each image finds the lowest energy possible while maintaining equal spacing to neighboring images. This constrained optimization is done by adding spring forces along the band between images and by projecting out the component of the force due to the potential perpendicular to the band.
 
+------------
+
 Difference from the implementation in VASP
 ==========================================
 
-There are a few improvements to the NEB method which are not yet included in the current version of vasp. A climbing image method [#henkelman00_9901]_ and a better tangent definition [#henkelman00_9978]_ combine to allow for the more accurate finding of saddle points using the NEB with fewer images than the original method. The setup and operation of this implementation can be identical to what is described in the vasp manual under the `elastic band section <http://cms.mpi.univie.ac.at/vasp/vasp/node146.html>`_. The new tangent is implemented by default, and the climbing image method can be turned by setting **LCLIMB** = .TRUE. in the INCAR file.
+There are a few improvements to the NEB method which are not yet included in the current version of vasp. A climbing image method [#henkelman00_9901]_ and a better tangent definition [#henkelman00_9978]_ combine to allow for the more accurate finding of saddle points using the NEB with fewer images than the original method. The setup and operation of this implementation can be identical to what is described in the vasp manual under the `elastic band section <http://cms.mpi.univie.ac.at/vasp/vasp/Elastic_band_method.html>`_. The new tangent is implemented by default, and the climbing image method can be turned by setting **LCLIMB** = .TRUE. in the INCAR file.
 
+------------
 
 Climbing Image
 ==============
@@ -21,6 +24,8 @@ The climbing image [#henkelman00_9901]_ is a small modification to the NEB metho
 Because the highest image is moved to the saddle point and it does not feel the spring forces, the spacing of images on either side of this image will be different. It can be important to do some minimization with the regular NEB method before this flag is turned on, both to have a good estimate of the reaction co-ordinate around the saddle point, and so that the highest image is close to the saddle point. If the maximum image is initially very far from the saddle point, and the climbing image was used from the outset, the path would develop very different spacing on either side of the saddle point.
 
 To use the climbing image, set **LCLIMB** = .TRUE.
+
+------------
 
 Example
 =======
@@ -33,6 +38,7 @@ Notice how the climbing image calculation has shifted the position of the images
 
 * The cNEB energies have been shifted by 0.05 eV so that the two curves are distinct.
 
+------------
 
 [Nudged Elastic Band] Options
 =============================

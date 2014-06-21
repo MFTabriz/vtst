@@ -4,28 +4,20 @@
 SCRIPTS 
 ========
 
-------------------------------------------------------------------------------------------------------------
-
 The following are a set of scripts to perform common tasks to help with VASP calculations, and particularly with transition state finding. The included Vasp.pm perl module contains several simple routines that are used by many of the scripts.
 
-**Download** the scripts: vtstscripts.tar.gz
+**Download** the scripts: `vtstscripts.tgz`_
 
 **Install** by uncompressing this file, and adding the vtstscripts directory to your path.
 
 The scripts are organized into the following categories:
 
 * general
-
 * file conversion
-
 * nudged elastic band
-
 * dynamical matrix
-
 * dimer
-
 * charge density
-
 * density of states
 
 
@@ -35,7 +27,7 @@ The scripts are organized into the following categories:
 
 * For NEB scripts, there needs to be OUTCAR files for the initial and final states placed in the 00 and NI+1, respectively. Please direct questions about these scripts to the discussion forum. 
 
-------------------------------------------------------------------------------------------------------------
+-------------------------
 
 General Scripts
 ============================
@@ -83,8 +75,7 @@ General Scripts
 
         output: ``unit vector between POSCAR files, to MODECAR file``
 
-
-
+-------------------------
 
 File Conversion Scripts
 ============================
@@ -114,6 +105,7 @@ File Conversion Scripts
 
         output: ``velocity using forward difference method to VDATCAR file``
 
+-------------------------
 
 Nudged Elastic Band Scripts
 ============================
@@ -175,6 +167,7 @@ Warning: this script does not give a set of equally spaced images.
 
         output: ``POSCAR files, to original files``
 
+-------------------------
 
 Charge Density Scripts
 ============================
@@ -204,6 +197,7 @@ Charge Density Scripts
 
         output: ``CHGCAR.cube``
 
+-------------------------
 
 Dimer Scripts
 ============================
@@ -234,6 +228,7 @@ Dimer Scripts
         output: ``dimmode.xyz``
 
 
+-------------------------
 
 Dynamical Matrix
 ============================
@@ -327,6 +322,8 @@ Note: if the modes.dat is created by using serveral DISPLACECARs as indicated in
 
         output: ``movies for each normal mode``
 
+-------------------------
+
 Density of State Scripts
 ============================
 
@@ -349,4 +346,5 @@ Note: the split_dos.ksh script should be run first to get the resulting new file
 
         output: ``ldosplot.eps``
 
+.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
 
