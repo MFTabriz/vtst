@@ -4,7 +4,6 @@
 ADAPTIVE KINETIC MONTE CARLO 
 ======================================
 
--------------------------------------------------------------------------------------------------
 
 Kinetic Monte Carlo is a method for simulating the state-to-state dynamics of a rare event system. For dynamics of atomic systems, the rare events correspond to the thermal activation of atoms from one energy basin to another on the potential energy surface. If the rates of these transitions are known, KMC can be used to simulate dynamics over long time scales. The strength of KMC is that the fast vibrational motion of atoms is averaged out, using transition state theory, so that the dynamics can be modelled on the time scale of the thermally activated events.
 KMC has some important limitations. The first is that the rates of thermal events needs to be calculated before the simulation begins. This can be done using density functional theory, for example, with the VASP code. For modeling solid systems, rates can be found using harmonic transition state theory. This is a very computationally efficient approximation because only the energy and frequencies of minima and saddle points are needed to find rates of reactions. Adaptive kinetic Monte Carlo is a method for simulating uses saddle point searches to find processes available to the system. Kinetic Monte Carlo is then used to advance the system from state to state.
@@ -21,8 +20,8 @@ Put the necessary scripts in place:
 * | Download the vtstscripts to get the scripts: akmc.pl, dimmins.pl and diminit.pl.
   | Please report bugs to xulijun@u.washington.edu.
 
-* |Three job handling scripts in the same folder: akmc_submit.pl, akmc_check.pl, and akmc_kill.pl  
-  |Note: Those file names can't be changed, and you need to write your own scripts since they are specific to the queuing system.
+* | Three job handling scripts in the same folder: akmc_submit.pl, akmc_check.pl, and akmc_kill.pl  
+  | Note: Those file names can't be changed, and you need to write your own scripts since they are specific to the queuing system.
 
 Start with a directory containing:
 

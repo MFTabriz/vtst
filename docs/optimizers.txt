@@ -4,7 +4,6 @@
 FORCE BASED OPTIMIZERS 
 =======================
 
-------------------------------------------------------------------------------------------------------------------------------
 
 The NEB and min-mode following (dimer/Lanczos) saddle point finding methods use a force projection in order to direct the optimizers towards minimum energy paths and saddle points. These modifications to the force mean that the energy is no longer consistent with the force being optimized. Because of this, we can only use optimizers that are solely based upon the force (and not the energy). The quasi-Newton and quick-min (IBRION=1 and 3 respectively) optimizers that are built into VASP are both force-based, but the conjugate-gradient method (IBRION=2) is not.
 
