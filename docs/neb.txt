@@ -56,14 +56,14 @@ Notice how the climbing image calculation has shifted the position of the images
 +-------------+---------------------------+-----------------------------------------------------------------+
 |LCLIMB       |.TRUE. boolean		  |	Flag to turn on the climbing image algorithm		    |
 +-------------+---------------------------+-----------------------------------------------------------------+
-|LTANGENTOLD  |.FALSE. boolean		  |Flag to turn on the old central difference tangent		    |
+|LTANGENTOLD  |.FALSE. boolean		  ||Flag to turn on the old central difference tangent		    |
 +-------------+---------------------------+-----------------------------------------------------------------+
 |LDNEB        |.FALSE. boolean		  |Flag to turn on modified double nudging			    |
 +-------------+---------------------------+-----------------------------------------------------------------+
 |LNEBCELL     |.FALSE. boolean		  |Flag to turn on SS-NEB. Used with ISIF=3 and IOPT=3.    	    |
 +-------------+---------------------------+-----------------------------------------------------------------+
 |JACOBIAN     |(Ω/N)^{1/3}N^{1/2} real    |Controls weight of lattice to atomic motion. Ω is volume and N   |
-|	      |				  | is the number of atoms.					    |
+|	      |				  |is the number of atoms.					    |
 +-------------+---------------------------+-----------------------------------------------------------------+
 
 
