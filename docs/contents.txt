@@ -15,5 +15,4 @@ Contents
    lanczos
    optimizers
    scripts
-   akmc
    references
