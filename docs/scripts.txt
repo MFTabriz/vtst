@@ -29,51 +29,59 @@ The scripts are organized into the following categories:
 
 -------------------------
 
+
+
+
+
 General Scripts
 ============================
 
-**Vasp.pm**: Perl module that contains various common commands that one might want when deal with VASP POSCAR files. These include reading and writing a POSCAR file, reading and writing a generic vector file, doing dot products and finding magnitudes of vectors and other similar functions
 
-**vef.pl**: Prints the force and energy at each iteration of a vasp run.
-	usage: ``vef.pl``
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|Scripts		| Usage/Description															      	|
++=======================+===============================================================================================================================================+
+|**Vasp.pm**		|Perl module that contains various common commands that one might want when deal with VASP POSCAR files. These include reading and writing a 	|
+|			|POSCAR file, reading and writing a generic vector file, doing dot products and finding magnitudes of vectors and other similar functions	|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**vef.pl**		|usage: ``vef.pl``																|
+|			+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|Prints the force and energy at each iteration of a vasp run.											|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**vfin.pl**		|usage: ``vfin.pl (output directory)``														|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|This script finds the ICHAIN tag from the OUTCAR and cleans up the run directory accordingly. All relevant files (POSCAR, CONTCAR, 		|
+|			|OUTCAR (zipped), INCAR, KPOINTS, XDATCAR (zipped), CHGCAR and WAVECAR if the are non-empty) are copied to the output directory. 		|
+|			|In the run directory CONTCARs are moved over POSCARs in preparation for a new run.								|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**boxset.pl**		|usage: ``boxset.pl (POSCAR) (lattice constant)``												|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``POSCAR with specified lattice constant``												|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**posinterp.pl**	|usage: ``posinterp.pl (POSCAR 1) (POSCAR 2) (fraction)``											|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``POSCAR.out file, to STDOUT``														|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**pos2rdf.pl**		|usage: ``pos2rdf.pl (POSCAR) (atom) (bin size)``												|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``radial distribution around specified atom, to STDOUT``										|	
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**neighbors.pl**	|usage: ``neighbors.pl (con file) (atom)``													|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``neighbor distances from a specified atom, to STDOUT``										|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**diffcon.pl**		|usage: ``diffcon.pl (POSCAR 1) (POSCAR 2)``													|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``distance between atoms, scalar and vector sum, to STDOUT``										|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**dist.pl**		|       usage: ``dist.pl (POSCAR 1) (POSCAR 2)``												|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			| output: ``root sum squared distance between configuration files``										|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
+|**modemake.pl**	|usage: ``modemake.pl (POSCAR 1) (POSCAR 2)``													|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			| output: ``unit vector between POSCAR files, to MODECAR file``											|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 
-**vfin.pl**: This script finds the ICHAIN tag from the OUTCAR and cleans up the run directory accordingly. All relevant files (POSCAR, CONTCAR, OUTCAR (zipped), INCAR, KPOINTS, XDATCAR (zipped), CHGCAR and WAVECAR if the are non-empty) are copied to the output directory. In the run directory CONTCARs are moved over POSCARs in preparation for a new run.
-	usage: ``vfin.pl (output directory)``
-	
-**boxset.pl**
-	usage: ``boxset.pl (POSCAR) (lattice constant)``
-
-	output: ``POSCAR with specified lattice constant``
-
-**posinterp.pl**
-        usage: ``posinterp.pl (POSCAR 1) (POSCAR 2) (fraction)``
-
-        output: ``POSCAR.out file, to STDOUT``
-
-**pos2rdf.pl**
-        usage: ``pos2rdf.pl (POSCAR) (atom) (bin size)``
-
-        output: ``radial distribution around specified atom, to STDOUT``
-
-**neighbors.pl**
-        usage: ``neighbors.pl (con file) (atom)``
-
-        output: ``neighbor distances from a specified atom, to STDOUT``
-
-**diffcon.pl**
-        usage: ``diffcon.pl (POSCAR 1) (POSCAR 2)``
-
-        output: ``distance between atoms, scalar and vector sum, to STDOUT``
-
-**dist.pl**
-        usage: ``dist.pl (POSCAR 1) (POSCAR 2)``
-
-        output: ``root sum squared distance between configuration files``
-
-**modemake.pl**
-        usage: ``modemake.pl (POSCAR 1) (POSCAR 2)``
-
-        output: ``unit vector between POSCAR files, to MODECAR file``
 
 -------------------------
 
