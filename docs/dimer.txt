@@ -11,9 +11,7 @@ The dimer method is one of the min-mode following methods that allows the user t
 Dimer calculation setup
 ========================
 
-The setup for a dimer run has changed in vtstcode v2.00 (Feb 2007). Make sure to download the latest version of the code, before using these instructions.
-
-The setup for a dimer calculation is (now) very similar to a regular VASP calculation. The following input files are needed:
+The setup for a dimer calculation is similar to a regular VASP calculation. The following input files are needed:
 
   1. The POTCAR and KPOINTS are as normal.
   2. The INCAR has all the usual variables, but it must also contain the variables IBRION=3, POTIM=0, and some value of IOPT (2 is recommended).
