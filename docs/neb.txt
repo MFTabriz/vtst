@@ -31,7 +31,7 @@ Example
 =======
 
 .. image:: cneb.gif
-   :float: right
+   :align: center
 
 The graph on the right shows an NEB calculation (blue) and a climbing image cNEB calculation* (red).
 
