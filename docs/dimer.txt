@@ -26,8 +26,8 @@ One use of the dimer method is to accurately converge upon a saddle point, start
 Example
 ========
 
-  * Input files for H diffusion in a frozen Ir lattice: dimrun.tar.gz.
-  * Completed calculation: dimrun_complete.tar.gz.
+  * Input files for H diffusion in a frozen Ir lattice: `dimrun.tar.gz`_.
+  * Completed calculation: `dimrun_complete.tar.gz`_.
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -92,8 +92,8 @@ The most important variables are the Force, Torque and the Curvature. One should
 
 
 
-
-
+.. _dimrun.tar.gz: _static/dimer/dimrun.tar.gz
+.. _dimrun_complete.tar.gz: _static/dimer/dimrun_complete.tar.gz
 
 
 
