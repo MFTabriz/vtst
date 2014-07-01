@@ -78,7 +78,7 @@ A summary of the important parameters are written to the DIMCAR file. The values
 
   1. **Step**: The number of translation steps. Note that there can be several rotations per step.
 
-  2. **Force**: The maximum force on any degree of freedom in the system. When this number is lower than the value of -ediffg in the INCAR file, and the curvature is negative, the run will converge.
+  2. **Force**: The maximum force on any degree of freedom in the system. When this number is lower than the value of -ediffg in the `INCAR`_ file, and the curvature is negative, the run will converge.
 
   3. **Torque**: The rotational force on the dimer. This indicates how well the lowest mode has been determined.
 
@@ -94,7 +94,7 @@ The most important variables are the Force, Torque and the Curvature. One should
 
 .. _dimrun.tar.gz: _static/dimer/dimrun.tar.gz
 .. _dimrun_complete.tar.gz: _static/dimer/dimrun_complete.tar.gz
-
+.. _INCAR: _static/dimer/INCAR
 
 
 
