@@ -10,7 +10,7 @@ The following are a set of scripts to perform common tasks to help with VASP cal
 
 **Install** by uncompressing this file, and adding the vtstscripts directory to your path.
 
-The scripts are organized into the following categories:
+The scripts are organized into the following categories (portals to them are on the left):
 
 * general
 * file conversion
@@ -25,7 +25,7 @@ The scripts are organized into the following categories:
 
 * We recommend that the first line in the POSCAR file contain the element symbols, in the same order as they appear in the POTCAR. This will allow for proper visualization when files are converted to xyz files.
 
-* For NEB scripts, there needs to be OUTCAR files for the initial and final states placed in the 00 and NI+1, respectively. Please direct questions about these scripts to the discussion forum. 
+* For NEB scripts, there needs to be OUTCAR files for the initial and final states placed in the 00 and NI+1, respectively. Please direct questions about these scripts to the discussion `forum`_. 
 
 -------------------------
 
@@ -450,4 +450,4 @@ Density of State Scripts
 
 
 .. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
-
+.. _forum: http://theory.cm.utexas.edu/forum
