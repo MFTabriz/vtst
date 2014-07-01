@@ -11,7 +11,7 @@ Here, we present a set of optimizers that are all force-based so they can be use
 
 This version of quick-min is essential the same as what has been implemented in vasp. The conjugate-gradient method is different in that is uses a Newton's line optimizer, and are entirely force based. The LBFGS is also different in that the NEB can be optimized globally, instead of image-by-image. The FIRE optimizer is an interesting new optimizer which has similarities to quick-min, but tends to be faster. The steepest descent method is provided primarily for testing. We recommend using CG or LBFGS when accurate forces are available. This is essential for evaluating curvatures. For high forces (far from the minimum) or inaccurate forces (close to the minimum) the quick-min or FIRE methods are recommended. These two methods do not rely on curvatures, and tend to be less aggressive, better behaved, but also less efficient than CG/LBFGS.
 
-Here is a recent paper discussing the performance of these different optimizers with the NEB.
+Here is a recent `paper`_ discussing the performance of these different optimizers with the NEB.
 
 The min-mode following methods can only be used with one of these methods. If IOPT is not set in a dimer run, the job with die with a corresponding error message.
 
@@ -138,4 +138,4 @@ FIRE Parameters (IOPT = 7)
 +-------------+---------+---------------------------------------------------------------+
 
 
-
+.. _paper: http://theory.cm.utexas.edu/henkelman/pubs/sheppard08_134106.pdf
