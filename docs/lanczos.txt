@@ -70,8 +70,8 @@ Keywords to "grep" for in the LANCAR file:
 
 
 
-.. _Dimer method: http://theory.cm.utexas.edu/vtsttools/dimer.html
-.. _INCAR: http://theory.cm.utexas.edu/code/vtstools/lanczos/INCAR
+.. _Dimer method: dimer.html
+.. _INCAR: _static/lanczos/INCAR
 
 
 
