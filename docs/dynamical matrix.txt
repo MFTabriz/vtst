@@ -1,0 +1,78 @@
+.. _Dynamical Matrix:
+
+================
+DYNAMICAL MATRIX 
+================
+
+----------------------
+
+
+The dynamical matrix code in VASP allows for the calculation of harmonic frequencies of and the prefactor of a reaction. The formalism was developed by Vineyard, and the Arrhenius rate includes the Vineyard prefactor. The basic idea is that the potential is assumed to be harmonic for both the initial state and the transition state. With this assumption, one can formulate the migration prefactor (the product of the attempt frequency and the exponential of the migration entropy over k) as the ratio of the products of the frequencies of the normal modes of the initial state over the transition state. Another way of saying this is that the entropy of the initial and transition state is evaluated using a harmonic approximation.
+To be able to do a dynamical matrix calculation for a prefactor, one needs to know beforehand both the initial state and the transition state. The `nudged elastic band`_. (NEB) method and the `dimer`_ method are two ways of locating transition states.
+
+The dynamical matrix calculation may also be used to calculate the harmonic frequencies and modes of a given molecule whose geometry has already been optimized in VASP. This dynamical matrix calculation requires only beforehand knowledge of the equilibrium optimized geometry of the initial state.
+
+In implementing the dynamical matrix calculation in VASP, several support programs have been written, both to help set up the calculation as well as process the output. A page describing these programs, most of which are Perl scripts, can be found `here`_.
+
+
+-------------------------------
+
+Setting up a dynamical matrix calculation
+=========================================
+
+ 1. Compile a version of VASP with the vtst source. 
+
+ 2. Select the degrees of freedom to calculate in a DISPLACECAR file. This file is a 3 by N list of displacements where N is the number of atoms. A typical displacement and entry in this list is on the order of 0.001. This file may also be generated with either the dymselsph.pl script (to select atoms in a radius about central atom(s) when calculating harmonic frequencies of a molecule) or the dymseldsp.pl script (to select the atoms that are displaced the most between two POSCARs). 
+
+ 3. The calculation can be run with a single image where a single displacement is calculated at a time, or with multiple images where many displacements can be calculated at once. If you choose the single image mode, you do not need to do anything in this step. If you want to run in parallel, you need to choose a number of images, M, which evenly divides the number of degrees of freedom (DOF) that you are displacing. Then, in a similar way to how a nudged elastic band calculation is set up, create M subdirectories numbered 01 to M, using two digits for each directory name. Put the POSCAR file in each of the subdirectories. 
+
+ 4. Set up the INCAR file. You need to have the following variables set: ICHAIN=1, POTIM=0.0, IMAGES=M (only if running in multiple geometries at once mode from step 2), NSW=(DOF/M)+1. The reason for adding 1 is because each calculation will calculate the forces on the initial structure before doing any displacements. 
+
+
+   **Note about setting the number of ionic steps, NSW.** In a single image claculation, the number of ionic steps should be one more than the number of degrees of freedom. In a parallel calculation, it is one more than the number of degrees of freedom divided by the number of images, M. As an example, in a single image calculation of the modes of ethane, the NSW tag would be 25 (3 degrees of freedom for each of 8 atoms, plus 1). If you wanted to do this calculation in parallel using M=4 images, you would set IMAGES=4 and NSW=(24/4)+1=7 
+
+ 5. Run VASP after verifying that POTCAR, POSCAR, INCAR, DISPLACECAR, and KPOINTS files all exist and are properly configured. To ensure accuracy of calculated modes, the geometry in POSCAR should have first been optimized in VASP. All INCAR settings such as ISMEAR, SIGMA, PREC, etc used in the geometry optimization should be present in the dynamical matrix INCAR as well. 
+
+ 6. Extract the force constants from the output. You can use the dymmatrix.pl script to do this. Please see the documentation for this script for its arguments. The output of this script is the dynamical matrix, its eigenvalues, the normal mode frequencies and the normal mode eigenvectors. Some examples are: 
+   
+    Default, single calculation and single image: 
+    dymmatrix.pl 
+    or dymmatrix.pl DISPLACECAR OUTCAR 
+
+    Single calculation with multiple images: 
+    dymmatrix.pl 1 DISPLACECAR ??/OUTCAR 
+
+    Multiple calculations with n DISPLACECAR and OUTCAR files: 
+    dymmatrix.pl n DISPLACECAR1 .. DISPLACECARn OUTCAR1 .. OUTCARn 
+ 
+ 7. If all calculated frequencies are zero, check the EDIFFG tag in dynamical matrix INCAR. AFTER geometry minimization when running the dynamical matrix code, this INCAR tag may be set arbitrarily small to prevent premature termination of the job (as if minimum structural accuracy had been obtained). The number of force calls made should be equal to the number specified in the NSW tag. 
+
+ 8. Check for convergence of frequencies with respect to all parameters, and particularly the finite difference magnitude in the DISPLCECAR file, the accuracy of the forces (ediff) and the magnitude of the smearing. A small smearing value is particularly important for calculating the normal modes of molecules with large homo-lumo gaps. 
+
+ 9. Calculate the prefactor (not for simple frequency analysis). The script dymprefactor.pl does this. It takes as input the eigenvalue files of both the minimum and the transition state. The output is the prefactor in inverse cm.
+
+
+Calculating additional degrees of freedom
+==========================================
+
+
+
+This completes one prefactor calculation. If you want to do another calculation with the same system, but including more degrees of freedom, then you need to:
+
+ 1. Save the OUTCAR files from the previous calculation. 
+
+ 2. Create the new DISPLACECAR as above. 
+
+ 3. Generate the difference between the new and old DISPLACECAR with the dymcmpdisp.pl program. You will run the dynamical matrix code with the output of this program. 
+
+ 4. Modify NSW in your INCAR file as before. 
+
+ 5. Run Vasp. 
+
+ 6. Extract the forces from the OUTCAR files. Use dymmatrix.pl to do this. To do this, you will need the DISPLACECAR from the original calculation, the DISPLACECAR from this calculation, and all of the corresponding OUTCARs. Again, the second and subsequent DISPLACECARs should only contain the new degrees of freedom not calculated before. 
+
+.. _nudged elastic band: neb.html 
+
+.. _dimer: dimer.html
+
+.. _here: scripts.html#dynamical-matrix

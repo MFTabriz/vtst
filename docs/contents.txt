@@ -16,3 +16,4 @@ Contents
    optimizers
    scripts
    references
+   dynamical matrix
