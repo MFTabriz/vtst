@@ -15,7 +15,7 @@ Three saddle point finding methods and a couple other tools have been implemente
 - :ref:`Dimer <dimer>`: method for finding reaction pathways when only one state is known.
 - :ref:`Lanczos <lanczos>`: provides an alternative way to find the lowest mode and find saddle points.
 - :ref:`Optimizers <optimizers>`: provides an alternative way to find the lowest mode and find saddle points.
-- :ref:`Dynamical_Matrix <dymmat>`: uses finite difference to find normal modes and reaction prefactors.
+- :ref:`Dynamical Matrix <dymmat>`: uses finite difference to find normal modes and reaction prefactors.
 
 Note to Users
 =============

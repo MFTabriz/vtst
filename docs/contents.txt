@@ -16,4 +16,4 @@ Contents
    optimizers
    scripts
    references
-   dynamical_matrix
+   dymmat
