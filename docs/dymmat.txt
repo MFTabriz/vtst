@@ -20,7 +20,7 @@ In implementing the dynamical matrix calculation in VASP, several support progra
 Setting up a dynamical matrix calculation
 =========================================
 
- 1. Compile a version of VASP with the vtst source. 
+ 1. Compile a version of VASP with the vtst `source`_. 
 
  2. Select the degrees of freedom to calculate in a DISPLACECAR file. This file is a 3 by N list of displacements where N is the number of atoms. A typical displacement and entry in this list is on the order of 0.001. This file may also be generated with either the dymselsph.pl script (to select atoms in a radius about central atom(s) when calculating harmonic frequencies of a molecule) or the dymseldsp.pl script (to select the atoms that are displaced the most between two POSCARs). 
 
@@ -76,3 +76,5 @@ This completes one prefactor calculation. If you want to do another calculation 
 .. _dimer: dimer.html
 
 .. _here: scripts.html#dynamical-matrix
+
+.. _source: download.html
