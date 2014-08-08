@@ -449,5 +449,5 @@ Density of State Scripts
 
 
 
-.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
+.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz
 .. _forum: http://theory.cm.utexas.edu/forum
