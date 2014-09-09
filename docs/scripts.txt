@@ -449,5 +449,17 @@ Density of State Scripts
 
 
 
-.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz
-.. _forum: http://theory.cm.utexas.edu/forum
+        output: ``center of the specified band for selected atoms based on aweighted average, to STDOUT``
+
+**doslplot.pl**:The eps file has DOS plot for each of selected atoms (blue lines), and the DOS plot for the all system (red line).
+If no orbital flag, plot the d-band.If no atom is selected, plot all of them.
+Note: Only LORBIT=11 and up to s,p,d bands can be handled with this script.
+        usage: ``doslplot.pl``
+
+        output: ``ldosplot.eps``
+
+**split_dos**: Split the DOSCAR file into atomic DOS files, (DOS1, DOS2,..,DOSN).  The DOSCAR and OUTCAR in the working directory will be used.  This bash script was written for LORBIT =10 and = 11 calculations as well as spin (un)restricted.  The energy will be referenced to the fermi energy specified in the OUTCAR, (E-Ef). 
+	usage: ``split_dos``
+
+	output: ``DOS0, DOS1, DOS2,..,DOSN``
+
