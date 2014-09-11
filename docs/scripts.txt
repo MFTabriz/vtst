@@ -440,7 +440,7 @@ Density of State Scripts
 |			|If no orbital flag is specified, the script analyzes the d-band. If no atom is selected, it analyzes all of them. If no w= tag specified, the 	|
 |			|center is calculated between 2.5 half widths at half height											|
 |                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
-|			|Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of 	|
+|			|Note: the split_dos script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of 	|
 |			|atoms in the unit cell.															|
 +-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 |**doslplot.pl**	|usage: ``doslplot.pl``																|
