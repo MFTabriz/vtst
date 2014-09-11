@@ -415,6 +415,14 @@ Density of State Scripts
 +-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 |Scripts                | Usage/Description                                                                                                                             |
 +=======================+===============================================================================================================================================+
+|**split_dos**		|usage:  ``split_dos``																|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|output: ``DOS0, DOS1, DOS2,..,DOSN``														|
+|                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
+|			|Split the DOSCAR file into atomic DOS files, (DOS1, DOS2,..,DOSN).  The DOSCAR and OUTCAR in the working directory will be used.  		|
+|			|This bash script was written for LORBIT =10 and = 11 calculations as well as spin (un)restricted.  The energy will be referenced to the fermi 	|
+|			|energy specified in the OUTCAR, (E-Ef).													|
++-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 |**dosanalyze.pl**	|usage: ``dosanalyze.pl [w=num width at quarter-height] [e=emin,emax]``										|
 |                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
 |			|output: ``center of the specified band for selected atoms based on aweighted average, to STDOUT``						|
@@ -439,27 +447,12 @@ Density of State Scripts
 |                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
 |			|output: ``ldosplot.eps``															|
 |                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
-|			|The out put eps file has DOS plot for each of selected atoms (bule lines), and the DOS plot for the all system (red line). If no orbital flag, |
-|			|plot the d-band.If no atom is selected, plot all of them.											|
+|			|The eps file has DOS plot for each of selected atoms (blue lines), and the DOS plot for the all system (red line).  If no orbital flag, plot   | 
+|			|the d-band.If no atom is selected, plot all of them.												|
 |                       +-----------------------------------------------------------------------------------------------------------------------------------------------+
-|			|Note: the split_dos.ksh script should be run first to get the resulting new files labeled as DOS1, DOS2, ..., DOSN,where N is the number of 	|
-|			|atoms in the unit cell.															|
+|			|Note: Only LORBIT=11 and up to s,p,d bands can be handled with this script.									|
 +-----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 
-
-        output: ``center of the specified band for selected atoms based on aweighted average, to STDOUT``
-
-**doslplot.pl**:The eps file has DOS plot for each of selected atoms (blue lines), and the DOS plot for the all system (red line).
-If no orbital flag, plot the d-band.If no atom is selected, plot all of them.
-Note: Only LORBIT=11 and up to s,p,d bands can be handled with this script.
-        usage: ``doslplot.pl``
-
-        output: ``ldosplot.eps``
-
-**split_dos**: Split the DOSCAR file into atomic DOS files, (DOS1, DOS2,..,DOSN).  The DOSCAR and OUTCAR in the working directory will be used.  This bash script was written for LORBIT =10 and = 11 calculations as well as spin (un)restricted.  The energy will be referenced to the fermi energy specified in the OUTCAR, (E-Ef). 
-	usage: ``split_dos``
-
-	output: ``DOS0, DOS1, DOS2,..,DOSN``
 
