@@ -41,5 +41,5 @@ For more information on subversion read its `online documentation`_.
 
 .. _online documentation: http://svnbook.red-bean.com/en/1.5/index.html
 .. _GNU General Public License version 3: http://www.gnu.org/copyleft/gpl.html
-.. _vtstcode.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz
-.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
+.. _vtstcode.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
+.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz
