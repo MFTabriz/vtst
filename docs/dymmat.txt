@@ -4,6 +4,7 @@
 DYNAMICAL MATRIX 
 ================
 
+tmp
 The dynamical matrix code in VASP allows for the calculation of harmonic frequencies of and the prefactor of a reaction. The formalism was developed by Vineyard, and the Arrhenius rate includes the Vineyard prefactor. The basic idea is that the potential is assumed to be harmonic for both the initial state and the transition state. With this assumption, one can formulate the migration prefactor (the product of the attempt frequency and the exponential of the migration entropy over k) as the ratio of the products of the frequencies of the normal modes of the initial state over the transition state. Another way of saying this is that the entropy of the initial and transition state is evaluated using a harmonic approximation.
 To be able to do a dynamical matrix calculation for a prefactor, one needs to know beforehand both the initial state and the transition state. The `nudged elastic band`_. (NEB) method and the `dimer`_ method are two ways of locating transition states.
 
