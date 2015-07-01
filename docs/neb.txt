@@ -69,11 +69,8 @@ Notice how the climbing image calculation has shifted the position of the images
 +-------------+---------------------+------------+-----------------------------------------------------------------+
 
 
-
-
-
 .. rubric:: References
 
-.. [#henkelman00_9901] G. Henkelman and H. Jónsson, A climbing image nudged elastic band method for finding saddle points and minimum energy paths, *J. Chem. Phys.* **113**, 9901-9904 (2000). `DOI <http://dx.doi.org/10.1063/1.1329672>`_
+.. [#henkelman00_9901] G.\  Henkelman and H. Jónsson, A climbing image nudged elastic band method for finding saddle points and minimum energy paths, *J. Chem. Phys.* **113**, 9901-9904 (2000). `DOI <http://dx.doi.org/10.1063/1.1329672>`_
 
-.. [#henkelman00_9978] G. Henkelman and H. Jónsson, Improved tangent estimate in the nudged elastic band method for finding minimum energy paths and saddle points, *J. Chem. Phys.* **113**, 9978-9985 (2000). `DOI <http://dx.doi.org/10.1063/1.1323224>`_
+.. [#henkelman00_9978] G.\  Henkelman and H. Jónsson, Improved tangent estimate in the nudged elastic band method for finding minimum energy paths and saddle points, *J. Chem. Phys.* **113**, 9978-9985 (2000). `DOI <http://dx.doi.org/10.1063/1.1323224>`_
