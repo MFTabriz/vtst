@@ -76,10 +76,10 @@
       IU5 = IO%IU5
       IU6 = IO%IU6
       Nions = T_info%nions
-     #if defined(MPI_CHAIN)
+#if defined(MPI_CHAIN)
         IF (IU6>=0) WRITE(IU0,*) 'The IMAGES tag should not be set for this implementation of the dimer method.'
         STOP
-     #endif
+#endif
       IF (IU6>=0) OPEN(UNIT=IUdim, FILE='DIMCAR')
       IF (IU6>=0) WRITE(IUdim,'(A5,5A14)') 'Step','Force','Torque','Energy','Curvature','Angle'
       Itr = 1
