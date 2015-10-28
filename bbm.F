@@ -304,7 +304,7 @@
         WRITE(IU6,'(/,A)')     '  --------------Bond-Boost Input Parameters--------------'
         WRITE(IU6,'(A,11X,I7)')    ' Bond-Boost:  NBAS',NBAS
 !        WRITE(IU6,'(A,9X,<NBAS>I5)')   ' Bond-Boost:  BALIST',BALIST(:)
-        WRITE(IU6,'(A,9X,*(I5))')   ' Bond-Boost:  BALIST',BALIST(:)
+        WRITE(IU6,'(A,9X,999I5)')   ' Bond-Boost:  BALIST',BALIST(:)
         WRITE(IU6,'(A,10X,F14.6)') ' Bond-Boost:  POTIM',BPOTIM
         WRITE(IU6,'(A,10X,F14.6)') ' Bond-Boost:  TEBEG',BTEBEG
         WRITE(IU6,'(A,12X,F14.6)') ' Bond-Boost:  PRR',PRR
