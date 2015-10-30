@@ -1,6 +1,5 @@
 #include "symbol.inc"
 !**********************************************************************
-! RCS:  $Id: dimer.F,v 1.36 2009-02-19 03:44:26 graeme Exp $
 !
 ! This module implements the dimer method.  For more information refer
 ! to the web page:
@@ -26,7 +25,7 @@
 ! - changed the dimer rotation to as in K&S
 !
 ! Graeme Henkelman
-! henkelman@mail.utexas.edu
+! henkelman@utexas.edu
 !
 !**********************************************************************
 
