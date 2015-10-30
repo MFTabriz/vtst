@@ -30,9 +30,7 @@
 !   Lijun Xu
 !   Liang Zhang
 !
-! Email: henkelman@cm.utexas.edu
-!
-! Version 3.1, Mar. 28, 2014
+! Email: henkelman@utexas.edu
 !
 !**********************************************************************
 
