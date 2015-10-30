@@ -52,7 +52,7 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'vtsttools'
-copyright = u'2014, Henkelman Group'
+copyright = u'2015, Henkelman Group'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
