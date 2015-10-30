@@ -10,20 +10,6 @@
 !   Heyden, Bell, and Keil, JCP 123, 224101 (2005).
 !   Kastner and Sherwood, JCP 128, 014106 (2008).
 !
-! Changed since v2.00: 
-! - single image version of the dimer method
-! - changed output file name to DIMCAR
-! - added a minimum rotational force variable
-! - use a 45 deg rotation (Heyden et al, JCP 123, 224101, 2005)
-! - incorporate the new optimizers
-!
-! Changed in v2.03:
-! - removed a finite difference step before printing CENTCAR
-! - added Dimer_Fin which prints a final line after convergence
-!
-! Changed in v2.xx:
-! - changed the dimer rotation to as in K&S
-!
 ! Graeme Henkelman
 ! henkelman@utexas.edu
 !
