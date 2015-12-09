@@ -4,7 +4,7 @@
 Download
 ================================
 
-VTST•Tools is released under the `GNU General Public License version 3`_.
+VTST•Tools is released under the `Apache Licence version 2`_.
 
 -------------
 
@@ -38,6 +38,6 @@ For more information on subversion read its `online documentation`_.
 
 
 .. _online documentation: http://svnbook.red-bean.com/en/1.5/index.html
-.. _GNU General Public License version 3: http://www.gnu.org/copyleft/gpl.html
+.. _Apache License version 2: http://www.apache.org/licenses/LICENSE-2.0
 .. _vtstcode.tgz: http://theory.cm.utexas.edu/code/vtstcode.tgz
 .. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz
