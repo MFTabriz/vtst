@@ -126,8 +126,8 @@
 !            END DO
 !            s0=nim*kB*tpz/hbar*sum(fs0)
             s0=zero_mode()
-            WRITE(iuins,'(1A11,1ES10.4)') ' check S0 :',s0/hbar
-            WRITE(iuins,'(11X,1ES10.4)') 2.0_q*sum(Usp)/(kB*tpz)
+            WRITE(iuins,'(1A11,1ES11.4)') ' check S0 :',s0/hbar
+            WRITE(iuins,'(11X,1ES11.4)') 2.0_q*sum(Usp)/(kB*tpz)
             WRITE(iuins,'(1A13)') ' .^.^.^.^.^. '
             WRITE(iuins,'(1A4,1I5,1I8,2X,5F16.10)') ' ut ',itr,fc,SUM(U0),SUM(Usp),fmax,eig,s0
             WRITE(iuins,'(1A13)') ' .^.^.^.^.^. '
@@ -310,9 +310,9 @@
       IF (iu6 >= 0) THEN
         write(iuins,'(a)') ' ########################################### '
         write(iuins,'(1a11,1i3)')    ' I am node ',node
-        write(iuins,'(1a12,1es9.3)') ' ltol    -> ',ltol
-        write(iuins,'(1a12,1es9.3)') ' ftol    -> ',ftol
-        write(iuins,'(1a12,1es9.3)') ' dR      -> ',dR
+        write(iuins,'(1a12,1es10.3)') ' ltol    -> ',ltol
+        write(iuins,'(1a12,1es10.3)') ' ftol    -> ',ftol
+        write(iuins,'(1a12,1es10.3)') ' dR      -> ',dR
         write(iuins,'(1a12,1f9.3)')  ' maxmove -> ',maxmove
         write(iuins,'(1a12,1f9.3)')  ' dt      -> ',dt
         write(iuins,'(1a12,1i4)')    ' nl      -> ',nl
