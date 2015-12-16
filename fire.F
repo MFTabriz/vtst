@@ -15,11 +15,11 @@
     private
     public :: fire_step, fire_init  !call fire_init from opt_init
 
-    INTEGER :: nions,iu0,iu6,Nsteps,Nmin
-    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
-    REAL(q) :: cvelocity(3,3),cstep(3,3)
-    REAL(q) :: maxmove,dt,dtmax
-    REAL(q) :: finc,fdec,fadec,alpha,alpha_start
+    INTEGER :: nions, iu0, iu6, Nsteps, Nmin, ISIF_local
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step, velocity, R
+    REAL(q) :: cvelocity(3,3), cstep(3,3)
+    REAL(q) :: maxmove, dt, dtmax
+    REAL(q) :: finc, fdec, fadec, alpha, alpha_start
     LOGICAL :: qmflag, cell_flag
 
 !**********************************************************************
@@ -27,10 +27,10 @@
 !**********************************************************************
 
   CONTAINS
-    SUBROUTINE fire_step(optflag,posion,toten,force,hstress,latt_a,latt_b)
+    SUBROUTINE fire_step(optflag, posion, toten, force, hstress, latt_a, latt_b)
 
-      REAL(q) :: posion(3,nions),toten,force(3,nions)
-      REAL(q) :: hstress(3,3),latt_a(3,3),latt_b(3,3)
+      REAL(q) :: posion(3,nions), toten, force(3,nions)
+      REAL(q) :: hstress(3,3), latt_a(3,3), latt_b(3,3)
       REAL(q) :: Power
       LOGICAL :: optflag
 
@@ -89,7 +89,7 @@
       ! update posion
       posion = R
 
-      IF (cell_flag) THEN
+      IF (cell_flag .OR. (ISIF_local==3)) THEN
         cvelocity = cvelocity+(dt*hstress)
         cstep = dt*cvelocity
         IF (SQRT(SUM(cstep*cstep)) .GE. maxmove) THEN
@@ -207,12 +207,20 @@
       Nsteps = 0
       alpha = alpha_start
 
-      ! determines of cell should change
+      ! determines if the cell should change
       cell_flag=.FALSE.
       CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'LNEBCELL','=','#',';','L', &
      &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LNEBCELL'' from file INCAR.'
+        STOP
+      ENDIF
+
+      ISIF_local = 0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ISIF','=','#',';','I', &
+     &            ISIF_local,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ISIF'' from file INCAR.'
         STOP
       ENDIF
 

@@ -14,10 +14,10 @@
     private
     public :: qm_step, qm_init  !call qm_init from opt_init
 
-    INTEGER :: nions,iu0,iu6
-    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step,velocity,R
-    REAL(q) :: cvelocity(3,3),cstep(3,3)
-    REAL(q) :: maxmove,dt
+    INTEGER :: nions, iu0, iu6, ISIF_local
+    REAL(q),ALLOCATABLE,DIMENSION(:,:) :: step, velocity, R
+    REAL(q) :: cvelocity(3,3), cstep(3,3)
+    REAL(q) :: maxmove, dt
     LOGICAL :: cell_flag
 
   CONTAINS
@@ -62,7 +62,7 @@
       ! update posion
       posion = R
 
-      IF (cell_flag) THEN
+      IF (cell_flag .OR. (ISIF_local==3)) THEN
         IF ((SUM(hstress*cvelocity)) .GE. 0.0_q) THEN
           cvelocity = SUM(cvelocity*hstress)*hstress/SUM(hstress*hstress)
         ELSE
@@ -133,6 +133,14 @@
      &            IDUM,RDUM,CDUM,cell_flag,CHARAC,N,1,IERR)
       IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
         IF (IU0>=0) WRITE(IU0,*)'Error reading item ''LNEBCELL'' from file INCAR.'
+        STOP
+      ENDIF
+
+      ISIF_local = 0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ISIF','=','#',';','I', &
+     &            ISIF_local,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ISIF'' from file INCAR.'
         STOP
       ENDIF
 

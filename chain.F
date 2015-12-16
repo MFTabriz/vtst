@@ -51,12 +51,12 @@
     SAVE
     PRIVATE
     PUBLIC :: chain_force, chain_init, parallel_tempering
-    PUBLIC :: Sum_Chain,And_Chain,LHYPER_NUDGE
+    PUBLIC :: Sum_Chain, And_Chain, LHYPER_NUDGE
     INTEGER mpmd_client_rank
 #ifdef EAM
     PRIVATE :: EAMForce
 #endif
-    INTEGER :: ICHAIN,IOPT
+    INTEGER :: ICHAIN, IOPT, ISIF_local
     LOGICAL :: optflag, fconverge, ftot_flag, LINTERACT, LMPMD
     LOGICAL :: sconverge, cell_flag, twodim_flag
     REAL(q) :: EDIFFG_local, ftot_val, jacobian, PSTRESS_local 
@@ -514,11 +514,9 @@
       ENDIF
 
       ! check that solid state NEB uses our Optimizers 
-      IF((IOPT .NE. 3) .AND. (cell_flag .EQV. .TRUE.)) THEN
-        IF(IOPT .NE. 7) THEN
-          IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using LNEBCELL=.TRUE.'
-          STOP
-        ENDIF
+      IF((cell_flag .EQV. .TRUE.) .AND. ((IOPT .NE. 3) .OR. (IOPT .NE. 7))) THEN
+        IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using LNEBCELL=.TRUE.'
+        STOP
       ENDIF
 
       PSTRESS_local = 0.0_q
@@ -529,6 +527,26 @@
         STOP
       ENDIF
       PSTRESS_local = PSTRESS_local/(EVTOJ*1E22_q)
+
+      ISIF_local = 0
+      CALL RDATAB(.TRUE.,'INCAR',IO%IU5,'ISIF','=','#',';','I', &
+     &            ISIF_local,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
+      IF (((IERR/=0).AND.(IERR/=3)).OR.((IERR==0).AND.(N<1))) THEN
+        IF (IU0>=0) WRITE(IU0,*)'Error reading item ''ISIF'' from file INCAR.'
+        STOP
+      ENDIF
+
+      ! check that if ISIF is set, either vasp optimizers are used or IOPT=3,7
+      IF((IOPT>0) .AND. (ISIF_local>2)) THEN
+        IF (ISIF_local/=3) THEN
+          IF(IU6>=0) WRITE(IU6,*) 'Only ISIF = 3 is supported with IOPT = 3 or 7'
+          STOP
+        ELSE IF((IOPT.NE.3) .OR. (IOPT.NE.7)) THEN
+          IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using ISIF = 3'
+          IF(IU6>=0) WRITE(IU6,*) 'Alternatively, use the vasp optimizers'
+          STOP
+        ENDIF
+      ENDIF
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: Read ICHAIN ',ICHAIN
 
