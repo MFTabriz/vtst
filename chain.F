@@ -514,7 +514,7 @@
       ENDIF
 
       ! check that solid state NEB uses our Optimizers 
-      IF((cell_flag .EQV. .TRUE.) .AND. ((IOPT .NE. 3) .OR. (IOPT .NE. 7))) THEN
+      IF((cell_flag .EQV. .TRUE.) .AND. ((IOPT .NE. 3) .AND. (IOPT .NE. 7))) THEN
         IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using LNEBCELL=.TRUE.'
         STOP
       ENDIF
