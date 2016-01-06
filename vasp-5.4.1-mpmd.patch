@@ -51,7 +51,7 @@ Index: main_mpi.F
        node=COMM_CHAIN%NODE_ME
  
        CALL MAKE_DIR_APP(node)
-+      #endif
++#endif
  
  ! if all nodes should write (giving complete mess) do not use the
  ! following line
