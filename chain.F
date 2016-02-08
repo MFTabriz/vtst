@@ -541,7 +541,7 @@
         IF (ISIF_local/=3) THEN
           IF(IU6>=0) WRITE(IU6,*) 'Only ISIF = 3 is supported with IOPT = 3 or 7'
           STOP
-        ELSE IF((IOPT.NE.3) .OR. (IOPT.NE.7)) THEN
+        ELSE IF((IOPT.NE.3) .AND. (IOPT.NE.7)) THEN
           IF(IU6>=0) WRITE(IU6,*) 'Must set  IOPT = 3 or 7 when using ISIF = 3'
           IF(IU6>=0) WRITE(IU6,*) 'Alternatively, use the vasp optimizers'
           STOP
