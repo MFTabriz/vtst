@@ -15,6 +15,30 @@ In implementing the dynamical matrix calculation in VASP, several support progra
 
 -------------------------------
 
+
+Required Parameters
+====================
+
++----------+--------+----------------------------------------------------------------------------------+
+|Parameter |Default | Description                                                                      |
+|          |Value   |                                                                                  |
++==========+========+==================================================================================+
+|ICHAIN    | 1      |Use the Dynamical Matrix method                                                   |
++----------+--------+----------------------------------------------------------------------------------+
+|IBRION    | 3      |Specify that VASP do MD with a zero time step                                     |
++----------+--------+----------------------------------------------------------------------------------+
+|POTIM     | 0      |Zero time step so that VASP does not move the ions                                |
++----------+--------+----------------------------------------------------------------------------------+
+|EDIFF     | 1E-8   |Strict force criteria to accurately find force differences (curvature)            |
++----------+--------+----------------------------------------------------------------------------------+
+|EDIFFG    | -1E-8  |Make sure that vasp does not quit if the forces are low                           |
++----------+--------+----------------------------------------------------------------------------------+
+|NSW       | DOF+1  |Do a force call at equilibrium and along each degree of freedom                   |
++----------+--------+----------------------------------------------------------------------------------+
+
+
+-------------------------------
+
 Setting up a dynamical matrix calculation
 =========================================
 
@@ -49,6 +73,7 @@ Setting up a dynamical matrix calculation
 
  9. Calculate the prefactor (not for simple frequency analysis). The script dymprefactor.pl does this. It takes as input the eigenvalue files of both the minimum and the transition state. The output is the prefactor in inverse cm.
 
+-------------------------------
 
 Calculating additional degrees of freedom
 ==========================================
