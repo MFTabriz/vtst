@@ -110,7 +110,7 @@
     !SUBROUTINE chain_force(nions,posion,toten,force,a,b,IU6)
       INTEGER :: nions,ni,nj,IU6,I
       REAL(q) :: ftot, frms, fmaxatom, ftemp, fmaxdim, toten
-      REAL(q),DIMENSION(3,nions) :: posion,force
+      REAL(q),DIMENSION(3,nions) :: posion, force, force_dir
       REAL(q),DIMENSION(3,nions) :: posion_vasp, force_vasp, force_dimlan
       REAL(q),DIMENSION(3,3) :: a, b
       REAL(q),DIMENSION(3,3) :: stress, hstress, stress_vasp
@@ -221,17 +221,17 @@
 
 #ifdef EAM
       IF (.NOT. eaminit) THEN
-        eaminit=.TRUE.
+        eaminit = .TRUE.
         Ream = posion
         Rvasp = posion
         Fvasp = force
         Uvasp = toten
       ENDIF
-      posion=Ream
+      posion = Ream
       IF (IU6>0) WRITE(IU6,*) 'Calling EAMForce'
       IF (IU6>0) WRITE(IU6,*) 'posion'
       IF (IU6>0) WRITE(IU6,'(3F14.6)') posion
-      CALL EAMForce(IU6,nions,posion,a,Feam,Ueam)
+      CALL EAMForce(IU6,nions,posion,Feam,Ueam,a,b)
       force = Feam
       toten = Ueam
       IF (IU6>0) WRITE(IU6,*) 'force'
@@ -252,10 +252,10 @@
           CALL dynmat_step(optflag,posion,toten,force,a,b)
         ELSEIF (ICHAIN==2) THEN
           CALL dimer_step(optflag,posion,toten,force,a,b)
-          force_dimlan=force
+          force_dimlan = force
         ELSEIF (ICHAIN==3) THEN
           CALL lanczos_step(optflag,posion,toten,force,a,b)
-          force_dimlan=force         
+          force_dimlan = force         
         ELSEIF (ICHAIN==6) THEN
           CALL bbm_step(optflag,posion,toten,force,a,b) 
 !INS_BEGIN
@@ -278,7 +278,10 @@
       ENDIF
 
       ! zero out any added forces on frozen atoms
+      ! atomic constraints in direct coordinates, thanks to Christopher Stihl
+      CALL KARDIR(NIONS, force, B)
       force = force*Free
+      CALL DIRKAR(NIONS, force, A)
 
       ! for dimer/lanczos, check force criteria using the vasp force
       IF (ICHAIN==2 .OR. ICHAIN==3) THEN
@@ -597,11 +600,11 @@
 
       ! Make vector to zero out force on frozen atoms 
       ALLOCATE(Free(3,T_INFO%nions))
-      Free(:,:)=1._q
+      Free(:,:) = 1._q
       IF(T_INFO%LSDYN) THEN
-        DO NI=1,T_INFO%nions
-          DO NJ=1,3
-            IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI)=0._q
+        DO NI = 1,T_INFO%nions
+          DO NJ = 1,3
+            IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI) = 0._q
           ENDDO
         ENDDO
       ENDIF
@@ -618,16 +621,6 @@
       eaminit = .FALSE.
       ALLOCATE(Feam(3,T_INFO%nions),Ream(3,T_INFO%nions))
       ALLOCATE(Fvasp(3,T_INFO%nions),Rvasp(3,T_INFO%nions))
-!      ALLOCATE(Free(3,T_INFO%nions))
-!
-!      Free(:,:)=1._q
-!      IF(T_INFO%LSDYN) THEN
-!        DO NI=1,T_INFO%nions
-!          DO NJ=1,3
-!            IF (.NOT.T_INFO%LSFOR(NJ,NI)) Free(NJ,NI)=0._q
-!          ENDDO
-!        ENDDO
-!      ENDIF
 #endif
 
 
@@ -821,16 +814,16 @@
 
 ! if one node is .FALSE., .FALSE. is returned on all nodes
       IF (value) THEN
-         sum=0
+         sum = 0
       ELSE
-         sum=1
+         sum = 1
       ENDIF
       CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
 
       IF (sum>=1) THEN
-         value=.FALSE.
+         value = .FALSE.
       ELSE
-         value=.TRUE.
+         value = .TRUE.
       ENDIF
     END SUBROUTINE and_chain
 
@@ -889,11 +882,11 @@
       IMPLICIT REAL(q) (A-H,O-Z)
       INTEGER I,J,K
       DIMENSION V(3,3),BASIS(3,3),AC(3,3)
-      AC=0
-      DO J=1,3
-         DO I=1,3
-            !A(I,J)=AC(I,J)
-            DO K=1,3
+      AC = 0
+      DO J = 1,3
+         DO I = 1,3
+            !A(I,J) = AC(I,J)
+            DO K = 1,3
                AC(I,J) = AC(I,J) + V(I,K)*BASIS(K,J)
             ENDDO
          ENDDO
@@ -908,11 +901,11 @@
       IMPLICIT REAL(q) (A-H,O-Z)
       INTEGER I,J,K
       DIMENSION V(3,3),BASIS(3,3),AC(3,3)
-      AC=0
-      DO J=1,3
-         DO I=1,3
-            !A(I,J)=AC(I,J)
-            DO K=1,3
+      AC = 0
+      DO J = 1,3
+         DO I = 1,3
+            !A(I,J) = AC(I,J)
+            DO K = 1,3
                AC(I,J) = AC(I,J) + V(I,K)*BASIS(J,K)
             ENDDO
          ENDDO
@@ -942,14 +935,14 @@
 ! Empirical potential, for testing purposes only
 !**********************************************************************
 
-      SUBROUTINE EAMForce(IU6,NIONS,POSION,A,Feam,Ueam)
-      INTEGER :: NIONS,IU6
+      SUBROUTINE EAMForce(IU6,NIONS,POSION,Feam,Ueam,A,B)
+      INTEGER :: NIONS, IU6
       REAL(q) :: POSION(3,NIONS)
-      REAL(q) :: Reamcar(3,NIONS),Feam(3,NIONS)
-      REAL(q) :: A(3,3)
-      INTEGER :: NI,NJ
+      REAL(q) :: Reamcar(3,NIONS), Feam(3,NIONS)
+      REAL(q) :: A(3,3), B(3,3)
+      INTEGER :: NI, NJ
 
-      REAL*8 :: Rtmp(3*NIONS),Ftmp(3*NIONS)
+      REAL*8 :: Rtmp(3*NIONS), Ftmp(3*NIONS)
       REAL*8 :: Ueam
       REAL*8 :: Ax,Ay,Az
 
@@ -962,22 +955,27 @@
       IF (IU6>0) WRITE(IU6,*) 'IN EAMForce'
       ! Convert positions to Cartesian
       Reamcar = POSION
-      CALL DIRKAR(NIONS,Reamcar,A)
+      CALL DIRKAR(NIONS, Reamcar, A)
       IF (IU6>0) WRITE(IU6,*) 'Reamcar'
       IF (IU6>0) WRITE(IU6,'(3F14.8)') Reamcar(:,:)
       ! 
-      DO NI=1,NIONS
-         DO NJ=1,3
+      DO NI = 1,NIONS
+         DO NJ = 1,3
             Rtmp(3*(NI-1)+NJ) = Reamcar(NJ,NI)
          ENDDO
       ENDDO
-      call EAM_FORCE(Nions,Rtmp,Ftmp,Ueam,Ax,Ay,Az)
-      DO NI=1,NIONS
-         DO NJ=1,3
+      call EAM_FORCE(Nions, Rtmp, Ftmp, Ueam, Ax, Ay, Az)
+      DO NI = 1,NIONS
+         DO NJ = 1,3
             Feam(NJ,NI) = Ftmp(3*(NI-1)+NJ)
          ENDDO
       ENDDO
+      ! Apply constraints in direct coordinates
+!      Feam = Feam*Free
+      CALL KARDIR(NIONS, Feam, B)
       Feam = Feam*Free
+      CALL DIRKAR(NIONS, Feam, A)
+
       IF (IU6>0) WRITE(IU6,*) 'EAMForce'
       IF (IU6>0) WRITE(IU6,'(3F14.8)') FEAM(:,:)
       IF (IU6>0) WRITE(IU6,*) 'Ueam: ',Ueam
