@@ -36,7 +36,12 @@ for ($i=0;$i<$len;$i++) {
       next;
     }
   }
-  if($sph[$i] =~ /SUBROUTINE SPHPRO\( &/) {
+  if($sph[$i] =~ /SUBROUTINE SPHPRO\(/) {
+    $sph[$i] =~ s/SPHPRO/BDRPRO/;
+    print OUT $sph[$i];
+    next;
+  }
+  if($sph[$i] =~ /END SUBROUTINE SPHPRO/) {
     $sph[$i] =~ s/SPHPRO/BDRPRO/;
     print OUT $sph[$i];
     next;
@@ -85,7 +90,7 @@ for ($i=0;$i<$len;$i++) {
     $l2=$l2+1;
     next;
   }
-  if($sph[$i] =~ /CALLMPI\( M_sum_z\( WDES\%COMM_INB, CSUM_PHASE/){
+  if($sph[$i] =~ /CALLMPI\( M_sum_z\(WDES\%COMM_INB,CSUM/){
     print OUT $sph[$i];
     while($bdr[$l2] !~ /111111/) {print OUT $bdr[$l2];$l2=$l2+1;}
     $l2=$l2+1;
