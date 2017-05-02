@@ -110,7 +110,7 @@
     !SUBROUTINE chain_force(nions,posion,toten,force,a,b,IU6)
       INTEGER :: nions,ni,nj,IU6,I
       REAL(q) :: ftot, frms, fmaxatom, ftemp, fmaxdim, toten
-      REAL(q),DIMENSION(3,nions) :: posion, force, force_dir
+      REAL(q),DIMENSION(3,nions) :: posion, force
       REAL(q),DIMENSION(3,nions) :: posion_vasp, force_vasp, force_dimlan
       REAL(q),DIMENSION(3,3) :: a, b
       REAL(q),DIMENSION(3,3) :: stress, hstress, stress_vasp
