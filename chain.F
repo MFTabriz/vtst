@@ -146,10 +146,21 @@
          ALLOCATE(force_all(3,nions,2))
          force_all(:,:,1:2) = 0
          force_all(:,:,node) = force
+#ifndef old_vca
+         ! first core in image merges the data
+         IF (comm%node_me==1) THEN
+            CALLMPI_C( M_sum_d( comm_chain, force_all(1,1,1), nions*3*2))
+            force(:,:)=force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
+         ELSE
+            force=0
+         ENDIF
+         ! now sum over all cores in one image
+         CALLMPI_C( M_sum_d( comm, force(1,1), nions*3))
+#else
          CALLMPI_C( M_sum_d( comm_chain, force_all(1,1,1), nions*3*2))
-         force = 0
-         force(:,:) = force_all(:,:,1)*VCAIMAGES + force_all(:,:,2)*(1-VCAIMAGES)
-         force = force
+         force=0
+         force(:,:)=force_all(:,:,1)*VCAIMAGES+force_all(:,:,2)*(1-VCAIMAGES)
+#endif
          DEALLOCATE(force_all)
          RETURN
       ENDIF
@@ -681,7 +692,17 @@
 
       IF (LVCAIMAGES .OR. LTEMPER) THEN
          nions_max=T_INFO%NIONS
+#ifndef old_vca
+         IF (comm%node_me==1) THEN
+            CALL M_max_i(comm_chain, nions_max, 1 )
+         ELSE
+            nions_max=0
+         ENDIF
+         ! now sum over all cores in one image
+         CALLMPI_C( M_sum_i( comm, nions_max, 1))
+#else
          CALL M_max_i(comm_chain, nions_max, 1 )
+#endif
          IF (T_INFO%NIONS /= nions_max) THEN
             IF (IO%IU0>=0) WRITE(IO%IU0,*)'ERROR: image mode number of ions wrong'
             STOP
@@ -790,8 +811,20 @@
          node=comm_chain%node_me
          value_all=0
          value_all(node)=value
+#ifndef old_vca
+         ! first core in image merges data
+         IF (comm%node_me==1) THEN
+            CALLMPI_C( M_sum_d( comm_chain, value_all, 2))
+            value=value_all(1)*VCAIMAGES+value_all(2)*(1-VCAIMAGES)
+         ELSE
+            value=0
+         ENDIF
+         ! now sum over all cores in one image
+         CALLMPI_C( M_sum_d( comm, value, 1))
+#else
          CALLMPI_C( M_sum_d( comm_chain, value_all, 2))
          value=value_all(1)*VCAIMAGES+value_all(2)*(1-VCAIMAGES)
+#endif
       ELSE
          CALLMPI_C( M_sum_d( comm_chain, value, 1 ))
       ENDIF
@@ -812,19 +845,35 @@
 
       IF (images==0) RETURN
 
+#if defined(MPI) || defined(MPI_CHAIN)
 ! if one node is .FALSE., .FALSE. is returned on all nodes
       IF (value) THEN
          sum = 0
       ELSE
          sum = 1
       ENDIF
-      CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
-
+      IF (LVCAIMAGES) THEN
+#ifndef old_vca
+         ! first core in image merges data
+         IF (comm%node_me==1) THEN
+            CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
+         ELSE
+            sum=0
+         ENDIF
+         ! now sum over all cores in one image
+         CALLMPI_C( M_sum_d( comm, sum, 1))
+#else
+         CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
+#endif
+      ELSE
+         CALLMPI_C( M_sum_d( comm_chain, sum, 1 ))
+      ENDIF
       IF (sum>=1) THEN
          value = .FALSE.
       ELSE
          value = .TRUE.
       ENDIF
+#endif
     END SUBROUTINE and_chain
 
 
