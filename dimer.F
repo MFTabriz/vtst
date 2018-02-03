@@ -148,7 +148,10 @@
             WRITE(IU6,'(A,F14.6)') ' Dimer: F0 ', F0r
             WRITE(IU6,'(A,F14.6,/)') ' Dimer: FN ', FNr
           END IF
+          !GH: moved this here so that the NEWMODECAR reflects the last N
+          CALL WriteMode()
         END IF
+
         ! check to see if rotation is converged
         IF (FNr<FNMin) THEN
           IF (IU6>=0) WRITE(IU6,*) 'Dimer: Rotation converged'
@@ -165,8 +168,6 @@
             OptFlag = .TRUE.
           END IF
         END IF
-        ! Thanks to Craig Plaisance for this if statement correction.
-        IF (.NOT. FdStep) CALL WriteMode() ! Save the current mode 
       END IF
 
       IF (OptFlag) THEN  ! going back to the optimizer; set R and Feff
@@ -192,7 +193,6 @@
 ! Dimer cleanup routine
 
     SUBROUTINE Dimer_Fin()
-!      IF (IU6>=0) WRITE(IUdim,'(I5,5F14.5)') Itr,F0r,FN1r,U0,CN,0._q
       IF (IU6>=0) WRITE(IUdim,'(I5,F14.5,7x,A3,4x,F14.5,7x,A3,11x,A3,4x)') &
       &  Itr,F0r,'---',U0,'---','---'
     END SUBROUTINE Dimer_Fin
@@ -221,6 +221,8 @@
           END DO
         END DO
       END IF
+      IF (IU6>=0) WRITE(IU6,*) 'Dimer: initial mode' 
+      IF (IU6>=0) WRITE(IU6,'(3ES20.10)') (N(:,i) , i=1,Nions)
       CALL SetConstraints(N)
       CALL SetUnit(N)
       CALL WriteMode()
@@ -240,10 +242,6 @@
     SUBROUTINE ProjectDimer()
       IF (iu6>=0) THEN
         WRITE(iu6,*) "Dimer: Projection"
-!        WRITE(iu6,*) "Dimer: F0"
-!        WRITE(iu6,'(3ES20.10)') (F0(:,i), i=1,Nions)
-!        WRITE(iu6,*) "Dimer: N"
-!        WRITE(iu6,'(3ES20.10)') (N(:,i), i=1,Nions)
         WRITE(iu6,*) "Dimer: N*F0", SUM(N*F0)
         WRITE(iu6,*) "Dimer: F0sq", SUM(F0*F0)
       END IF
@@ -255,8 +253,8 @@
       END IF
       IF (iu6>=0) THEN
         WRITE(iu6,*) "Dimer: Feffsq ", SUM(Feff*Feff)
-!        WRITE(iu6,*) "Dimer: Feff"
-!        WRITE(iu6,'(3ES20.10)') (Feff(:,i), i=1,Nions)
+        WRITE(iu6,*) "Dimer: Feff"
+        WRITE(iu6,'(3ES20.10)') (Feff(:,i), i=1,Nions)
         WRITE(iu6,*) ''
       END IF
     END SUBROUTINE ProjectDimer
@@ -265,7 +263,7 @@
 
     SUBROUTINE RotateDimer()
       REAL(q) a1,a2
-      ! Conjugate gradient and modified Newtons method for rotation
+      ! Conjugate gradient and modified Newton's method for rotation
       IF (FdStep) THEN
         IF (IU6>=0) WRITE(IU6,*) 'Dimer: Trial Rotation'
         ! Finite difference step
@@ -284,9 +282,16 @@
         ENDIF
         IF (IU6>=0) WRITE(IU6,'(A,F14.6)') ' Dimer: Gam',GamN
         GN = FN + GN*GamN
+        !GH 02/02/18: need to re-orthogonalize to N
+        GN = GN - SUM(GN*N)*N
+        !GH 02/02/18
+        IF(IU6>=0) WRITE(IU6,'(A,F14.6)') ' Dimer: in RotateDimer, mode norm ',Sqrt(Sum(N*N))
+        IF(IU6>=0) WRITE(IU6,'(A,F14.6)') ' Dimer: in RotateDimer N*GN',Sum(GN*N)
         GNu = GN/SQRT(SUM(GN*GN))
         FN1 = SUM(FN*GNu)
+        IF (IU6>=0) WRITE(IU6,'(A,F14.6)') ' Dimer: in RotateDimer, N*GNu before rotate',Sum(N*GNu)
         CALL Rotate(N, GNu, PI/4._q)
+        IF (IU6>=0) WRITE(IU6,'(A,F14.6)') ' Dimer: in RotateDimer, N*GNu after rotate',Sum(N*GNu)
         R = R0 + N*dR
         FdStep = .FALSE.
         IF (IU6>=0) THEN

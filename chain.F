@@ -18,7 +18,7 @@
 ! and systematically check for convergence of the normal modes, or
 ! prefactors of reactions.
 !
-! For more information see: http://theory.cm.utexas.edu/vtsttools/
+! For more information see: http://henkelmanlab.org/vtsttools/
 !
 ! Contributers:
 !   Andri Arnaldsson
@@ -437,7 +437,7 @@
       IU6 = IO%IU6
 
       ! write the version number
-      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.1, (03/28/14)'
+      IF(IU6>=0) WRITE(IU6,'(/,A,/)') ' VTST: version 3.2, (02/03/18)'
 
       IF(IU6>=0) WRITE(IU6,*) 'CHAIN: initializing optimizer'
 
