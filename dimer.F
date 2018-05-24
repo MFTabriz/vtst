@@ -374,7 +374,7 @@
           V(1:3,i) = Vtmp(1:3)
         END DO
       ELSE
-        Vtmp = SUM(V, DIM=2)
+        Vtmp = SUM(V, DIM=2)/Nions
         DO i = 1,Nions
           V(1:3,i) = V(1:3,i) - Vtmp(1:3)
         END DO
