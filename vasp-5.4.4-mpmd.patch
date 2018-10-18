@@ -1,10 +1,10 @@
---- main_mpi_org.F	2018-09-25 09:52:35.000000000 -0500
-+++ main_mpi.F	2018-09-25 09:59:58.000000000 -0500
+--- main_mpi_org.F	2017-04-20 04:03:58.000000000 -0500
++++ main_mpi.F	2018-10-18 13:45:04.960868237 -0500
 @@ -67,7 +67,31 @@
  !!      INTEGER :: I,resultlen,ierror
  !!! test_
  
-+#ifdef VASP_MPMD
++#ifdef MPMD
 +      LOGICAL LMPMD
 +      INTEGER mpmd_group_number
 +      LMPMD =.FALSE.
@@ -36,7 +36,7 @@
           STOP
        ENDIF
  
-+#if defined(VASP_MPMD)
++#if defined(MPMD)
 +      IF (LMPMD) THEN
 +        IF (IO%IU0>=0) WRITE (IO%IU0,'(A,A)') "MPMD: output directory ", DIR_APP(1:DIR_LEN)
 +      ELSE
@@ -45,7 +45,7 @@
 +      ENDIF
 +#endif
 +
-+#ifndef VASP_MPMD
++#ifndef MPMD
        node=COMM_CHAIN%NODE_ME
  
        CALL MAKE_DIR_APP(node)
@@ -53,24 +53,24 @@
  
  ! if all nodes should write (giving complete mess) do not use the
  ! following line
---- mpi_org.F	2018-09-25 10:28:10.000000000 -0500
-+++ mpi.F	2018-09-25 10:26:15.000000000 -0500
+--- mpi_org.F	2017-04-20 04:03:58.000000000 -0500
++++ mpi.F	2018-10-18 13:56:15.929434030 -0500
 @@ -87,6 +87,9 @@
          INTEGER NODE_ME           ! node id starting from 1 ... NCPU
          INTEGER IONODE            ! node which has to do IO (set to 0 for no IO)
          INTEGER NCPU              ! total number of proc in this communicator
-+#ifdef VASP_MPMD
++#ifdef MPMD
 +        INTEGER mpmd_client_rank
 +#endif
        END TYPE
  
  ! Standard MPI include file.
-@@ -116,6 +119,152 @@
+@@ -116,6 +119,161 @@
  #endif
  
        CONTAINS
 +
-+#ifdef VASP_MPMD
++#ifdef MPMD
 +      SUBROUTINE mpmd_mpi_init(mpmd_mpi_comm, mpmd_group_number, mpmd_client_rank)
 +      IMPLICIT NONE
 +      INTEGER, INTENT(OUT) :: mpmd_mpi_comm, mpmd_client_rank
@@ -81,6 +81,8 @@
 +      INTEGER, ALLOCATABLE, DIMENSION(:) :: process_types
 +      INTEGER, ALLOCATABLE, DIMENSION(:) :: potential_ranks
 +      CHARACTER (LEN=16) nclients_str
++      CHARACTER (LEN=10) ::  DIR_APP
++      INTEGER           ::  DIR_LEN=0
 +#if defined(CLIENT_MPI)
 +      INTEGER, ALLOCATABLE, DIMENSION(:) :: client_ranks
 +#endif
@@ -94,7 +96,7 @@
 +      ALLOCATE(potential_ranks(0:isize-1))
 +#if defined(CLIENT_MPI)
 +      ALLOCATE(client_ranks(0:isize-1))
-+        write(*,'(a,2i4)') 'mpi started: iproc_world,nproc_world ',irank,isize
++      WRITE(*,'(a,2i4)') 'mpi started: iproc_world,nproc_world ',irank,isize
 +#endif
 +      process_type = 2
 +      CALLMPI(MPI_Allgather(process_type, 1, MPI_INTEGER, process_types, 1 , MPI_INTEGER, MPI_COMM_WORLD, ierr))
@@ -105,6 +107,8 @@
 +      ELSE
 +        nclients = 1
 +      ENDIF
++
++      !WRITE(*,'(a,i4)') 'number of EON clients: ',nclients
 +#endif
 +#if defined(CLIENT_MPI)
 +      nclients = 0
@@ -116,10 +120,10 @@
 +          nclients = nclients + 1
 +        ENDIF
 +      ENDDO
-+        write(*,'(a,i4)') 'nclients ',nclients
-+        CALLMPI(MPI_Comm_group(MPI_COMM_WORLD, orig_group, ierr))
-+        CALLMPI(MPI_Group_incl(orig_group, nclients, client_ranks, new_group, ierr))
-+        CALLMPI(MPI_Comm_create(MPI_COMM_WORLD, new_group, new_comm, ierr))
++      !WRITE(*,'(a,i4)') 'number of EON clients: ',nclients
++      CALLMPI(MPI_Comm_group(MPI_COMM_WORLD, orig_group, ierr))
++      CALLMPI(MPI_Group_incl(orig_group, nclients, client_ranks, new_group, ierr))
++      CALLMPI(MPI_Comm_create(MPI_COMM_WORLD, new_group, new_comm, ierr))
 +#endif
 +
 +      npotentials = 0
@@ -148,6 +152,11 @@
 +
 +      CALLMPI(MPI_Comm_rank(my_comm, irank, ierr))
 +      IF (irank==0 ) THEN
++        !GH write vasp directories
++        WRITE (DIR_APP, "('vasp',I3.3,'/')") mpmd_group_number
++        DIR_LEN=LEN_TRIM(DIR_APP)
++        CALL SYSTEM('mkdir -p ' // DIR_APP)
++        !GH end write vasp directories
 +        CALL mpmd_recv_poscar(mpmd_group_number, mpmd_client_rank)
 +        WRITE(*,*) "finished mpmd_mpi_init"
 +      ENDIF
@@ -218,12 +227,12 @@
  !----------------------------------------------------------------------
  !
  ! M_init: initialise the basic communications
-@@ -123,12 +272,19 @@
+@@ -123,12 +281,19 @@
  !
  !----------------------------------------------------------------------
  !
 -      SUBROUTINE M_init( COMM)
-+#ifdef VASP_MPMD
++#ifdef MPMD
 +      SUBROUTINE M_init(COMM, mpmd_group_number)
 +#else
 +      SUBROUTINE M_init(COMM)
@@ -233,22 +242,22 @@
  
       TYPE(communic) COMM
        INTEGER i, ierror
-+#ifdef VASP_MPMD
++#ifdef MPMD
 +      INTEGER mpmd_mpi_comm, mpmd_group_number, mpmd_client_rank
 +#endif
  
        call MPI_init( ierror )
        IF ( ierror /= MPI_success ) THEN
-@@ -140,7 +296,17 @@
+@@ -140,7 +305,17 @@
  ! set only NCPU, NODE_ME and IONODE
  ! no internal setup done at this point
  !
-+#if defined(VASP_MPMD)
++#if defined(MPMD)
 +      if (mpmd_group_number .EQ. -1) THEN
-+        COMM%MPI_COMM= MPI_comm_world
++        COMM%MPI_COMM = MPI_comm_world
 +      ELSE
 +        CALL mpmd_mpi_init(mpmd_mpi_comm, mpmd_group_number, mpmd_client_rank)
-+        COMM%MPI_COMM=  mpmd_mpi_comm
++        COMM%MPI_COMM = mpmd_mpi_comm
 +        COMM%mpmd_client_rank = mpmd_client_rank
 +      ENDIF
 +#else
