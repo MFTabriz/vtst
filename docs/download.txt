@@ -1,0 +1,43 @@
+.. _download:
+
+================================
+Download
+================================
+
+VTST•Tools is released under the `Apache License version 2`_.
+
+-------------
+
+Tar files
+=========
+
+    VTST Code: `vtstcode-179.tgz`_
+
+    VTST Scripts: `vtstscripts.tgz`_
+
+-------------
+
+SVN Access
+==========
+
+A read-only copy of the code can be anonymously checked out of the subversion
+repository with the following command:
+
+.. code-block:: sh
+
+    svn co http://theory.cm.utexas.edu/svn/vtsttools
+
+If you are a developer you can checkout the code using the command:
+
+.. code-block:: sh
+
+    svn co svn+ssh://username@theory.cm.utexas.edu/svn/vtsttools
+
+This will fetch a copy of the latest code to a local directory named vtsttools.
+For more information on subversion read its `online documentation`_.
+
+
+.. _online documentation: http://svnbook.red-bean.com/en/1.5/index.html
+.. _Apache License version 2: http://www.apache.org/licenses/LICENSE-2.0
+.. _vtstcode-179.tgz: http://theory.cm.utexas.edu/code/vtstcode-179.tgz
+.. _vtstscripts.tgz: http://theory.cm.utexas.edu/code/vtstscripts.tgz

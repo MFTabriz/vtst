@@ -1,0 +1,50 @@
+
+.. _installation:
+
+============
+Installation
+============
+
+The VTST•Tools has a fortran component which can be linked into the VASP code as well as a collection of scripts.
+
+--------------
+
+Code change in the VASP main.F file
+===================================
+
+In VTST v2.04 and later, a  modification is required in main.F for the solid-state NEB.
+
+Find and replace:
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+with
+
+.. code-block:: sh
+
+      CALL CHAIN_FORCE(T_INFO%NIONS,DYN%POSION,TOTEN,TIFOR, &
+           TSIF,LATT_CUR%A,LATT_CUR%B,IO%IU6)
+
+--------------
+
+Building the VTST code into VASP
+================================
+
+The code for the NEB, dimer, Lanczos, and dynamical matrix methods, as well as the steepest descent, force-based conjugate gradient, quick-min, lbfgs, bfgs, and fire optimizers are contained in a single package which interfaces to VASP through the chain.F file. To install, download the files in vtsttools/source into your vasp source directory. The file chain.F is replaced, so back up the old version. There are other files in the package: neb.F, dynmat.F, dimer.F, lanczos.F, sd.F, cg.F, qm.F, lbfgs.F, bfgs.F, fire.F, and opt.F. To build the code, the VASP makefile needs to be changed. Find the variable SOURCE, which defines which objects will be built, and add the following objects before chain.o:
+
+.. code-block:: sh
+
+            bfgs.o dynmat.o  instanton.o  lbfgs.o sd.o   cg.o dimer.o bbm.o \
+            fire.o lanczos.o neb.o  qm.o opt.o
+
+The objects dynmat.o, neb.o, dimer.o, lanczos.o, and instanton.o must be in the SOURCE list before chain.o appears. The optimizer objects, sd.o, cg.o, qm.o, lbfgs.o, bfgs.o, and fire.o must appear before the optimizer driver opt.o. Nothing else needs to be done. This code will not change the working of any other part of vasp. This code will only be run if IMAGES is set in the INCAR file, or if ICHAIN is set, to specify which method should be run.
+
+- ICHAIN=0: Nudged elastic band (default)
+- ICHAIN=1: Dynamical matrix
+- ICHAIN=2: Dimer
+- ICHAIN=3: Lanczos
+
+

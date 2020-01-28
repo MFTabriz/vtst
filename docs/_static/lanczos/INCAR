@@ -1,0 +1,13 @@
+SYSTEM = Typical Lanczos run
+IBRION=3
+POTIM=0.0
+NSW=500
+EDIFF=1E-08
+EDIFFG=-0.001
+PREC=Norm
+
+# LANCZOS PARAMETERS
+ICHAIN = 3
+Snl = 20
+Sltol = 1E-2
+SdR = 1E-3

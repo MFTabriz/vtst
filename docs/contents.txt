@@ -1,0 +1,19 @@
+.. vtsttools documentation master file
+
+Contents
+===============================
+
+.. toctree::
+   :maxdepth: 2
+
+   index
+   vtsttools
+   download
+   installation
+   neb
+   dimer
+   lanczos
+   optimizers
+   scripts
+   references
+   dymmat
